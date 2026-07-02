@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,35 +45,68 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Maximize
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RotateCcw
 import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
+import com.composables.icons.lucide.Sun
+import com.composables.icons.lucide.Volume2
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.navigation.PlayerComponent
+import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
+import com.rinwave.sakuro.ui.displayName
+import com.rinwave.sakuro.ui.gestures.LevelSwipeSession
+import com.rinwave.sakuro.ui.gestures.PinchSession
+import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
+import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
+import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
+import com.rinwave.sakuro.ui.rememberPlayerSystemControls
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 private const val CONTROLS_HIDE_DELAY_MS = 3500L
 private const val DOUBLE_TAP_SEEK_MS = 10_000L
+private const val INDICATOR_LINGER_MS = 600L
+
+/** Что показывает центральный индикатор во время жеста. */
+private sealed interface GestureIndicator {
+    data class Seek(val targetMs: Long, val deltaMs: Long) : GestureIndicator
+    data class Level(val isVolume: Boolean, val value: Float) : GestureIndicator
+    data class Frame(val mode: ScaleMode) : GestureIndicator
+}
 
 @Composable
 fun PlayerScreen(component: PlayerComponent) {
     val state by component.engine.state.collectAsState()
     val debugEnabled by component.debugOverlay.collectAsState()
     val selectedPresetId by component.selectedPresetId.collectAsState()
+    val gesturesEnabled by component.gesturesEnabled.collectAsState()
+
+    val systemControls = rememberPlayerSystemControls()
+    val haptics = LocalHapticFeedback.current
 
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
     var speedBoost by remember { mutableStateOf(false) }
+    var scaleMode by remember { mutableStateOf(ScaleMode.FIT) }
+
+    var indicator by remember { mutableStateOf<GestureIndicator?>(null) }
+    var gestureActive by remember { mutableStateOf(false) }
+    var lingerKey by remember { mutableStateOf(0) }
 
     // Авто-скрытие контролов при воспроизведении (DESIGN.md §6).
     LaunchedEffect(controlsVisible, state.isPlaying) {
@@ -82,11 +116,20 @@ fun PlayerScreen(component: PlayerComponent) {
         }
     }
 
+    // Индикатор жеста задерживается на экране после отпускания пальца.
+    LaunchedEffect(lingerKey) {
+        if (lingerKey > 0) {
+            delay(INDICATOR_LINGER_MS)
+            if (!gestureActive) indicator = null
+        }
+    }
+
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        VideoSurface(component.engine, Modifier.fillMaxSize())
+        VideoSurface(component.engine, scaleMode, Modifier.fillMaxSize())
 
         // Жесты (FEATURES.md §3.1): тап — контролы, двойной тап — перемотка/пауза,
-        // удержание — ускорение 2× на время удержания.
+        // удержание — ускорение 2× на время удержания; свайпы и пинч —
+        // в отдельном pointerInput (detectPlayerGestures).
         Box(
             Modifier
                 .fillMaxSize()
@@ -106,6 +149,7 @@ fun PlayerScreen(component: PlayerComponent) {
                         },
                         onLongPress = {
                             speedBoost = true
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             component.engine.setSpeed(2f)
                         },
                         onPress = {
@@ -116,8 +160,82 @@ fun PlayerScreen(component: PlayerComponent) {
                             }
                         },
                     )
+                }
+                .pointerInput(gesturesEnabled) {
+                    if (!gesturesEnabled) return@pointerInput
+
+                    var seekSession: SeekSwipeSession? = null
+                    var seekStartMs = 0L
+                    var seekTargetMs = 0L
+                    var levelSession: LevelSwipeSession? = null
+                    var levelIsVolume = false
+                    var pinchSession: PinchSession? = null
+
+                    detectPlayerGestures(object : PlayerGestureCallbacks {
+                        override fun onSeekStart() {
+                            gestureActive = true
+                            val current = component.engine.state.value
+                            seekStartMs = current.positionMs
+                            seekTargetMs = current.positionMs
+                            seekSession = SeekSwipeSession(current.positionMs, current.durationMs, size.width.toFloat())
+                        }
+
+                        override fun onSeekDrag(totalDxPx: Float) {
+                            val session = seekSession ?: return
+                            seekTargetMs = session.positionFor(totalDxPx)
+                            indicator = GestureIndicator.Seek(seekTargetMs, seekTargetMs - seekStartMs)
+                        }
+
+                        override fun onSeekEnd() {
+                            if (seekSession != null) component.engine.seekTo(seekTargetMs)
+                            seekSession = null
+                            gestureActive = false
+                            lingerKey++
+                        }
+
+                        override fun onLevelStart(leftSide: Boolean) {
+                            gestureActive = true
+                            levelIsVolume = !leftSide
+                            val start = if (levelIsVolume) systemControls.volume else systemControls.brightness
+                            levelSession = LevelSwipeSession(start, size.height.toFloat())
+                        }
+
+                        override fun onLevelDrag(totalDyPx: Float) {
+                            val session = levelSession ?: return
+                            val level = session.levelFor(totalDyPx)
+                            if (levelIsVolume) systemControls.setVolume(level) else systemControls.setBrightness(level)
+                            indicator = GestureIndicator.Level(levelIsVolume, level)
+                        }
+
+                        override fun onLevelEnd() {
+                            levelSession = null
+                            gestureActive = false
+                            lingerKey++
+                        }
+
+                        override fun onPinch(cumulativeZoom: Float) {
+                            gestureActive = true
+                            val session = pinchSession ?: PinchSession(scaleMode).also { pinchSession = it }
+                            val newMode = session.update(cumulativeZoom)
+                            if (newMode != scaleMode) {
+                                scaleMode = newMode
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            indicator = GestureIndicator.Frame(newMode)
+                        }
+
+                        override fun onPinchEnd() {
+                            pinchSession = null
+                            gestureActive = false
+                            lingerKey++
+                        }
+                    })
                 },
         )
+
+        indicator?.let { current ->
+            GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
+        }
 
         AnimatedVisibility(
             visible = speedBoost,
@@ -287,6 +405,66 @@ private fun TimeText(text: String) {
         fontSize = 12.sp,
         color = SakuroColors.TextPrimary,
     )
+}
+
+@Composable
+private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = SakuroColors.Background.copy(alpha = 0.75f),
+        contentColor = SakuroColors.TextPrimary,
+        modifier = modifier,
+    ) {
+        when (indicator) {
+            is GestureIndicator.Seek -> Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Text(formatTime(indicator.targetMs), fontFamily = FontFamily.Monospace, fontSize = 20.sp)
+                Text(
+                    text = (if (indicator.deltaMs >= 0) "+" else "−") + formatTime(abs(indicator.deltaMs)),
+                    fontSize = 13.sp,
+                    color = SakuroColors.AccentSakura,
+                )
+            }
+
+            is GestureIndicator.Level -> LevelIndicatorContent(
+                icon = if (indicator.isVolume) Lucide.Volume2 else Lucide.Sun,
+                value = indicator.value,
+            )
+
+            is GestureIndicator.Frame -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                Icon(Lucide.Maximize, null, Modifier.size(18.dp), tint = SakuroColors.AccentSakura)
+                Text(indicator.mode.displayName, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LevelIndicatorContent(icon: ImageVector, value: Float) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+    ) {
+        Icon(icon, null, Modifier.size(18.dp), tint = SakuroColors.AccentSakura)
+        LinearProgressIndicator(
+            progress = { value },
+            color = SakuroColors.AccentSakura,
+            trackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
+            modifier = Modifier.width(120.dp),
+        )
+        Text(
+            text = "${(value * 100).toInt()}%",
+            fontFamily = FontFamily.Monospace,
+            fontSize = 13.sp,
+        )
+    }
 }
 
 @Composable

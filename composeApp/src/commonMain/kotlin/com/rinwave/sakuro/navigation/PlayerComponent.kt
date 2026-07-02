@@ -44,6 +44,9 @@ class PlayerComponent(
 
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
 
+    /** Свайпы/пинч в плеере (FEATURES.md §3.2). */
+    val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
+
     /** Выбор пользователя (включая «auto»); фактически применённая цепочка может отличаться. */
     private val _selectedPresetId = MutableStateFlow(settings.presetId.value)
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()

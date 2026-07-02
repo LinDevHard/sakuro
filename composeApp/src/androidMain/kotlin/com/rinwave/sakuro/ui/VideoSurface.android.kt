@@ -12,21 +12,31 @@ import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
 
 @OptIn(UnstableApi::class)
 @Composable
-actual fun VideoSurface(engine: PlayerEngine, modifier: Modifier) {
+actual fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Modifier) {
     when (engine) {
         is Media3PlayerEngine -> AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
                     useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    resizeMode = scaleMode.toResizeMode()
                     keepScreenOn = true
                     player = engine.player
                 }
             },
-            update = { view -> view.player = engine.player },
+            update = { view ->
+                view.player = engine.player
+                view.resizeMode = scaleMode.toResizeMode()
+            },
             modifier = modifier,
         )
 
         else -> FakeVideoSurface(engine, modifier)
     }
+}
+
+@UnstableApi
+private fun ScaleMode.toResizeMode(): Int = when (this) {
+    ScaleMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+    ScaleMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+    ScaleMode.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
 }

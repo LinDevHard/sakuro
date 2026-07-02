@@ -28,6 +28,10 @@ class SakuroSettings(
     private val _debugOverlay = MutableStateFlow(settings.getBoolean(KEY_DEBUG_OVERLAY, false))
     val debugOverlay: StateFlow<Boolean> = _debugOverlay.asStateFlow()
 
+    /** Свайпы/пинч в плеере (FEATURES.md §3.2); тапы и long-press работают всегда. */
+    private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
+    val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
+
     fun setEngineType(type: EngineType) {
         settings.putString(KEY_ENGINE, type.name)
         _engineType.value = type
@@ -43,10 +47,16 @@ class SakuroSettings(
         _debugOverlay.value = enabled
     }
 
+    fun setGesturesEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_GESTURES, enabled)
+        _gesturesEnabled.value = enabled
+    }
+
     private companion object {
         const val KEY_ENGINE = "engine_type"
         const val KEY_PRESET = "upscale_preset_id"
         const val KEY_DEBUG_OVERLAY = "debug_overlay"
+        const val KEY_GESTURES = "player_gestures"
         const val DEFAULT_PRESET_ID = "off"
     }
 }

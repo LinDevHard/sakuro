@@ -51,6 +51,10 @@ kotlin {
             implementation(libs.media3.ui)
         }
 
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)

@@ -20,6 +20,7 @@ class SettingsComponent(
     val engineType: StateFlow<EngineType> = settings.engineType
     val presetId: StateFlow<String> = settings.presetId
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
+    val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
 
     val presets: List<UpscaleProfile> = BuiltInPresets.all
 
@@ -28,4 +29,6 @@ class SettingsComponent(
     fun selectPreset(id: String) = settings.setPresetId(id)
 
     fun setDebugOverlay(enabled: Boolean) = settings.setDebugOverlay(enabled)
+
+    fun setGesturesEnabled(enabled: Boolean) = settings.setGesturesEnabled(enabled)
 }

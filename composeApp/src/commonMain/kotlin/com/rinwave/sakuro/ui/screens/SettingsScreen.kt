@@ -40,6 +40,7 @@ fun SettingsScreen(component: SettingsComponent) {
     val engineType by component.engineType.collectAsState()
     val presetId by component.presetId.collectAsState()
     val debugOverlay by component.debugOverlay.collectAsState()
+    val gesturesEnabled by component.gesturesEnabled.collectAsState()
 
     Column(
         Modifier
@@ -91,6 +92,34 @@ fun SettingsScreen(component: SettingsComponent) {
                     Text(preset.description, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
                 }
             }
+        }
+
+        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
+
+        SectionTitle("Управление")
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { component.setGesturesEnabled(!gesturesEnabled) }
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Жесты в плеере", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Свайпы: яркость/громкость/перемотка; пинч: режим кадра",
+                    color = SakuroColors.TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(
+                checked = gesturesEnabled,
+                onCheckedChange = component::setGesturesEnabled,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = SakuroColors.AccentSakura,
+                    checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
+                ),
+            )
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
