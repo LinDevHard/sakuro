@@ -233,10 +233,6 @@ fun PlayerScreen(component: PlayerComponent) {
                 },
         )
 
-        indicator?.let { current ->
-            GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
-        }
-
         AnimatedVisibility(
             visible = speedBoost,
             enter = fadeIn(),
@@ -255,6 +251,11 @@ fun PlayerScreen(component: PlayerComponent) {
                 component = component,
                 onPresetClick = { presetSheetVisible = true },
             )
+        }
+
+        // Поверх контролов: в центре у них play/pause, бейдж не должен прятаться за ним.
+        indicator?.let { current ->
+            GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
         }
 
         if (debugEnabled) {
