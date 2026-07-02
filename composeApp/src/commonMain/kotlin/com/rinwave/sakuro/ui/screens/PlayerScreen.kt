@@ -68,6 +68,7 @@ private const val DOUBLE_TAP_SEEK_MS = 10_000L
 fun PlayerScreen(component: PlayerComponent) {
     val state by component.engine.state.collectAsState()
     val debugEnabled by component.debugOverlay.collectAsState()
+    val selectedPresetId by component.selectedPresetId.collectAsState()
 
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
@@ -156,7 +157,7 @@ fun PlayerScreen(component: PlayerComponent) {
         ) {
             PresetSheet(
                 component = component,
-                activePresetId = state.activeUpscaleProfileId,
+                activePresetId = selectedPresetId,
                 onDismiss = { presetSheetVisible = false },
             )
         }

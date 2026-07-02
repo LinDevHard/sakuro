@@ -31,6 +31,7 @@ kotlin {
             implementation(project(":core:core-player"))
             implementation(project(":core:core-upscale"))
             implementation(project(":core:core-media"))
+            implementation(project(":core:core-detect"))
             implementation(project(":core:core-settings"))
             implementation(project(":engine:engine-fake"))
 

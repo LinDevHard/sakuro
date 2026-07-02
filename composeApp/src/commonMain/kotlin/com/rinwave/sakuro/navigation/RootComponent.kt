@@ -61,6 +61,8 @@ class RootComponent(
                 media = MediaSource(uri = config.uri, title = config.title),
                 settings = deps.settings,
                 engineRegistry = deps.engineRegistry,
+                deviceStatusMonitor = deps.deviceStatusMonitor,
+                contentClassifier = deps.contentClassifier,
                 onFinished = navigation::pop,
             ),
         )

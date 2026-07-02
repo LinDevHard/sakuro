@@ -21,6 +21,8 @@ import com.rinwave.sakuro.ui.theme.SakuroColors
 fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
     val stats by component.engine.debugStats.collectAsState(initial = DebugStats())
     val state by component.engine.state.collectAsState()
+    val detection by component.detection.collectAsState()
+    val adaptive by component.adaptiveDecision.collectAsState()
 
     val lines = buildList {
         add("engine    ${stats.engine}")
@@ -38,6 +40,8 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
         }
         add("preset    ${stats.upscaleProfile ?: "—"}")
         stats.upscalePasses.forEach { add("  pass    $it") }
+        add("detect    ${detection.contentClass.name.lowercase()} ${(detection.confidence * 100).toInt()}% (${detection.source})")
+        adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
         stats.extras.forEach { (k, v) -> add("$k  $v") }
         add("status    ${state.status} speed=${state.speed}x")
     }

@@ -7,10 +7,12 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.rinwave.sakuro.core.detect.FilenameContentClassifier
 import com.rinwave.sakuro.core.media.SampleVideoLibrary
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.upscale.StaticDeviceStatusMonitor
 import com.rinwave.sakuro.di.AppDependencies
 import com.rinwave.sakuro.di.appModule
 import com.rinwave.sakuro.engine.fake.FakeEngineFactory
@@ -29,6 +31,8 @@ fun main() {
                 settings = SakuroSettings(defaultEngine = EngineType.FAKE),
                 mediaLibrary = SampleVideoLibrary(),
                 engineRegistry = EngineRegistry(listOf(FakeEngineFactory())),
+                deviceStatusMonitor = StaticDeviceStatusMonitor(),
+                contentClassifier = FilenameContentClassifier(),
             ),
         )
     }
