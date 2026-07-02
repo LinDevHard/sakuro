@@ -1,7 +1,10 @@
 package com.rinwave.sakuro
 
 import android.app.Application
+import com.rinwave.sakuro.core.detect.CompositeContentClassifier
 import com.rinwave.sakuro.core.detect.FilenameContentClassifier
+import com.rinwave.sakuro.core.detect.FrameContentClassifier
+import com.rinwave.sakuro.core.detect.RetrieverFrameSampler
 import com.rinwave.sakuro.core.media.MediaStoreVideoLibrary
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
@@ -29,7 +32,12 @@ class SakuroApplication : Application() {
                         ),
                     ),
                     deviceStatusMonitor = AndroidDeviceStatusMonitor(this@SakuroApplication),
-                    contentClassifier = FilenameContentClassifier(),
+                    // Имя файла отвечает мгновенно, анализ кадров подтягивается
+                    // следом и замещает результат более уверенным.
+                    contentClassifier = CompositeContentClassifier(
+                        FilenameContentClassifier(),
+                        FrameContentClassifier(RetrieverFrameSampler(this@SakuroApplication)),
+                    ),
                 ),
             )
         }
