@@ -131,3 +131,51 @@
 - Desktop-реализация FrameSampler (когда появится реальный движок).
 - Калибровка порогов детекции на реальном контенте (не синтетике).
 - Опционально: PiP по свайпу вниз, настройка чувствительности жестов.
+
+## 2026-07-03 (сессия 4)
+
+Инфраструктура сборки + шрифт Inter (пункт 2 очереди работ).
+
+### build-logic + detekt/ktlint (коммиты 2633860, 087ed97)
+
+- **build-logic** (included build, precompiled script plugins):
+  - `sakuro.kmp.library` — androidTarget + jvm("desktop"), JVM 17,
+    default hierarchy, kotlin.test в commonTest; модулю остаётся
+    namespace и зависимости.
+  - `sakuro.android.library` — Android-only модули (движки).
+  - `sakuro.detekt` — detekt 1.23.8 + detekt-formatting (правила ktlint),
+    `autoCorrect = true`, общий конфиг `config/detekt/detekt.yml`.
+- Все 8 модулей переведены на convention plugins: из каждого
+  build.gradle.kts ушло ~20 строк повторяющегося boilerplate
+  (compileSdk/minSdk/jvmTarget/compileOptions).
+- Конфиг detekt поверх дефолтов: послабления под Compose
+  (LongMethod/LongParameterList/CyclomaticComplexMethod/FunctionNaming
+  игнорируют @Composable), MagicNumber выключен (пороги детекции и
+  жестов читаются лучше на месте), maxLineLength 120,
+  constructorThreshold 8 (DI-компоненты Decompose).
+- Прогон по кодовой базе: ~40 находок. autoCorrect поправил форматирование
+  (trailing commas, wrapping), длинные строки развёрнуты руками,
+  `FrameFeatures.extract` избавлен от лишней вложенности (локальная
+  `countPair`), `powerFloor` в AdaptiveController упрощён. Точечные
+  `@Suppress` с обоснованием: конечный автомат жестов (сложность —
+  свойство задачи), best-effort catch в RetrieverFrameSampler.
+
+### Шрифт Inter (коммит d89be16, DESIGN.md §3)
+
+- Inter 4.1: статические Regular/Medium/SemiBold/Bold (~1.6 МБ) в
+  `composeResources/font/`. Вариативный TTF не годится: у ресурсного
+  `Font()` в CMP нет параметра осей — все веса рисовались бы одним.
+- Вся Typography (15 стилей M3) на Inter, прежние letterSpacing
+  сохранены. OFL-лицензия — `licenses/inter/LICENSE.txt` (F-Droid).
+
+Проверка: detekt чист по всем модулям, 48 unit-тестов зелёные,
+`assembleFossDebug` + desktop-компиляция ок; APK установлен на Pixel_9a —
+библиотека рендерится Inter'ом, кириллица на месте, без фолбэка.
+
+### Дальше по докам
+
+- engine-mpv (libmpv через NDK) — движок №2, самый большой блок.
+- Coil-превью кадров в библиотеке (сейчас иконка-заглушка).
+- Desktop-реализация FrameSampler; калибровка порогов детекции
+  на реальном контенте.
+- Опционально: PiP по свайпу вниз, настройка чувствительности жестов.
