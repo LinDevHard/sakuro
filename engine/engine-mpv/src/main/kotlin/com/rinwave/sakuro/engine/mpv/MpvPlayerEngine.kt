@@ -13,6 +13,7 @@ import com.rinwave.sakuro.core.player.PlayerState
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.describe
 import dev.jdtech.mpv.MPVLib
@@ -43,6 +44,7 @@ enum class MpvScaleMode { FIT, FILL, ZOOM }
 class MpvPlayerEngine(private val context: Context) : PlayerEngine {
 
     private val mpv: MPVLib = checkNotNull(MPVLib.create(context)) { "MPVLib.create() вернул null" }
+    private val shaderStore = MpvShaderStore(context)
     private val released = AtomicBoolean(false)
 
     private val _state = MutableStateFlow(PlayerState())
@@ -331,7 +333,15 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
 
     private fun applyUpscaleProperties() {
         if (released.get()) return
-        buildMpvUpscaleProperties(currentProfile).forEach { (name, value) ->
+        var config = buildMpvRenderConfig(currentProfile)
+        val shaderPaths = shaderStore.resolve(config.shaders)
+        if (shaderPaths == null) {
+            // Шейдеры не развернулись — деградация до пути свойствами
+            // (как для не-аниме контента), чтобы Sharpen не потерялся.
+            config = buildMpvRenderConfig(currentProfile.copy(contentClass = ContentClass.UNKNOWN))
+        }
+        mpv.setPropertyString("glsl-shaders", shaderPaths.orEmpty().joinToString(":"))
+        config.properties.forEach { (name, value) ->
             mpv.setPropertyString(name, value)
         }
     }
@@ -362,6 +372,10 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
             extras = buildMap {
                 mpv.getPropertyString("current-vo")?.let { put("vo", it) }
                 mpv.getPropertyString("mpv-version")?.let { put("mpv", it) }
+                // Фактическая цепочка user-shaders глазами mpv (короткие имена).
+                mpv.getPropertyString("glsl-shaders")?.takeIf { it.isNotBlank() }?.let { value ->
+                    put("shaders", value.split(",", ":").joinToString(",") { it.substringAfterLast('/') })
+                }
             },
         )
     }
