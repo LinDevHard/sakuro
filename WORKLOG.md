@@ -360,3 +360,55 @@ desktop-компиляция ок.
   апскейла вместо ewa_lanczossharp; заодно решит денойз.
 - Калибровка порогов FrameContentClassifier на реальном контенте.
 - Реальная громкость на desktop (ждёт desktop-движка).
+
+## 2026-07-03 (сессия 8)
+
+**Anime4K user-shaders для engine-mpv** (ARCHITECTURE §4) — родной путь
+апскейла по докам вместо ewa_lanczossharp; заодно вернулся Denoise,
+который деградировал из-за бандл-ffmpeg без денойз-фильтров (шейдеру
+libavfilter не нужен).
+
+### Что сделано
+
+- Вендорены 6 шейдеров **Anime4K v4.0.1** (MIT, bloc97) в
+  `engine-mpv/src/main/assets/anime4k/` (~120 КБ): Clamp_Highlights,
+  Restore_CNN_S/M, Upscale_CNN_x2_S/M, Denoise_Bilateral_Mode.
+  Лицензия — licenses/anime4k/LICENSE.txt.
+- `MpvUpscaleProperties.kt` → `buildMpvRenderConfig()`: для пресетов
+  с contentClass ANIME/CARTOON цепочка UpscalePass транслируется
+  в user-shaders в **каноническом порядке Anime4K** (Clamp → Denoise →
+  Restore → Upscale), а не в порядке проходов пресета. Размер CNN
+  по силе прохода: Sharpen ≥0.6 / Upscale ≥1.75 → M, иначе S
+  (Anime SD → M-модели, Anime HD → S). При активной цепочке свойство
+  `sharpen` обнуляется — резкость делает Restore_CNN, иначе двойная
+  резкость. Не-аниме контент — старый путь свойствами (Anime4K
+  по назначению только для аниме).
+- `MpvShaderStore` — mpv читает `glsl-shaders` только с ФС: ассеты
+  при первом обращении копируются в filesDir/shaders/anime4k/v4.0.1
+  (каталог версионирован, staging+rename, старые версии чистятся).
+  Если копия не удалась — деградация до пути свойствами, Sharpen
+  не теряется.
+- Цепочка ставится свойством `glsl-shaders` (пути через `:`) — на лету,
+  без re-prepare, как и остальные свойства. В DebugStats extras —
+  строка `shaders` из фактического значения glsl-shaders глазами mpv.
+
+### Runtime-проверка (Pixel_9a, libmpv)
+
+anime_test_480p + Anime SD: рендер живой (известный «синий экран»
+Anime4K из RESEARCH.md на mpv 0.41/GLES не воспроизвёлся), dropped 0,
+в оверлее цепочка Clamp+Denoise+Restore_M+Upscale_M, ошибок компиляции
+шейдеров в logcat нет. Живое переключение: Anime HD → цепочка сменилась
+на S-модели, Выкл → цепочка очистилась. holiday_footage (detect
+live_action 74%) + Live-action light: шейдеров нет, sharpen свойством.
+
+Проверка: detekt чист, юнит-тесты зелёные (MpvUpscalePropertiesTest
+8 вместо 4), assembleFossDebug ок, шейдеры в APK.
+
+### Дальше по докам
+
+- Прогон engine-mpv на реальном устройстве: hwdec=mediacodec-copy
+  и **скорость CNN-шейдеров на мобильном GPU** (эмулятор рендерит
+  хост-GPU — перф не показателен; возможно, Anime SD на слабых SoC
+  надо ограничить S-моделями через AdaptiveController).
+- Калибровка порогов FrameContentClassifier на реальном контенте.
+- Реальная громкость на desktop (ждёт desktop-движка; libmpv на JVM).
