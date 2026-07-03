@@ -16,11 +16,15 @@ import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.ui.isInPipNow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class PlayerComponent(
@@ -30,6 +34,7 @@ class PlayerComponent(
     engineRegistry: EngineRegistry,
     deviceStatusMonitor: DeviceStatusMonitor,
     contentClassifier: ContentClassifier,
+    private val userPresets: UserPresetStore,
     private val onFinished: () -> Unit,
 ) : ComponentContext by componentContext {
 
@@ -40,8 +45,10 @@ class PlayerComponent(
 
     val engine: PlayerEngine = engineRegistry.create(settings.engineType.value)
 
-    /** «Авто» + встроенные пресеты. */
-    val presets: List<UpscaleProfile> = listOf(AUTO_PRESET) + BuiltInPresets.all
+    /** «Авто» + встроенные + пользовательские пресеты (FEATURES.md §2.2). */
+    val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
+        .map { user -> listOf(AUTO_PRESET) + BuiltInPresets.all + user }
+        .stateIn(scope, SharingStarted.Eagerly, listOf(AUTO_PRESET) + BuiltInPresets.all + userPresets.presets.value)
 
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
 
@@ -85,7 +92,8 @@ class PlayerComponent(
                 deviceStatusMonitor.status,
                 _selectedPresetId,
                 _detection,
-            ) { stats, device, selectedId, detection ->
+                userPresets.presets,
+            ) { stats, device, selectedId, detection, _ ->
                 adaptiveController.update(
                     user = resolveUserProfile(selectedId, detection),
                     device = device,
@@ -106,11 +114,11 @@ class PlayerComponent(
     private fun resolveUserProfile(selectedId: String, detection: ContentDetection): UpscaleProfile =
         when (selectedId) {
             AUTO_PRESET_ID -> BuiltInPresets.forContentClass(detection.contentClass)
-            else -> BuiltInPresets.byId(selectedId) ?: BuiltInPresets.OFF
+            else -> BuiltInPresets.byId(selectedId) ?: userPresets.byId(selectedId) ?: BuiltInPresets.OFF
         }
 
     fun applyPreset(id: String) {
-        if (id != AUTO_PRESET_ID && BuiltInPresets.byId(id) == null) return
+        if (id != AUTO_PRESET_ID && BuiltInPresets.byId(id) == null && userPresets.byId(id) == null) return
         settings.setPresetId(id)
         _selectedPresetId.value = id
     }

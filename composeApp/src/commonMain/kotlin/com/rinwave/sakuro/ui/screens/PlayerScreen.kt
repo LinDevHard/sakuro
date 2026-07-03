@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -527,19 +529,25 @@ private fun PresetSheet(
     activePresetId: String?,
     onDismiss: () -> Unit,
 ) {
+    val presets by component.presets.collectAsState()
     Surface(
         color = SakuroColors.SurfaceElevated,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.windowInsetsPadding(WindowInsets.safeDrawing).padding(vertical = 12.dp)) {
+        Column(
+            Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(vertical = 12.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
             Text(
                 "Пресет апскейла",
                 style = MaterialTheme.typography.titleMedium,
                 color = SakuroColors.TextPrimary,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
-            component.presets.forEach { preset ->
+            presets.forEach { preset ->
                 Row(
                     Modifier
                         .fillMaxWidth()

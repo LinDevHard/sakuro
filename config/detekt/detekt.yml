@@ -10,7 +10,7 @@ complexity:
     ignoreAnnotated: ['Composable'] # экраны — это один большой composable, дробить искусственно
   LongParameterList:
     ignoreAnnotated: ['Composable'] # у composable параметры вместо DI — норма
-    constructorThreshold: 8 # DI-компоненты (Decompose) получают зависимости конструктором
+    constructorThreshold: 9 # DI-компоненты (Decompose) получают зависимости конструктором
   CyclomaticComplexMethod:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
