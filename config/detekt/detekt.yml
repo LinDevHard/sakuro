@@ -1,0 +1,44 @@
+# Sakuro detekt config — поверх дефолтов (buildUponDefaultConfig = true).
+# Здесь только отклонения от дефолта: послабления под Compose и вкусовые правила,
+# которые в этом проекте не считаем ошибками.
+
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    ignoreAnnotated: ['Composable'] # экраны — это один большой composable, дробить искусственно
+  LongParameterList:
+    ignoreAnnotated: ['Composable'] # у composable параметры вместо DI — норма
+    constructorThreshold: 8 # DI-компоненты (Decompose) получают зависимости конструктором
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    active: false
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable'] # composable-функции в PascalCase
+  MatchingDeclarationName:
+    active: false # файл называем по смыслу (главной composable/функции), а не по единственному классу
+
+style:
+  MagicNumber:
+    active: false # пороги/коэффициенты в детекции и жестах читаются лучше на месте
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+
+formatting:
+  android: true
+  Filename:
+    active: false # файлы с несколькими объявлениями называем по смыслу
+  FunctionName:
+    active: false # дублирует naming.FunctionNaming, но без ignoreAnnotated
+  ArgumentListWrapping:
+    active: false
+  ParameterListWrapping:
+    active: false
+  MaximumLineLength:
+    maxLineLength: 120
