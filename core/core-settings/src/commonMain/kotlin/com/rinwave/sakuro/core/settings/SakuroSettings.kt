@@ -32,6 +32,13 @@ class SakuroSettings(
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
 
+    /** Множитель чувствительности свайпов (FEATURES.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
+    private val _gestureSensitivity = MutableStateFlow(
+        settings.getFloat(KEY_GESTURE_SENSITIVITY, SENSITIVITY_DEFAULT)
+            .coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX),
+    )
+    val gestureSensitivity: StateFlow<Float> = _gestureSensitivity.asStateFlow()
+
     fun setEngineType(type: EngineType) {
         settings.putString(KEY_ENGINE, type.name)
         _engineType.value = type
@@ -52,11 +59,22 @@ class SakuroSettings(
         _gesturesEnabled.value = enabled
     }
 
-    private companion object {
-        const val KEY_ENGINE = "engine_type"
-        const val KEY_PRESET = "upscale_preset_id"
-        const val KEY_DEBUG_OVERLAY = "debug_overlay"
-        const val KEY_GESTURES = "player_gestures"
-        const val DEFAULT_PRESET_ID = "off"
+    fun setGestureSensitivity(value: Float) {
+        val clamped = value.coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX)
+        settings.putFloat(KEY_GESTURE_SENSITIVITY, clamped)
+        _gestureSensitivity.value = clamped
+    }
+
+    companion object {
+        const val SENSITIVITY_MIN = 0.5f
+        const val SENSITIVITY_MAX = 2f
+        const val SENSITIVITY_DEFAULT = 1f
+
+        private const val KEY_ENGINE = "engine_type"
+        private const val KEY_PRESET = "upscale_preset_id"
+        private const val KEY_DEBUG_OVERLAY = "debug_overlay"
+        private const val KEY_GESTURES = "player_gestures"
+        private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
+        private const val DEFAULT_PRESET_ID = "off"
     }
 }

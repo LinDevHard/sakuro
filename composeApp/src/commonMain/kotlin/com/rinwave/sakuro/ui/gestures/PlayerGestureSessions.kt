@@ -10,16 +10,17 @@ import com.rinwave.sakuro.ui.ScaleMode
 
 /**
  * Горизонтальный свайп — перемотка: свайп на всю ширину экрана
- * соответствует ±[fullWidthSeekMs] от позиции на момент начала жеста.
+ * соответствует ±[fullWidthSeekMs] × [sensitivity] от позиции на момент начала жеста.
  */
 class SeekSwipeSession(
     private val startPositionMs: Long,
     private val durationMs: Long,
     private val widthPx: Float,
+    private val sensitivity: Float = 1f,
     private val fullWidthSeekMs: Long = FULL_WIDTH_SEEK_MS,
 ) {
     fun positionFor(totalDxPx: Float): Long {
-        val delta = (totalDxPx / widthPx * fullWidthSeekMs).toLong()
+        val delta = (totalDxPx / widthPx * fullWidthSeekMs * sensitivity).toLong()
         val upperBound = if (durationMs > 0) durationMs else Long.MAX_VALUE
         return (startPositionMs + delta).coerceIn(0L, upperBound)
     }
@@ -31,13 +32,15 @@ class SeekSwipeSession(
 
 /**
  * Вертикальный свайп — яркость/громкость: свайп на всю высоту экрана
- * проходит весь диапазон 0..1, движение вверх увеличивает значение.
+ * проходит диапазон 0..1 × [sensitivity], движение вверх увеличивает значение.
  */
 class LevelSwipeSession(
     private val startLevel: Float,
     private val heightPx: Float,
+    private val sensitivity: Float = 1f,
 ) {
-    fun levelFor(totalDyPx: Float): Float = (startLevel - totalDyPx / heightPx).coerceIn(0f, 1f)
+    fun levelFor(totalDyPx: Float): Float =
+        (startLevel - totalDyPx / heightPx * sensitivity).coerceIn(0f, 1f)
 }
 
 /**

@@ -21,6 +21,7 @@ class SettingsComponent(
     val presetId: StateFlow<String> = settings.presetId
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
+    val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
     val presets: List<UpscaleProfile> = BuiltInPresets.all
 
@@ -31,4 +32,6 @@ class SettingsComponent(
     fun setDebugOverlay(enabled: Boolean) = settings.setDebugOverlay(enabled)
 
     fun setGesturesEnabled(enabled: Boolean) = settings.setGesturesEnabled(enabled)
+
+    fun setGestureSensitivity(value: Float) = settings.setGestureSensitivity(value)
 }

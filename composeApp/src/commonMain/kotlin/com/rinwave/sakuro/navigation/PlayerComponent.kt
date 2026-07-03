@@ -16,6 +16,7 @@ import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.ui.isInPipNow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,9 @@ class PlayerComponent(
     /** Свайпы/пинч в плеере (FEATURES.md §3.2). */
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
 
+    /** Множитель чувствительности свайпов (FEATURES.md §3.2). */
+    val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
+
     /** Выбор пользователя (включая «auto»); фактически применённая цепочка может отличаться. */
     private val _selectedPresetId = MutableStateFlow(settings.presetId.value)
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
@@ -65,7 +69,8 @@ class PlayerComponent(
         appliedProfile = resolveUserProfile(_selectedPresetId.value, _detection.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
-        lifecycle.doOnPause { engine.pause() }
+        // В PiP активити «на паузе», но видео должно продолжать играть.
+        lifecycle.doOnPause { if (!isInPipNow()) engine.pause() }
         lifecycle.doOnDestroy { engine.release() }
 
         scope.launch {
@@ -108,6 +113,15 @@ class PlayerComponent(
         if (id != AUTO_PRESET_ID && BuiltInPresets.byId(id) == null) return
         settings.setPresetId(id)
         _selectedPresetId.value = id
+    }
+
+    /**
+     * Вход/выход PiP: GL-конвейер videoEffects в Media3 привязан к размеру
+     * surface на момент prepare, после ресайза окна кадр рисуется со старой
+     * геометрией — перезапускаем цепочку (быстрый re-prepare с той же позиции).
+     */
+    fun onPipModeChanged() {
+        engine.applyUpscale(appliedProfile)
     }
 
     fun toggleDebugOverlay() = settings.setDebugOverlay(!settings.debugOverlay.value)

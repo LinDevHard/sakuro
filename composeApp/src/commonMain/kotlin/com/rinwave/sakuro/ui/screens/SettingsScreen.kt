@@ -19,6 +19,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.displayName
+import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.navigation.SettingsComponent
 import com.rinwave.sakuro.ui.theme.SakuroColors
 
@@ -41,6 +44,7 @@ fun SettingsScreen(component: SettingsComponent) {
     val presetId by component.presetId.collectAsState()
     val debugOverlay by component.debugOverlay.collectAsState()
     val gesturesEnabled by component.gesturesEnabled.collectAsState()
+    val gestureSensitivity by component.gestureSensitivity.collectAsState()
 
     Column(
         Modifier
@@ -121,6 +125,33 @@ fun SettingsScreen(component: SettingsComponent) {
                 ),
             )
         }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Чувствительность свайпов",
+                    color = if (gesturesEnabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${formatSensitivity(gestureSensitivity)}×",
+                    color = SakuroColors.AccentSakura,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Slider(
+                value = gestureSensitivity,
+                onValueChange = component::setGestureSensitivity,
+                valueRange = SakuroSettings.SENSITIVITY_MIN..SakuroSettings.SENSITIVITY_MAX,
+                steps = SENSITIVITY_STEPS,
+                enabled = gesturesEnabled,
+                colors = SliderDefaults.colors(
+                    thumbColor = SakuroColors.AccentSakura,
+                    activeTrackColor = SakuroColors.GlowMagenta,
+                    inactiveTrackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
+                ),
+            )
+        }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
@@ -161,6 +192,15 @@ fun SettingsScreen(component: SettingsComponent) {
         )
         Spacer(Modifier.size(24.dp))
     }
+}
+
+// 0.5×..2× с шагом 0.25 → 5 промежуточных делений слайдера.
+private const val SENSITIVITY_STEPS = 5
+
+/** «1×», «1.25×» — без хвостовых нулей. */
+private fun formatSensitivity(value: Float): String {
+    val rounded = (value * 100).toInt()
+    return if (rounded % 100 == 0) "${rounded / 100}" else (rounded / 100f).toString()
 }
 
 @Composable

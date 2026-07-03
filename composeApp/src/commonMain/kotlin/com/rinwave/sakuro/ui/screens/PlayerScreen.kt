@@ -64,6 +64,7 @@ import com.composables.icons.lucide.Volume2
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.navigation.PlayerComponent
+import com.rinwave.sakuro.ui.PipEffect
 import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
 import com.rinwave.sakuro.ui.displayName
@@ -72,6 +73,7 @@ import com.rinwave.sakuro.ui.gestures.PinchSession
 import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
 import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
 import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
+import com.rinwave.sakuro.ui.rememberIsInPip
 import com.rinwave.sakuro.ui.rememberPlayerSystemControls
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
@@ -95,9 +97,21 @@ fun PlayerScreen(component: PlayerComponent) {
     val debugEnabled by component.debugOverlay.collectAsState()
     val selectedPresetId by component.selectedPresetId.collectAsState()
     val gesturesEnabled by component.gesturesEnabled.collectAsState()
+    val gestureSensitivity by component.gestureSensitivity.collectAsState()
 
     val systemControls = rememberPlayerSystemControls()
     val haptics = LocalHapticFeedback.current
+
+    // PiP при сворачивании (FEATURES.md §3.1); в PiP-окне — только видео.
+    PipEffect(state.isPlaying, state.videoWidth, state.videoHeight)
+    val inPip = rememberIsInPip()
+    var wasInPip by remember { mutableStateOf(inPip) }
+    LaunchedEffect(inPip) {
+        if (inPip != wasInPip) {
+            wasInPip = inPip
+            component.onPipModeChanged()
+        }
+    }
 
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
@@ -130,111 +144,123 @@ fun PlayerScreen(component: PlayerComponent) {
         // Жесты (FEATURES.md §3.1): тап — контролы, двойной тап — перемотка/пауза,
         // удержание — ускорение 2× на время удержания; свайпы и пинч —
         // в отдельном pointerInput (detectPlayerGestures).
-        Box(
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { controlsVisible = !controlsVisible },
-                        onDoubleTap = { offset ->
-                            when {
-                                offset.x < size.width / 3f ->
-                                    component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0))
+        if (!inPip) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { controlsVisible = !controlsVisible },
+                            onDoubleTap = { offset ->
+                                when {
+                                    offset.x < size.width / 3f -> component.engine.seekTo(
+                                        (state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0),
+                                    )
 
-                                offset.x > size.width * 2f / 3f ->
-                                    component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS)
+                                    offset.x > size.width * 2f / 3f ->
+                                        component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS)
 
-                                else -> if (state.isPlaying) component.engine.pause() else component.engine.play()
-                            }
-                        },
-                        onLongPress = {
-                            speedBoost = true
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            component.engine.setSpeed(2f)
-                        },
-                        onPress = {
-                            tryAwaitRelease()
-                            if (speedBoost) {
-                                speedBoost = false
-                                component.engine.setSpeed(1f)
-                            }
-                        },
-                    )
-                }
-                .pointerInput(gesturesEnabled) {
-                    if (!gesturesEnabled) return@pointerInput
-
-                    var seekSession: SeekSwipeSession? = null
-                    var seekStartMs = 0L
-                    var seekTargetMs = 0L
-                    var levelSession: LevelSwipeSession? = null
-                    var levelIsVolume = false
-                    var pinchSession: PinchSession? = null
-
-                    detectPlayerGestures(object : PlayerGestureCallbacks {
-                        override fun onSeekStart() {
-                            gestureActive = true
-                            val current = component.engine.state.value
-                            seekStartMs = current.positionMs
-                            seekTargetMs = current.positionMs
-                            seekSession = SeekSwipeSession(current.positionMs, current.durationMs, size.width.toFloat())
-                        }
-
-                        override fun onSeekDrag(totalDxPx: Float) {
-                            val session = seekSession ?: return
-                            seekTargetMs = session.positionFor(totalDxPx)
-                            indicator = GestureIndicator.Seek(seekTargetMs, seekTargetMs - seekStartMs)
-                        }
-
-                        override fun onSeekEnd() {
-                            if (seekSession != null) component.engine.seekTo(seekTargetMs)
-                            seekSession = null
-                            gestureActive = false
-                            lingerKey++
-                        }
-
-                        override fun onLevelStart(leftSide: Boolean) {
-                            gestureActive = true
-                            levelIsVolume = !leftSide
-                            val start = if (levelIsVolume) systemControls.volume else systemControls.brightness
-                            levelSession = LevelSwipeSession(start, size.height.toFloat())
-                        }
-
-                        override fun onLevelDrag(totalDyPx: Float) {
-                            val session = levelSession ?: return
-                            val level = session.levelFor(totalDyPx)
-                            if (levelIsVolume) systemControls.setVolume(level) else systemControls.setBrightness(level)
-                            indicator = GestureIndicator.Level(levelIsVolume, level)
-                        }
-
-                        override fun onLevelEnd() {
-                            levelSession = null
-                            gestureActive = false
-                            lingerKey++
-                        }
-
-                        override fun onPinch(cumulativeZoom: Float) {
-                            gestureActive = true
-                            val session = pinchSession ?: PinchSession(scaleMode).also { pinchSession = it }
-                            val newMode = session.update(cumulativeZoom)
-                            if (newMode != scaleMode) {
-                                scaleMode = newMode
+                                    else -> if (state.isPlaying) component.engine.pause() else component.engine.play()
+                                }
+                            },
+                            onLongPress = {
+                                speedBoost = true
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                            indicator = GestureIndicator.Frame(newMode)
-                        }
+                                component.engine.setSpeed(2f)
+                            },
+                            onPress = {
+                                tryAwaitRelease()
+                                if (speedBoost) {
+                                    speedBoost = false
+                                    component.engine.setSpeed(1f)
+                                }
+                            },
+                        )
+                    }
+                    .pointerInput(gesturesEnabled) {
+                        if (!gesturesEnabled) return@pointerInput
 
-                        override fun onPinchEnd() {
-                            pinchSession = null
-                            gestureActive = false
-                            lingerKey++
-                        }
-                    })
-                },
-        )
+                        var seekSession: SeekSwipeSession? = null
+                        var seekStartMs = 0L
+                        var seekTargetMs = 0L
+                        var levelSession: LevelSwipeSession? = null
+                        var levelIsVolume = false
+                        var pinchSession: PinchSession? = null
+
+                        detectPlayerGestures(object : PlayerGestureCallbacks {
+                            override fun onSeekStart() {
+                                gestureActive = true
+                                val current = component.engine.state.value
+                                seekStartMs = current.positionMs
+                                seekTargetMs = current.positionMs
+                                seekSession = SeekSwipeSession(
+                                    startPositionMs = current.positionMs,
+                                    durationMs = current.durationMs,
+                                    widthPx = size.width.toFloat(),
+                                    sensitivity = gestureSensitivity,
+                                )
+                            }
+
+                            override fun onSeekDrag(totalDxPx: Float) {
+                                val session = seekSession ?: return
+                                seekTargetMs = session.positionFor(totalDxPx)
+                                indicator = GestureIndicator.Seek(seekTargetMs, seekTargetMs - seekStartMs)
+                            }
+
+                            override fun onSeekEnd() {
+                                if (seekSession != null) component.engine.seekTo(seekTargetMs)
+                                seekSession = null
+                                gestureActive = false
+                                lingerKey++
+                            }
+
+                            override fun onLevelStart(leftSide: Boolean) {
+                                gestureActive = true
+                                levelIsVolume = !leftSide
+                                val start = if (levelIsVolume) systemControls.volume else systemControls.brightness
+                                levelSession = LevelSwipeSession(start, size.height.toFloat(), gestureSensitivity)
+                            }
+
+                            override fun onLevelDrag(totalDyPx: Float) {
+                                val session = levelSession ?: return
+                                val level = session.levelFor(totalDyPx)
+                                if (levelIsVolume) {
+                                    systemControls.setVolume(level)
+                                } else {
+                                    systemControls.setBrightness(level)
+                                }
+                                indicator = GestureIndicator.Level(levelIsVolume, level)
+                            }
+
+                            override fun onLevelEnd() {
+                                levelSession = null
+                                gestureActive = false
+                                lingerKey++
+                            }
+
+                            override fun onPinch(cumulativeZoom: Float) {
+                                gestureActive = true
+                                val session = pinchSession ?: PinchSession(scaleMode).also { pinchSession = it }
+                                val newMode = session.update(cumulativeZoom)
+                                if (newMode != scaleMode) {
+                                    scaleMode = newMode
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                                indicator = GestureIndicator.Frame(newMode)
+                            }
+
+                            override fun onPinchEnd() {
+                                pinchSession = null
+                                gestureActive = false
+                                lingerKey++
+                            }
+                        })
+                    },
+            )
+        }
 
         AnimatedVisibility(
-            visible = speedBoost,
+            visible = speedBoost && !inPip,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
@@ -246,7 +272,7 @@ fun PlayerScreen(component: PlayerComponent) {
         }
 
         AnimatedVisibility(
-            visible = controlsVisible,
+            visible = controlsVisible && !inPip,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -257,11 +283,13 @@ fun PlayerScreen(component: PlayerComponent) {
         }
 
         // Поверх контролов: в центре у них play/pause, бейдж не должен прятаться за ним.
-        indicator?.let { current ->
-            GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
+        if (!inPip) {
+            indicator?.let { current ->
+                GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
+            }
         }
 
-        if (debugEnabled) {
+        if (debugEnabled && !inPip) {
             DebugOverlay(
                 component = component,
                 modifier = Modifier
@@ -272,7 +300,7 @@ fun PlayerScreen(component: PlayerComponent) {
         }
 
         AnimatedVisibility(
-            visible = presetSheetVisible,
+            visible = presetSheetVisible && !inPip,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter),

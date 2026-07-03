@@ -38,6 +38,15 @@ class SeekSwipeSessionTest {
     fun `при неизвестной длительности перемотка вперёд не ограничивается`() {
         assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS, session(durationMs = 0).positionFor(1000f))
     }
+
+    @Test
+    fun `чувствительность масштабирует шаг перемотки`() {
+        val half = SeekSwipeSession(60_000, 600_000, 1000f, sensitivity = 0.5f)
+        assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS / 2, half.positionFor(1000f))
+
+        val double = SeekSwipeSession(60_000, 600_000, 1000f, sensitivity = 2f)
+        assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS * 2, double.positionFor(1000f))
+    }
 }
 
 class LevelSwipeSessionTest {
@@ -56,6 +65,12 @@ class LevelSwipeSessionTest {
     fun `уровень зажат в диапазон 0-1`() {
         assertEquals(1f, LevelSwipeSession(0.9f, 1000f).levelFor(-500f))
         assertEquals(0f, LevelSwipeSession(0.1f, 1000f).levelFor(500f))
+    }
+
+    @Test
+    fun `чувствительность масштабирует изменение уровня`() {
+        assertEquals(0.625f, LevelSwipeSession(0.5f, 1000f, sensitivity = 0.5f).levelFor(-250f))
+        assertEquals(1f, LevelSwipeSession(0.5f, 1000f, sensitivity = 2f).levelFor(-250f))
     }
 }
 
