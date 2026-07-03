@@ -19,6 +19,20 @@ complexity:
 naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable'] # composable-функции в PascalCase
+    # дефолтные excludes + desktopTest: наш jvm-таргет зовётся desktop,
+    # и backtick-имена тестов в нём тоже легальны
+    excludes:
+      [
+        '**/test/**',
+        '**/androidTest/**',
+        '**/androidUnitTest/**',
+        '**/androidInstrumentedTest/**',
+        '**/commonTest/**',
+        '**/jvmTest/**',
+        '**/desktopTest/**',
+        '**/jsTest/**',
+        '**/iosTest/**',
+      ]
   MatchingDeclarationName:
     active: false # файл называем по смыслу (главной composable/функции), а не по единственному классу
 

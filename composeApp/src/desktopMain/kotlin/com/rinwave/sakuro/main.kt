@@ -7,7 +7,10 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.rinwave.sakuro.core.detect.CompositeContentClassifier
+import com.rinwave.sakuro.core.detect.FfmpegFrameSampler
 import com.rinwave.sakuro.core.detect.FilenameContentClassifier
+import com.rinwave.sakuro.core.detect.FrameContentClassifier
 import com.rinwave.sakuro.core.media.SampleVideoLibrary
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
@@ -32,7 +35,12 @@ fun main() {
                 mediaLibrary = SampleVideoLibrary(),
                 engineRegistry = EngineRegistry(listOf(FakeEngineFactory())),
                 deviceStatusMonitor = StaticDeviceStatusMonitor(),
-                contentClassifier = FilenameContentClassifier(),
+                // Как на Android: имя файла отвечает сразу, кадры (системный
+                // ffmpeg, если есть) замещают результат более уверенным.
+                contentClassifier = CompositeContentClassifier(
+                    FilenameContentClassifier(),
+                    FrameContentClassifier(FfmpegFrameSampler()),
+                ),
             ),
         )
     }
