@@ -285,3 +285,78 @@ desktop-компиляция ок, PiP и слайдер проверены на
 - Калибровка порогов FrameContentClassifier на реальном контенте.
 - Опционально: реальная громкость на desktop (ждёт реального
   desktop-движка — FakePlayerEngine звука не имеет).
+
+## 2026-07-03 (сессия 7)
+
+**engine-mpv** (ARCHITECTURE §2) — движок №2, последний большой блок
+Фазы 1. Вместо собственной NDK-сборки — prebuilt `dev.jdtech.mpv:libmpv
+1.0.0` (форк libmpv-android от Findroid, Maven Central): mpv 0.41.0,
+ffmpeg n8.1, четыре ABI. AAR требует compileSdk 36 — подняли (targetSdk
+остался 35; AGP 8.10 API 36 поддерживает).
+
+### Что в модуле
+
+- `MpvPlayerEngine` — реализация `PlayerEngine` поверх инстансного API
+  MPVLib 1.0.0. Статус выводится из событийных флагов
+  (FILE_LOADED + pause/paused-for-cache/eof-reached), позиция/длительность —
+  наблюдаемые time-pos/duration (double), дорожки — JSON `track-list`
+  (`MpvTrackList`, парсер чистый + 4 теста). `content://` из MediaStore
+  открывается через `openFileDescriptor` → `fdclose://<fd>` — у libmpv
+  нет ContentResolver. `keep-open=always`: EOF ловим по eof-reached →
+  ENDED, play() из ENDED делает seek 0.
+- Пресеты (`MpvUpscaleProperties`, 4 теста): применяются свойствами mpv
+  **на лету, без re-prepare** (в отличие от Media3) — Upscale →
+  scale/cscale=ewa_lanczossharp (фактор не нужен, mpv скейлит к surface),
+  Sharpen → sharpen. **Denoise деградирует**: в бандл-ffmpeg libavfilter
+  собран без денойз-фильтров (нет hqdn3d/nlmeans/atadenoise), а сломанный
+  vf-граф отключает видео-дорожку целиком — проверено и вырезано.
+- `VideoSurface.android.kt` — ветка mpv: SurfaceView + SurfaceHolder,
+  режимы кадра через keepaspect/panscan (`MpvScaleMode`), жесты/оверлеи
+  работают как есть (они выше surface).
+- Регистрация в SakuroApplication (Media3 остаётся первым/fallback),
+  подпись движка в настройках больше не «скоро».
+
+### Грабли (все пойманы runtime-проверкой на Pixel_9a)
+
+1. **vo=gpu без поверхности фатален**: loadfile до attachSurface →
+   `[vo/gpu/android:fatal] Missing surface pointer`, видео-дорожка
+   отключается до конца файла (звук идёт). А переключение vo=null→gpu
+   при активном видео блокирует core → ANR. Решение — паттерн
+   mpv-android: loadfile откладывается до attachSurface (`pendingLoad`).
+2. **hwdec на эмуляторе вешает core намертво** (goldfish-декодер не
+   отдаёт кадры ffmpeg-мосту; зависает даже чтение свойств из другого
+   потока): на goldfish/ranchu/cutf_cvm — `hwdec=no`, на реальном железе
+   `mediacodec-copy` (прямой mediacodec рендерит мимо GL — шейдеры бы
+   не работали). Заодно debugStats-опрос свойств ушёл с main на
+   Dispatchers.Default — getProperty ждёт core-лок.
+3. **PiP не пересоздаёт surface, а ресайзит**: на паузе после ресайза
+   VO остаётся чёрным — refresh-seek (`seek 0 exact`) в resizeSurface
+   перерисовывает кадр. (Тот же трюк в attachSurface для возврата
+   к загруженному файлу.)
+4. **vf через set_property не задать вообще**: голое `hqdn3d=…` → -4
+   (invalid parameter), `lavfi=[…]` принимается, но роняет разбор
+   графа. Команда `vf set` парсит как командная строка — но фильтров
+   в бандле всё равно нет (см. выше), ветка vf удалена.
+5. `MPVLib.create()` nullable — обёрнут в checkNotNull.
+
+### Runtime-проверка (Pixel_9a, libmpv выбран в настройках)
+
+Воспроизведение anime_test_480p: видео+звук, h264 sw-декод (эмулятор),
+854x480→1080x2424, 24 fps, оверлей полный (vo=gpu, кодеки, битрейт,
+цвет yuv420p bt.601). Пауза/плей, свайп-перемотка (event: seek),
+EOF→ENDED→replay, живое переключение Выкл→Anime HD→Anime SD
+(scale/sharpen применяются без re-prepare, denoise молча пропущен),
+PiP-цикл: живое видео в окне, после разворота кадр на месте, выход
+из плеера — release без крэша.
+
+Проверка: detekt чист, 66 unit-тестов (+8), assembleFossDebug +
+desktop-компиляция ок.
+
+### Дальше по докам
+
+- Прогон engine-mpv на реальном устройстве (hwdec=mediacodec-copy
+  не покрыт эмулятором).
+- Anime4K `.glsl` user-shaders для mpv (glsl-shaders) — родной путь
+  апскейла вместо ewa_lanczossharp; заодно решит денойз.
+- Калибровка порогов FrameContentClassifier на реальном контенте.
+- Реальная громкость на desktop (ждёт desktop-движка).
