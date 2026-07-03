@@ -14,8 +14,11 @@ lucide = "1.1.0"
 # 3.4.0+ собраны Kotlin 2.3/2.4 (stdlib strictly) — метаданные не читаются нашим Kotlin 2.1.21
 coil = "3.3.0"
 detekt = "1.23.8"
+# prebuilt libmpv + MPVLib JNI-обёртка (форк libmpv-android от Findroid, Maven Central)
+libmpv = "1.0.0"
 
-android-compileSdk = "35"
+# 36 — требование libmpv 1.0.0 (minCompileSdk в AAR-метаданных); targetSdk не трогаем
+android-compileSdk = "36"
 android-minSdk = "26"
 android-targetSdk = "35"
 
@@ -48,6 +51,8 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-video = { module = "io.coil-kt.coil3:coil-video", version.ref = "coil" }
 
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+
+jdtech-libmpv = { module = "dev.jdtech.mpv:libmpv", version.ref = "libmpv" }
 
 # классы плагинов для build-logic (compileOnly в convention plugins)
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }

@@ -49,6 +49,7 @@ kotlin {
             implementation(libs.androidx.core.ktx)
             implementation(libs.kotlinx.coroutines.android)
             implementation(project(":engine:engine-media3"))
+            implementation(project(":engine:engine-mpv"))
             implementation(libs.media3.ui)
             // Превью-кадры в библиотеке (ARCHITECTURE.md: Coil 3).
             // Только androidMain: у desktop нет видео-декодера, там остаётся плейсхолдер.

@@ -17,6 +17,7 @@ import com.rinwave.sakuro.core.upscale.AndroidDeviceStatusMonitor
 import com.rinwave.sakuro.di.appModule
 import com.rinwave.sakuro.engine.fake.FakeEngineFactory
 import com.rinwave.sakuro.engine.media3.Media3EngineFactory
+import com.rinwave.sakuro.engine.mpv.MpvEngineFactory
 import org.koin.core.context.startKoin
 
 class SakuroApplication : Application(), SingletonImageLoader.Factory {
@@ -34,10 +35,11 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                 appModule(
                     settings = SakuroSettings(defaultEngine = EngineType.MEDIA3),
                     mediaLibrary = MediaStoreVideoLibrary(this@SakuroApplication),
-                    // Media3 — основной движок Android; libmpv добавится своим модулем engine-mpv.
+                    // Media3 первым — он же fallback при недоступном предпочтении.
                     engineRegistry = EngineRegistry(
                         listOf(
                             Media3EngineFactory(this@SakuroApplication),
+                            MpvEngineFactory(this@SakuroApplication),
                             FakeEngineFactory(),
                         ),
                     ),

@@ -236,7 +236,7 @@ private fun EngineRow(type: EngineType, selected: Boolean, enabled: Boolean, onC
             )
             val hint = when (type) {
                 EngineType.MEDIA3 -> "Нативный Android-движок, апскейл через GlEffect-цепочку"
-                EngineType.MPV -> "Anime4K/ArtCNN нативно — скоро (Фаза 1, NDK-сборка)"
+                EngineType.MPV -> "libmpv: широкий декод, пресеты на лету без re-prepare"
                 EngineType.FAKE -> "Мок для отладки интерфейса без воспроизведения"
             }
             Text(hint, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
