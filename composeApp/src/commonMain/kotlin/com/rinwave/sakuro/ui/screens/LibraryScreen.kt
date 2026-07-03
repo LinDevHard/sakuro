@@ -1,7 +1,6 @@
 package com.rinwave.sakuro.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,10 +126,20 @@ private fun LibraryHeader(onRefresh: () -> Unit, onSettings: () -> Unit) {
         }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onRefresh) {
-            Icon(Lucide.RefreshCw, contentDescription = "Обновить", tint = SakuroColors.TextMuted, modifier = Modifier.size(20.dp))
+            Icon(
+                Lucide.RefreshCw,
+                contentDescription = "Обновить",
+                tint = SakuroColors.TextMuted,
+                modifier = Modifier.size(20.dp),
+            )
         }
         IconButton(onClick = onSettings) {
-            Icon(Lucide.Settings, contentDescription = "Настройки", tint = SakuroColors.TextMuted, modifier = Modifier.size(22.dp))
+            Icon(
+                Lucide.Settings,
+                contentDescription = "Настройки",
+                tint = SakuroColors.TextMuted,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

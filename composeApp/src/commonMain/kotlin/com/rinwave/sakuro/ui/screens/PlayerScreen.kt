@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -40,15 +41,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
@@ -237,7 +237,10 @@ fun PlayerScreen(component: PlayerComponent) {
             visible = speedBoost,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 48.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(top = 48.dp),
         ) {
             Badge("2×")
         }
@@ -319,7 +322,11 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                 Surface(
                     onClick = onPresetClick,
                     shape = RoundedCornerShape(50),
-                    color = if (upscaleActive) SakuroColors.GlowMagenta.copy(alpha = 0.35f) else SakuroColors.Surface.copy(alpha = 0.6f),
+                    color = if (upscaleActive) {
+                        SakuroColors.GlowMagenta.copy(alpha = 0.35f)
+                    } else {
+                        SakuroColors.Surface.copy(alpha = 0.6f)
+                    },
                     contentColor = if (upscaleActive) SakuroColors.AccentSakura else SakuroColors.TextMuted,
                 ) {
                     Row(
@@ -332,7 +339,12 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                     }
                 }
                 IconButton(onClick = component::toggleDebugOverlay) {
-                    Icon(Lucide.Activity, "Stats for nerds", tint = SakuroColors.TextMuted, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Lucide.Activity,
+                        "Stats for nerds",
+                        tint = SakuroColors.TextMuted,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
 
@@ -344,7 +356,9 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                 horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) }) {
+                IconButton(
+                    onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
+                ) {
                     Icon(Lucide.RotateCcw, "-10 сек", tint = SakuroColors.TextPrimary, modifier = Modifier.size(30.dp))
                 }
                 Surface(
@@ -510,7 +524,11 @@ private fun PresetSheet(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(preset.name, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                        Text(preset.description, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            preset.description,
+                            color = SakuroColors.TextMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                     if (preset.id == activePresetId) {
                         Icon(Lucide.Check, null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))

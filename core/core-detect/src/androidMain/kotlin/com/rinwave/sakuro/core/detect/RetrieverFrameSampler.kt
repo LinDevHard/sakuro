@@ -19,6 +19,9 @@ class RetrieverFrameSampler(
     private val targetSize: Int = TARGET_SIZE,
 ) : FrameSampler {
 
+    // Retriever кидает разнотипные RuntimeException на битых файлах — сэмплинг best-effort,
+    // любая ошибка означает «кадров нет», классификация продолжается по другим слоям.
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun sample(uri: String, maxFrames: Int): List<FrameSample> =
         withContext(Dispatchers.IO) {
             val retriever = MediaMetadataRetriever()
@@ -36,7 +39,7 @@ class RetrieverFrameSampler(
                     val timeUs = (durationMs * 1000 * fraction).toLong()
                     grabFrame(retriever, timeUs)?.let(::toSample)
                 }
-            } catch (e: Exception) {
+            } catch (ignored: Exception) {
                 emptyList()
             } finally {
                 retriever.release()

@@ -97,7 +97,11 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     }
 
     private val analyticsListener = object : AnalyticsListener {
-        override fun onDroppedVideoFrames(eventTime: AnalyticsListener.EventTime, droppedFrameCount: Int, elapsedMs: Long) {
+        override fun onDroppedVideoFrames(
+            eventTime: AnalyticsListener.EventTime,
+            droppedFrameCount: Int,
+            elapsedMs: Long,
+        ) {
             droppedFrames += droppedFrameCount
         }
 

@@ -42,7 +42,8 @@ class AdaptiveController(private val config: Config = Config()) {
             ThermalLevel.MODERATE -> 1
             ThermalLevel.LIGHT, ThermalLevel.NONE -> 0
         }
-        val powerFloor = if (device.powerSaveMode || device.batteryPercent?.let { it <= config.lowBatteryPercent } == true) 1 else 0
+        val lowBattery = device.batteryPercent?.let { it <= config.lowBatteryPercent } == true
+        val powerFloor = if (device.powerSaveMode || lowBattery) 1 else 0
 
         updatePerfLevel(health)
 

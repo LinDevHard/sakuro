@@ -104,6 +104,14 @@ internal class FrameFeatures(
             var pairs = 0
             var saturationSum = 0f
 
+            fun countPair(delta: Int) {
+                when {
+                    delta < FLAT_DELTA -> flat++
+                    delta < EDGE_DELTA -> mid++
+                }
+                pairs++
+            }
+
             for (y in 0 until frame.height) {
                 val row = y * frame.width
                 var prevR = 0
@@ -120,14 +128,7 @@ internal class FrameFeatures(
                     val min = minOf(r, g, b)
                     if (max > 0) saturationSum += (max - min).toFloat() / max
 
-                    if (x > 0) {
-                        val delta = abs(r - prevR) + abs(g - prevG) + abs(b - prevB)
-                        when {
-                            delta < FLAT_DELTA -> flat++
-                            delta < EDGE_DELTA -> mid++
-                        }
-                        pairs++
-                    }
+                    if (x > 0) countPair(abs(r - prevR) + abs(g - prevG) + abs(b - prevB))
                     prevR = r
                     prevG = g
                     prevB = b

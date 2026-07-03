@@ -39,6 +39,8 @@ private enum class GestureKind { SEEK, LEVEL, PINCH }
  * в соседнем pointerInput), после — потребляются, и тап-детектор отменяется.
  * Если события уже потреблены (long-press ускорение), жест не начинается.
  */
+@Suppress("CyclomaticComplexMethod", "LoopWithTooManyJumpStatements") // конечный автомат жеста —
+// один проход по awaitEachGesture, дробление разорвёт общее состояние (kind/totalPan/cancelled)
 suspend fun PointerInputScope.detectPlayerGestures(callbacks: PlayerGestureCallbacks) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)

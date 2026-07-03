@@ -6,11 +6,11 @@ import com.arkivanov.essenty.lifecycle.doOnPause
 import com.rinwave.sakuro.core.detect.ClassificationRequest
 import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.detect.ContentDetection
+import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackHealthTracker
 import com.rinwave.sakuro.core.player.PlayerEngine
-import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets

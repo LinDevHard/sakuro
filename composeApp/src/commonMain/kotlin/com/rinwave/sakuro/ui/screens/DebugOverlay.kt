@@ -40,7 +40,8 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
         }
         add("preset    ${stats.upscaleProfile ?: "—"}")
         stats.upscalePasses.forEach { add("  pass    $it") }
-        add("detect    ${detection.contentClass.name.lowercase()} ${(detection.confidence * 100).toInt()}% (${detection.source})")
+        val confidencePercent = (detection.confidence * 100).toInt()
+        add("detect    ${detection.contentClass.name.lowercase()} $confidencePercent% (${detection.source})")
         adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
         stats.extras.forEach { (k, v) -> add("$k  $v") }
         add("status    ${state.status} speed=${state.speed}x")

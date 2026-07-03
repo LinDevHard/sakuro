@@ -134,7 +134,11 @@ fun SettingsScreen(component: SettingsComponent) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text("Debug-оверлей", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text("«Stats for nerds» поверх плеера", color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "«Stats for nerds» поверх плеера",
+                    color = SakuroColors.TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             Switch(
                 checked = debugOverlay,

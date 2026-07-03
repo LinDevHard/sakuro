@@ -8,7 +8,7 @@ fun formatTime(ms: Long): String {
     return if (hours > 0) {
         "$hours:${minutes.pad()}:${seconds.pad()}"
     } else {
-        "${minutes}:${seconds.pad()}"
+        "$minutes:${seconds.pad()}"
     }
 }
 
