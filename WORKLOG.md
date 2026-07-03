@@ -229,3 +229,59 @@ desktop-компиляция ок, APK проверен на Pixel_9a.
 - Калибровка порогов FrameContentClassifier на реальном контенте.
 - Опционально: PiP по свайпу вниз, настройка чувствительности жестов,
   реальная громкость на desktop.
+
+## 2026-07-03 (сессия 6)
+
+Жесты — «мелочи» из FEATURES §3.1/3.2: PiP и чувствительность свайпов.
+
+### PiP при сворачивании (FEATURES §3.1)
+
+- По докам «(опц.) свайп вниз — PiP/сворачивание», но вертикальный свайп
+  занят яркостью/громкостью — реализовано как PiP при сворачивании
+  приложения во время воспроизведения: на Android 12+ авто-вход
+  (`setAutoEnterEnabled`), раньше — `onUserLeaveHint`. Манифест:
+  `supportsPictureInPicture` (configChanges уже покрывали PiP-ресайз).
+- `PictureInPicture` expect/actual в composeApp: `PipEffect(isPlaying,
+  videoWidth, videoHeight)` сообщает активити состояние плеера (PiP
+  только с экрана плеера и только при воспроизведении; аспект окна из
+  размеров видео, зажат в 1:2.39..2.39:1), `rememberIsInPip()` /
+  `isInPipNow()` — текущий режим. Android-мост — `PipBridge`
+  (StateFlow в обе стороны с MainActivity); desktop — no-op.
+- В PiP рисуется только `VideoSurface`: жесты, контролы, бейджи,
+  debug-оверлей и preset-шит скрыты (guard'ы по `inPip`, сам surface
+  не пересоздаётся).
+- **Грабля 1:** `lifecycle.doOnPause { engine.pause() }` останавливал
+  видео при входе в PiP (активити в PiP «на паузе») — теперь пауза
+  только `if (!isInPipNow())`; система шлёт onPictureInPictureModeChanged
+  до onPause, порядок гарантирует корректный снимок.
+- **Грабля 2:** при активных videoEffects GL-конвейер Media3 привязан
+  к размеру surface на момент prepare: после входа в PiP окно чёрное,
+  после разворота кадр рисуется маленьким в углу. Лечится re-prepare
+  той же цепочки (`PlayerComponent.onPipModeChanged` →
+  `engine.applyUpscale(appliedProfile)`) на каждой смене PiP-режима;
+  в UI — LaunchedEffect по фронту `inPip`.
+
+### Чувствительность свайпов (FEATURES §3.2)
+
+- `SakuroSettings.gestureSensitivity` (0.5..2, дефолт 1, persist через
+  multiplatform-settings), сеттер зажимает диапазон.
+- `SeekSwipeSession`/`LevelSwipeSession` получили множитель
+  `sensitivity` — вся математика по-прежнему чистая и покрыта тестами
+  (+2 теста, всего 58). Пинч не трогаем: у него пороговые шаги.
+- Settings: слайдер «Чувствительность свайпов» (0.5×..2× с шагом 0.25,
+  выключен при выключенных жестах) под свитчем жестов.
+- Runtime-проверка на Pixel_9a: слайдер 1.75× → свайп на полширины
+  даёт +79с вместо +45с (упёрся в конец минутного ролика, бейдж +0:56);
+  PiP: Home во время воспроизведения → окно с живым видео, разворот
+  обратно — корректный полноэкранный кадр с активным пресетом
+  (заодно живьём видно frames-детекцию: anime 82%, Anime HD ×1.5).
+
+Проверка: detekt чист, 58 unit-тестов зелёные, assembleFossDebug +
+desktop-компиляция ок, PiP и слайдер проверены на Pixel_9a.
+
+### Дальше по докам
+
+- engine-mpv (libmpv через NDK) — движок №2, последний большой блок.
+- Калибровка порогов FrameContentClassifier на реальном контенте.
+- Опционально: реальная громкость на desktop (ждёт реального
+  desktop-движка — FakePlayerEngine звука не имеет).
