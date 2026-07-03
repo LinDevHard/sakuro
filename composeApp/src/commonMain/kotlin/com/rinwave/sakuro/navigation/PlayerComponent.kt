@@ -15,8 +15,8 @@ import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
+import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.ui.isInPipNow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,9 +34,12 @@ class PlayerComponent(
     engineRegistry: EngineRegistry,
     deviceStatusMonitor: DeviceStatusMonitor,
     contentClassifier: ContentClassifier,
-    private val userPresets: UserPresetStore,
+    presetStores: PresetStores,
     private val onFinished: () -> Unit,
 ) : ComponentContext by componentContext {
+
+    private val userPresets = presetStores.user
+    private val pinnedPresets = presetStores.pinned
 
     private val scope = componentScope()
 
@@ -59,8 +62,13 @@ class PlayerComponent(
     val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
     /** Выбор пользователя (включая «auto»); фактически применённая цепочка может отличаться. */
-    private val _selectedPresetId = MutableStateFlow(settings.presetId.value)
+    private val _selectedPresetId = MutableStateFlow(initialPresetId())
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
+
+    /** Пресет закреплён за этим файлом (FEATURES.md §1.3): выбор в шторке меняет пин, а не общий дефолт. */
+    val isPinned: StateFlow<Boolean> = pinnedPresets.pins
+        .map { media.uri in it }
+        .stateIn(scope, SharingStarted.Eagerly, media.uri in pinnedPresets.pins.value)
 
     private val _detection = MutableStateFlow(ContentDetection.UNKNOWN)
     val detection: StateFlow<ContentDetection> = _detection.asStateFlow()
@@ -117,10 +125,30 @@ class PlayerComponent(
             else -> BuiltInPresets.byId(selectedId) ?: userPresets.byId(selectedId) ?: BuiltInPresets.OFF
         }
 
+    /** Закреплённый за файлом пресет приоритетнее общего дефолта; битый пин снимается. */
+    private fun initialPresetId(): String {
+        val pinned = pinnedPresets.presetIdFor(media.uri) ?: return settings.presetId.value
+        if (isKnownPreset(pinned)) return pinned
+        pinnedPresets.unpin(media.uri)
+        return settings.presetId.value
+    }
+
+    private fun isKnownPreset(id: String): Boolean =
+        id == AUTO_PRESET_ID || BuiltInPresets.byId(id) != null || userPresets.byId(id) != null
+
     fun applyPreset(id: String) {
-        if (id != AUTO_PRESET_ID && BuiltInPresets.byId(id) == null && userPresets.byId(id) == null) return
-        settings.setPresetId(id)
+        if (!isKnownPreset(id)) return
+        if (isPinned.value) pinnedPresets.pin(media.uri, id) else settings.setPresetId(id)
         _selectedPresetId.value = id
+    }
+
+    /** Снятие пина не трогает текущий выбор — общий дефолт вернётся при следующем открытии. */
+    fun togglePinned() {
+        if (isPinned.value) {
+            pinnedPresets.unpin(media.uri)
+        } else {
+            pinnedPresets.pin(media.uri, _selectedPresetId.value)
+        }
     }
 
     /**

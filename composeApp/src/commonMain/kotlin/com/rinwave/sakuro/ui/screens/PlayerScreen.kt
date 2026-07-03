@@ -32,6 +32,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +59,7 @@ import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Maximize
 import com.composables.icons.lucide.Pause
+import com.composables.icons.lucide.Pin
 import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RotateCcw
 import com.composables.icons.lucide.RotateCw
@@ -571,6 +574,48 @@ private fun PresetSheet(
                     }
                 }
             }
+            PinRow(component)
         }
+    }
+}
+
+/** Закрепление пресета за файлом (FEATURES.md §1.3): пин приоритетнее общего дефолта и «Авто». */
+@Composable
+private fun PinRow(component: PlayerComponent) {
+    val isPinned by component.isPinned.collectAsState()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { component.togglePinned() }
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Lucide.Pin,
+            null,
+            tint = if (isPinned) SakuroColors.AccentSakura else SakuroColors.TextMuted,
+            modifier = Modifier.size(18.dp),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                "Закрепить за этим файлом",
+                color = SakuroColors.TextPrimary,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                "Пресет применяется только к этому видео и не меняет общий выбор",
+                color = SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Switch(
+            checked = isPinned,
+            onCheckedChange = { component.togglePinned() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = SakuroColors.AccentSakura,
+                checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
+            ),
+        )
     }
 }

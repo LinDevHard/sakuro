@@ -63,7 +63,7 @@ class RootComponent(
                 engineRegistry = deps.engineRegistry,
                 deviceStatusMonitor = deps.deviceStatusMonitor,
                 contentClassifier = deps.contentClassifier,
-                userPresets = deps.userPresets,
+                presetStores = deps.presetStores,
                 onFinished = navigation::pop,
             ),
         )
@@ -73,7 +73,7 @@ class RootComponent(
                 componentContext = componentContext,
                 settings = deps.settings,
                 engineRegistry = deps.engineRegistry,
-                userPresets = deps.userPresets,
+                presetStores = deps.presetStores,
                 onBack = navigation::pop,
             ),
         )

@@ -5,8 +5,8 @@ import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.UserPresetStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -16,9 +16,12 @@ class SettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     engineRegistry: EngineRegistry,
-    private val userPresets: UserPresetStore,
+    presetStores: PresetStores,
     val onBack: () -> Unit,
 ) : ComponentContext by componentContext {
+
+    private val userPresets = presetStores.user
+    private val pinnedPresets = presetStores.pinned
 
     private val scope = componentScope()
 
@@ -46,8 +49,9 @@ class SettingsComponent(
 
     fun deleteUserPreset(id: String) {
         userPresets.delete(id)
-        // Удалённый пресет не должен оставаться «по умолчанию».
+        // Удалённый пресет не должен оставаться ни «по умолчанию», ни в пинах файлов.
         if (settings.presetId.value == id) settings.setPresetId(BuiltInPresets.OFF.id)
+        pinnedPresets.removeAllFor(id)
     }
 
     fun exportUserPreset(profile: UpscaleProfile): String = userPresets.export(profile)
