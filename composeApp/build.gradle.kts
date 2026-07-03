@@ -50,6 +50,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(project(":engine:engine-media3"))
             implementation(libs.media3.ui)
+            // Превью-кадры в библиотеке (ARCHITECTURE.md: Coil 3).
+            // Только androidMain: у desktop нет видео-декодера, там остаётся плейсхолдер.
+            implementation(libs.coil.compose)
+            implementation(libs.coil.video)
         }
 
         commonTest.dependencies {

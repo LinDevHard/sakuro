@@ -45,6 +45,7 @@ import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
 import com.rinwave.sakuro.core.media.VideoItem
 import com.rinwave.sakuro.navigation.LibraryComponent
+import com.rinwave.sakuro.ui.VideoThumbnail
 import com.rinwave.sakuro.ui.rememberVideoFilePicker
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatSize
@@ -186,6 +187,7 @@ private fun VideoCard(item: VideoItem, onClick: () -> Unit) {
                 tint = SakuroColors.TextMuted.copy(alpha = 0.6f),
                 modifier = Modifier.size(32.dp).align(Alignment.Center),
             )
+            VideoThumbnail(uri = item.uri, modifier = Modifier.matchParentSize())
             if (item.durationMs > 0) {
                 Text(
                     text = formatTime(item.durationMs),

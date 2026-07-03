@@ -1,6 +1,10 @@
 package com.rinwave.sakuro
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.video.VideoFrameDecoder
 import com.rinwave.sakuro.core.detect.CompositeContentClassifier
 import com.rinwave.sakuro.core.detect.FilenameContentClassifier
 import com.rinwave.sakuro.core.detect.FrameContentClassifier
@@ -15,7 +19,13 @@ import com.rinwave.sakuro.engine.fake.FakeEngineFactory
 import com.rinwave.sakuro.engine.media3.Media3EngineFactory
 import org.koin.core.context.startKoin
 
-class SakuroApplication : Application() {
+class SakuroApplication : Application(), SingletonImageLoader.Factory {
+
+    // Без VideoFrameDecoder Coil не умеет доставать превью-кадры из видеофайлов.
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader.Builder(context)
+            .components { add(VideoFrameDecoder.Factory()) }
+            .build()
 
     override fun onCreate() {
         super.onCreate()
