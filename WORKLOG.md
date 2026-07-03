@@ -179,3 +179,53 @@
 - Desktop-реализация FrameSampler; калибровка порогов детекции
   на реальном контенте.
 - Опционально: PiP по свайпу вниз, настройка чувствительности жестов.
+
+## 2026-07-03 (сессия 5)
+
+Coil-превью в библиотеке + desktop FrameSampler (пункты 2 и 3 очереди).
+
+### Превью кадров в библиотеке (коммит ff8654e, ARCHITECTURE: Coil 3)
+
+- **coil-compose + coil-video 3.3.0** (androidMain). Свежее нельзя:
+  3.4.0/3.5.0 собраны Kotlin 2.3/2.4 со `strictly`-констрейнтом stdlib —
+  метаданные не читаются нашим Kotlin 2.1.21 (Internal compiler error
+  уже на этапе type checkers). 3.5.0 вдобавок требует compileSdk 36.
+  Зафиксировано комментарием в libs.versions.toml; апгрейд Coil пойдёт
+  вместе с апгрейдом Kotlin.
+- `VideoThumbnail` expect/actual: Android — AsyncImage c ImageRequest
+  `videoFramePercent(0.2)` (начало ролика часто чёрное/с логотипами),
+  crossfade; desktop — no-op, снизу остаётся прежний плейсхолдер
+  (SampleVideoLibrary отдаёт fake://-URI, видео-декодера в Coil на JVM нет).
+- `SakuroApplication` реализует `SingletonImageLoader.Factory` и
+  регистрирует `VideoFrameDecoder` — без него Coil видео не понимает.
+- В `VideoCard` превью рисуется поверх плейсхолдера (`matchParentSize`),
+  бейдж длительности — после превью в z-order.
+- Runtime-проверка на Pixel_9a: все три тестовых ролика показывают
+  реальные кадры (testsrc-палитра, mandelbrot), скругления карточки
+  и бейдж поверх — ок.
+
+### Desktop FrameSampler (коммит bd4db03, FEATURES §1)
+
+- `FfmpegFrameSampler` (desktopMain core-detect): системные ffmpeg/ffprobe
+  через ProcessBuilder — ffprobe даёт длительность и размеры (csv),
+  ffmpeg отдаёт по кадру на позицию сырым ARGB в pipe. Та же сетка,
+  что у RetrieverFrameSampler: равномерно в 10..90% длительности, ~96px.
+- Best-effort по контракту FrameSampler: нет бинарей в PATH, не-локальный
+  URI (fake://), битый файл, таймаут (15 с) — пустой список, слой молчит.
+- Подключён в desktop main.kt тем же CompositeContentClassifier, что на
+  Android: filename отвечает сразу, кадры замещают не-худшим результатом.
+- 8 тестов: чистые функции (csv-парсинг, scale, ARGB-байты→пиксели,
+  locale-независимый формат секунд) + интеграционный на сгенерированном
+  testsrc-ролике (сам скипается без ffmpeg). Всего в проекте 56 тестов.
+- detekt: у FunctionNaming дефолтные excludes не знают кастомный
+  source set `desktopTest` — расширены в config/detekt/detekt.yml.
+
+Проверка: detekt чист, 56 unit-тестов зелёные, assembleFossDebug +
+desktop-компиляция ок, APK проверен на Pixel_9a.
+
+### Дальше по докам
+
+- engine-mpv (libmpv через NDK) — движок №2, последний большой блок.
+- Калибровка порогов FrameContentClassifier на реальном контенте.
+- Опционально: PiP по свайпу вниз, настройка чувствительности жестов,
+  реальная громкость на desktop.
