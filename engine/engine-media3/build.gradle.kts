@@ -12,4 +12,6 @@ dependencies {
     api(libs.media3.exoplayer)
     implementation(libs.media3.effect)
     api(libs.media3.common)
+
+    testImplementation(kotlin("test"))
 }
