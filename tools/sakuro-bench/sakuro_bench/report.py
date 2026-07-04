@@ -209,6 +209,22 @@ def _table(modes, rows, keys, labels, higher_better, note) -> str:
             f"<p class='note'>{note}</p>")
 
 
+# ============================ синхронный зум 1:1 ============================
+def zoom_panel(series: list[tuple[str, str]], aspect: float) -> str:
+    """series = [(метка, b64-hires), …]; наведение на навигатор двигает лупу во всех."""
+    if not series:
+        return ""
+    nav_b64 = series[0][1]
+    cells = "".join(
+        f"<div class='zcell'><span>{lab}</span>"
+        f"<div class='zview' style=\"background-image:url('{b64}')\"></div></div>"
+        for lab, b64 in series)
+    return (f"<div class='zoom' style='--asp:{aspect:.4f}'>"
+            f"<div class='znav'><img src='{nav_b64}'><div class='zbox'></div>"
+            f"<span class='zhint'>навигатор ({series[0][0]}) — веди курсор</span></div>"
+            f"<div class='zrow'>{cells}</div></div>")
+
+
 # ============================ before/after слайдер ============================
 def _slider(mode, original_b64, enhanced_b64) -> str:
     return (f"<div class='ba'>"
@@ -220,7 +236,8 @@ def _slider(mode, original_b64, enhanced_b64) -> str:
 
 
 # ============================ вывод ============================
-def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta) -> Path:
+def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta,
+                  zoom_series=None, zoom_aspect=1.777) -> Path:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     has_fr = any(fr_rows.values())
@@ -238,12 +255,13 @@ def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals,
         json.dumps({"meta": meta, "fr": fr_rows, "nr": nr_rows}, indent=2, ensure_ascii=False))
 
     index = out_dir / "index.html"
-    index.write_text(_render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has_fr),
-                     encoding="utf-8")
+    index.write_text(_render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta,
+                                  has_fr, zoom_series or [], zoom_aspect), encoding="utf-8")
     return index
 
 
-def _render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has_fr) -> str:
+def _render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has_fr,
+                 zoom_series, zoom_aspect) -> str:
     fr_html = ""
     if has_fr:
         fr_html = "<h2>Full-reference (эталон известен)</h2>" + _table(
@@ -271,6 +289,11 @@ def _render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has
               if m in heatmaps else "")
         cards += (f"<div class='card'><h3><i class='dot' style='background:{_color(i)}'></i>{m}</h3>"
                   f"{slider}{hm}</div>")
+
+    zoom_html = ""
+    if zoom_series:
+        zoom_html = ("<h2>Зум 1:1 — веди курсор по навигатору (синхронно во всех)</h2>"
+                     + zoom_panel(zoom_series, zoom_aspect))
 
     meta_html = "".join(f"<li><b>{k}:</b> {v}</li>" for k, v in meta.items())
     return f"""<!doctype html><html lang=ru><head><meta charset=utf-8>
@@ -316,11 +339,25 @@ border:2px solid #fff;border-radius:50%;background:rgba(224,85,155,.55)}}
 .ba-tag{{position:absolute;bottom:8px;padding:2px 8px;font:600 11px sans-serif;color:#fff;
 background:rgba(0,0,0,.55);border-radius:5px;line-height:1.4;pointer-events:none}}
 .ba-tag.l{{left:8px}}.ba-tag.r{{right:8px}}
+.zoom{{--zoom:3}}
+.znav{{position:relative;max-width:520px;margin-bottom:14px;cursor:crosshair;line-height:0}}
+.znav img{{width:100%;border-radius:8px;display:block}}
+.zbox{{position:absolute;width:calc(100%/var(--zoom));aspect-ratio:var(--asp);
+border:2px solid var(--acc);box-shadow:0 0 0 9999px rgba(0,0,0,.28);
+transform:translate(-50%,-50%);left:50%;top:50%;pointer-events:none;border-radius:3px}}
+.zhint{{position:absolute;left:8px;bottom:8px;font:600 11px sans-serif;color:#fff;
+background:rgba(0,0,0,.55);padding:2px 8px;border-radius:5px;line-height:1.4}}
+.zrow{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}}
+.zcell span{{font:600 12px sans-serif;color:var(--mut);display:block;margin-bottom:5px}}
+.zview{{width:100%;aspect-ratio:var(--asp);border-radius:8px;border:1px solid var(--line);
+background-repeat:no-repeat;background-size:calc(var(--zoom)*100%);background-position:50% 50%;
+image-rendering:pixelated}}
 </style></head><body>
 <h1>sakuro-bench</h1>
 <p class=sub>{meta.get('scenario','')} · {meta.get('generated','')}</p>
 <ul class=meta>{meta_html}</ul>
 {_legend(modes)}
+{zoom_html}
 <h2>Инфографика</h2>
 {charts}
 {fr_html}
@@ -336,5 +373,22 @@ document.querySelectorAll('.ba').forEach(function(ba){{
   rng.addEventListener('input',function(e){{ set(e.target.value); }});
   new ResizeObserver(sync).observe(ba); sync(); set(rng.value);
 }});
+(function(){{
+  var Z=document.querySelector('.zoom'); if(!Z) return;
+  var nav=Z.querySelector('.znav'), box=Z.querySelector('.zbox'),
+      views=[].slice.call(Z.querySelectorAll('.zview'));
+  function set(x,y){{
+    var px=(x*100).toFixed(2)+'%', py=(y*100).toFixed(2)+'%';
+    views.forEach(function(v){{ v.style.backgroundPosition=px+' '+py; }});
+    box.style.left=px; box.style.top=py;
+  }}
+  nav.addEventListener('mousemove',function(e){{
+    var r=nav.getBoundingClientRect();
+    var x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    var y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+    set(x,y);
+  }});
+  set(0.5,0.5);
+}})();
 </script>
 </body></html>"""

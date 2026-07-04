@@ -108,8 +108,13 @@ def cmd_capture_compare(args) -> int:
         "режимов": len(modes),
         "sakuro-bench": __version__,
     }
+    zoom_series = ([("эталон", report.rgb_b64(ref_frame.rgb, 1500))] if ref_frame else []) + \
+        [(m, report.rgb_b64(aligned[m].rgb, 1500)) for m in modes]
+    aspect = base.size[0] / base.size[1]
+
     out = Path(args.out)
-    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta)
+    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
+                                 zoom_series=zoom_series, zoom_aspect=aspect)
     print(f"OK · отчёт: {index}")
     print(f"     CSV:   {out / 'metrics.csv'}")
     return 0
@@ -172,8 +177,12 @@ def cmd_synth(args) -> int:
         "эталон": "мастер (ground-truth)",
         "sakuro-bench": __version__,
     }
+    zoom_series = [("эталон", report.rgb_b64(master.rgb, 1500))] + \
+        [(m, report.rgb_b64(frames[m].rgb, 1500)) for m in modes]
+
     out = Path(args.out)
-    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta)
+    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
+                                 zoom_series=zoom_series, zoom_aspect=W / H)
     print(f"OK · отчёт: {index}")
     print("     Прим.: synth гоняет только ffmpeg-скейлеры (baseline). Реальные")
     print("     engine-mpv-режимы — команда `synth-mpv` (offline mpv + Anime4K).")
@@ -201,7 +210,7 @@ def cmd_synth_mpv(args) -> int:
 
         ref_luma = master.luma()
         master_b64 = report.rgb_b64(master.rgb)
-        rows_fr, rows_nr, thumbs, heatmaps, originals = {}, {}, {}, {}, {}
+        rows_fr, rows_nr, thumbs, heatmaps, originals, zoom = {}, {}, {}, {}, {}, {}
         for m in modes:
             out_png = str(tdp / f"mpv_{m}.png")
             mpv_backend.render(low, out_png, (W, H), m)
@@ -211,7 +220,9 @@ def cmd_synth_mpv(args) -> int:
             thumbs[m] = report.rgb_b64(f.rgb)
             heatmaps[m] = report._b64_png(report.diff_heatmap(f.luma(), ref_luma))
             originals[m] = master_b64
+            zoom[m] = report.rgb_b64(f.rgb, 1500)
             print(f"  · {m}: отрисован")
+        zoom_series = [("эталон", report.rgb_b64(master.rgb, 1500))] + [(m, zoom[m]) for m in modes]
 
     meta = {
         "scenario": f"synth-mpv (offline headless mpv + Anime4K) ×{args.scale} ({args.degrade})",
@@ -223,7 +234,8 @@ def cmd_synth_mpv(args) -> int:
         "sakuro-bench": __version__,
     }
     out = Path(args.out)
-    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta)
+    index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
+                                 zoom_series=zoom_series, zoom_aspect=W / H)
     print(f"OK · отчёт: {index}")
     print("     Прим.: offline-mpv ≈ engine-mpv (FP32 vs возможный FP16-CNN на мобилке).")
     print("     Абсолютные числа сверять с device-capture; ранжир достоверен.")
