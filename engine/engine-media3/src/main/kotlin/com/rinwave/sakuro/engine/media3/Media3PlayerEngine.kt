@@ -51,6 +51,8 @@ import kotlinx.coroutines.launch
 @UnstableApi
 class Media3PlayerEngine(context: Context) : PlayerEngine {
 
+    private val appContext: Context = context.applicationContext
+
     val player: ExoPlayer = ExoPlayer.Builder(context).build()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -236,7 +238,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         val sourceHeight = _state.value.videoHeight
         effectsBuiltForHeight = if (currentProfile.passes.any { it is UpscalePass.Upscale }) sourceHeight else -1
         runCatching {
-            player.setVideoEffects(UpscaleEffectChain.build(currentProfile, sourceHeight))
+            player.setVideoEffects(UpscaleEffectChain.build(appContext, currentProfile, sourceHeight))
         }.onFailure {
             _state.update { s -> s.copy(errorMessage = "Не удалось применить эффекты: ${it.message}") }
         }

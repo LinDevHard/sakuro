@@ -13,10 +13,15 @@ import androidx.media3.effect.GlShaderProgram
 import androidx.media3.effect.Presentation
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.engine.media3.anime4k.Anime4KChain
+import com.rinwave.sakuro.engine.media3.anime4k.Anime4KGlEffect
 import kotlin.math.roundToInt
 
 /**
  * Сборка цепочки `GlEffect` из абстрактного [UpscaleProfile] (ARCHITECTURE.md §4):
+ * - аниме/мультик → единый [Anime4KGlEffect] с настоящим многопроходным Anime4K CNN
+ *   (docs/anime4k-media3-port-plan.md); depth-to-space сам даёт ×2, отдельный
+ *   [Presentation] не нужен;
  * - Upscale → [Presentation] с целевой высотой (реальное изменение выходного разрешения);
  * - Sharpen → GLSL ES-порт прохода в духе Anime4K «clamp highlights + sharpen»;
  * - Denoise → лёгкий edge-preserving проход (bilateral-lite).
@@ -26,7 +31,13 @@ object UpscaleEffectChain {
 
     const val MAX_TARGET_HEIGHT = 2160
 
-    fun build(profile: UpscaleProfile, sourceHeight: Int): List<Effect> = buildList {
+    fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): List<Effect> {
+        val anime4kPasses = Anime4KChain.load(context, profile)
+        if (anime4kPasses.isNotEmpty()) return listOf(Anime4KGlEffect(anime4kPasses))
+        return buildLegacyChain(profile, sourceHeight)
+    }
+
+    private fun buildLegacyChain(profile: UpscaleProfile, sourceHeight: Int): List<Effect> = buildList {
         profile.passes.forEach { pass ->
             when (pass) {
                 is UpscalePass.Denoise -> add(DenoiseGlEffect(pass.strength.coerceIn(0f, 1f)))
