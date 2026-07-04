@@ -1,5 +1,122 @@
 # Sakuro — журнал работ
 
+## 2026-07-05 (сессия 12)
+
+**Порт Anime4K CNN на движок Media3** — фазы 1–2/4 по
+`docs/anime4k-media3-port-plan.md`. Замер sakuro-bench показал, что media3-«аниме»
+(одноходовой unsharp) почти не даёт выигрыша (VMAF ≈ off), тогда как настоящие
+Anime4K-шейдеры в engine-mpv берут VMAF 88–91. Ключевое: это НЕ ML-задача —
+веса вшиты в GLSL как `mat4(...)`, нужен лишь исполнительный фреймворк
+многопроходного рендер-графа mpv/libplacebo поверх GL-пайплайна Media3. Решение
+из плана — дженерик-рантайм формата mpv user-shaders (а не хардкод каждого
+шейдера): тогда все 6 (и будущие) `.glsl` работают без правки.
+
+### Фаза 1 — чистое ядро без GL (коммит 481ff5c)
+
+- `RpnExpression` — эвалюатор формул `//!WIDTH/HEIGHT/WHEN` в обратной польской
+  записи (арифметика `+ - * /` + сравнения `> < >= <= =`; ссылки на размеры
+  текстур `MAIN.w`/`OUTPUT.h`/`conv2d_last_tf.w`). Пример depth-to-space:
+  `conv2d_last_tf.w 2 *`.
+- `UserShaderPass` + `MpvUserShaderParser` — файл `.glsl` → список проходов по
+  директивам `//!DESC/HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN`. Лицензионная
+  шапка и всё до первого прохода отбрасываются; `SAVE`/`BIND` по умолчанию =
+  `HOOKED` (хукнутая стадия). Незнакомые директивы (`OFFSET`/`COMPUTE`) игнор —
+  Anime4K v4.0.1 их не использует.
+- `Anime4KGraphPlanner` — статически прогоняет граф от размера входного кадра:
+  считает разрешение каждой промежуточной текстуры по RPN, отсекает проходы с
+  ложным `//!WHEN`, отдаёт итоговый размер `MAIN` (depth-to-space даёт ×2).
+  Стадии `MAIN`/`PREKERNEL`/`NATIVE` (реального скейлера между ними у нас нет)
+  и `OUTPUT` (для гейтинга).
+- `ShaderPreamble` — на каждый `//!BIND <n>` генерит `<n>_tex/_texOff/_pos/
+  _pt/_size` поверх обычного `sampler2D`, чтобы тело `hook()` компилировалось
+  БЕЗ правок. ES 3.00, `highp`, единый `v_texcoord` на все входы.
+- 15 юнит-тестов (RPN, парсер на реальной структуре Upscale_CNN_x2_S,
+  планировщик). detekt чист.
+
+### Фаза 2/4 — GL-рантайм и интеграция (коммит 263fc38)
+
+- `Anime4KShaderProgram` (`BaseGlShaderProgram`) — мини-рантайм рендер-графа
+  внутри ОДНОГО `GlEffect` (не плодим эффект на проход — не воюем с
+  resolution-negotiation Media3). В `drawFrame` каждый проход рисует
+  фулскрин-квад в собственный `GL_RGBA16F` FBO (FP16 обязателен: фичемапы CNN
+  выходят за [0,1] и уходят в минус). `MAIN/PREKERNEL/NATIVE/HOOKED` резолвятся
+  в живые текстуры (мультибинд `MAIN + conv2d_last_tf` для depth-to-space
+  поддержан). Финал — present-проход `MAIN` → выходная текстура Media3 (alpha
+  форсируется в 1). Выходной FBO базового класса захватывается через
+  `glGetIntegerv(GL_FRAMEBUFFER_BINDING)`. Нет color-renderable FP16 / FBO
+  неполон → деградация в passthrough (кадр без апскейла), а не падение
+  конвейера.
+- `Anime4KGlEffect` — единый эффект, `isNoOp` при пустой цепочке.
+- `Anime4KChain` — выбор моделей S/M и канонический порядок
+  Clamp→Denoise→Restore→Upscale 1:1 с `MpvUpscaleProperties.buildAnime4kChain`;
+  загрузка+парсинг `.glsl` из `assets/anime4k/` (их вендорит engine-mpv, в APK
+  ассеты модулей смёрджены). `IOException` (сборка без engine-mpv) → откат на
+  legacy.
+- `UpscaleEffectChain.build(context, …)` — для ANIME/CARTOON профилей отдаёт
+  `Anime4KGlEffect`, иначе прежняя legacy-цепочка (Sharpen/Denoise/Presentation).
+  `Media3PlayerEngine` прокидывает `applicationContext`.
+- Полная сборка `:composeApp:compileFossDebugSources` зелёная, detekt чист,
+  все юнит-тесты зелёные.
+
+### Не сделано / дальше по плану
+
+- **Runtime-проверка на устройстве** (не гонялось): визуальная корректность и
+  сверка порт↔mpv через sakuro-bench (фаза 7 — оракул корректности). Дельта
+  порт↔mpv должна быть ≪ различий между режимами. Пользователь проверяет сам.
+- **Фаза 3** — Denoise использует стадии `PREKERNEL`/`LINELUMA`/`STATSMAX` и
+  `COMPONENTS 1`; рантайм дженерик и формально их тянет (всё в RGBA16F), но на
+  живом контенте не проверялся.
+- **Фаза 5** — детекция FP16/перфа + гейтинг через `AdaptiveController` (не
+  пускать M-модели на слабых SoC). Сейчас только внутренняя passthrough-
+  деградация при отсутствии FP16.
+- **Фаза 6** — многопроходность = N полноэкранных RTT на кадр; профилировать на
+  реальном железе (эмулятор рендерит хост-GPU — нерепрезентативно).
+
+## 2026-07-04 (сессия 11)
+
+Премиальный каталог: директории, сортировка, UX в стиле Google Photos.
+
+- **Модель** (`core-media`): `VideoItem.folderName` (bucket-имя папки; пусто →
+  раскладывается в `FOLDER_OTHER = "Другое"`). Android — из
+  `MediaStore.Video.Media.BUCKET_DISPLAY_NAME`; desktop-сэмплы разложены по
+  папкам (Аниме / Фильмы / Camera) с разными датами.
+- **`LibraryOrganizer`** — чистые функции: `sortedBy(SortOrder)` (поле
+  Дата/Имя/Размер/Длительность/Разрешение × направление, вторичный ключ — имя),
+  `toFolders` (группировка по папке, алфавит, обложка + счётчик),
+  `toSections` (относительные корзины Сегодня/Вчера/На этой неделе/В этом
+  месяце/Ранее — только при сортировке по дате; иначе одна секция без шапки).
+  Время вынесено в `expect/actual nowEpochSeconds()` ради тестируемости.
+- **`LibraryPreferencesStore`** — сохранение сортировки (multiplatform-settings,
+  два ключа, без JSON); выбор переживает перезапуск.
+- **`LibraryComponent`** — сегменты Видео/Папки, drill-down в папку, системный
+  «назад» через Essenty `BackCallback`, пересборка секций/папок под сортировку.
+- **`LibraryScreen`** — сегмент-контрол, кнопка сортировки → `ModalBottomSheet`
+  (радио + тумблер направления), липкие заголовки секций через
+  `GridItemSpan(maxLineSpan)`, карточки папок (обложка + бейдж-счётчик),
+  `AnimatedContent` при переключении вкладок.
+
+Проверка: detekt чист, desktop-компиляция и `compileFossDebugKotlinAndroid` ок,
+unit-тесты зелёные (+10: `LibraryOrganizerTest`, `LibraryPreferencesStoreTest`).
+Runtime-проверка на устройстве при следующей сессии.
+
+### Фикс обновления каталога
+
+Симптом: файлы, добавленные на устройство вне приложения, не появлялись —
+«Обновить» лишь перечитывал MediaStore, а свежие файлы туда ещё не
+проиндексированы (особенно `adb push`). Появлялись только после открытия файла
+через SAF (запрос по `content://…document…` заставляет MediaProvider
+проиндексировать файл).
+
+- `MediaLibrary.requestSystemRescan()` (default no-op; Android — `MediaScannerConnection.scanFile`
+  по публичным папкам Movies/DCIM/Download + корню). Кнопка «Обновить» теперь
+  форсит скан, затем перечитывает индекс.
+- `MediaStoreVideoLibrary` регистрирует `ContentObserver` на
+  `Video.EXTERNAL_CONTENT_URI` → авто-`requestRefresh` при любом изменении
+  индекса (файлы появляются сами, без кнопки).
+- `LibraryComponent`: ручной `refresh()` (rescan+reload) отделён от
+  обсервер-`reload()` (только запрос) — иначе петля скан→обсервер→скан; спиннер
+  только на первой загрузке, фоновые обновления бесшумны.
+
 ## 2026-07-02
 
 Собрана рабочая v0.1 (до этого в репозитории были только доки):
