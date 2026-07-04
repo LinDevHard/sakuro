@@ -1,0 +1,5 @@
+.venv/
+report/
+caps/
+__pycache__/
+*.pyc
