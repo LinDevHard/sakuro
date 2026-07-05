@@ -11,24 +11,24 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BaseGlShaderProgram
 
 /**
- * Мини-рантайм рендер-графа mpv user-shaders поверх одного [BaseGlShaderProgram]
- * (docs/anime4k-media3-port-plan.md §2, §4). Media3 видит один эффект; вся
- * многопроходность Anime4K (conv-цепочки, depth-to-space, residual) исполняется
- * внутри `drawFrame` по собственным FP16-FBO.
+ * A mini render-graph runtime for mpv user-shaders on top of a single [BaseGlShaderProgram]
+ * (docs/anime4k-media3-port-plan.md §2, §4). Media3 sees one effect; the whole
+ * multi-pass nature of Anime4K (conv chains, depth-to-space, residual) runs
+ * inside `drawFrame` over its own FP16 FBOs.
  *
- * Проходы приходят уже склеенными из нескольких `.glsl`-файлов пресета
- * (Clamp→Denoise→Restore→Upscale). Разрешение каждой промежуточной текстуры
- * считает [Anime4KGraphPlanner]; результат стадии `MAIN` презентится в выходную
- * текстуру Media3.
+ * Passes arrive already concatenated from several `.glsl` files of the preset
+ * (Clamp→Denoise→Restore→Upscale). The resolution of each intermediate texture is
+ * computed by [Anime4KGraphPlanner]; the result of the `MAIN` stage is presented into the
+ * Media3 output texture.
  *
- * FP16 — жёсткое требование (фичемапы CNN выходят за [0,1] и уходят в минус).
- * Если color-renderable FP16 недоступен/FBO неполон, рантайм деградирует в
- * простой passthrough (кадр без апскейла), а не роняет конвейер.
+ * FP16 is a hard requirement (CNN feature maps go beyond [0,1] and go negative).
+ * If color-renderable FP16 is unavailable / the FBO is incomplete, the runtime degrades to
+ * a simple passthrough (the frame without upscaling) instead of breaking the pipeline.
  */
 @UnstableApi
 internal class Anime4KShaderProgram(
     private val passes: List<UserShaderPass>,
-    /** Множитель целевого размера для гейтинга `//!WHEN` (апскейл крупнее входа). */
+    /** Target-size multiplier for gating `//!WHEN` (upscale larger than the input). */
     private val outputGateScale: Int = OUTPUT_GATE_SCALE,
 ) : BaseGlShaderProgram(HIGH_PRECISION, TEXTURE_POOL_CAPACITY) {
 
@@ -70,13 +70,13 @@ internal class Anime4KShaderProgram(
             targets = plan.passes.map { createFp16Target(it.outWidth, it.outHeight) }
             degraded = false
         } catch (e: GlUtil.GlException) {
-            // Нет FP16-таргетов / шейдер не собрался — деградируем в passthrough.
-            Log.w(TAG, "Anime4K граф не собран, passthrough: ${e.message}")
+            // No FP16 targets / the shader did not build — degrade to passthrough.
+            Log.w(TAG, "Anime4K graph was not built, passthrough: ${e.message}")
             degraded = true
             releaseGraph()
         }
 
-        // При деградации отдаём исходный размер (апскейл не применяем).
+        // On degradation we return the source size (no upscale is applied).
         return if (degraded) Size(inputWidth, inputHeight) else Size(plan.outputWidth, plan.outputHeight)
     }
 
@@ -93,12 +93,12 @@ internal class Anime4KShaderProgram(
     }
 
     private fun runGraph(inputTexId: Int) {
-        // FBO выходной текстуры Media3, привязанный базовым классом до drawFrame.
+        // The Media3 output-texture FBO, bound by the base class before drawFrame.
         val outputFbo = IntArray(1)
         GLES30.glGetIntegerv(GLES30.GL_FRAMEBUFFER_BINDING, outputFbo, 0)
 
-        // Стадии-кадры PREKERNEL/NATIVE канонизируются в MAIN (см. планировщик),
-        // поэтому в карте живёт единственный слот кадра.
+        // Frame stages PREKERNEL/NATIVE are canonicalized to MAIN (see the planner),
+        // so the map holds a single frame slot.
         val current = HashMap<String, TexRef>()
         current[MAIN] = TexRef(inputTexId, inputWidth, inputHeight)
 
@@ -107,16 +107,16 @@ internal class Anime4KShaderProgram(
             val target = targets[i]
             GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
             program.use()
-            // Id текущей программы — чтобы ставить только АКТИВНЫЕ uniform'ы:
-            // GLSL-компилятор выкидывает неиспользуемые (напр. _size нужен лишь
-            // depth-to-space), GlProgram их не регистрирует и падает при set;
-            // а bindAttributesAndUniforms требует значение для каждого, что он знает,
-            // поэтому ставим через GlProgram (не в обход), но под гейтом активности.
+            // The current program id — so we set only the ACTIVE uniforms:
+            // the GLSL compiler drops unused ones (e.g. _size is only needed by
+            // depth-to-space), GlProgram does not register them and fails on set;
+            // yet bindAttributesAndUniforms requires a value for every one it knows,
+            // so we set them through GlProgram (not around it) but gated by activity.
             val programId = IntArray(1)
             GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
             planned.pass.binds.distinct().forEachIndexed { unit, bind ->
                 val ref = current[Anime4KGraphPlanner.canonicalStage(bind, planned.pass.hook)]
-                    ?: error("Anime4K: '${planned.pass.desc}' биндит несуществующую '$bind'")
+                    ?: error("Anime4K: '${planned.pass.desc}' binds a missing texture '$bind'")
                 val sampler = ShaderPreamble.samplerUniform(bind)
                 if (isActive(programId[0], sampler)) program.setSamplerTexIdUniform(sampler, ref.texId, unit)
                 val sizeName = ShaderPreamble.sizeUniform(bind)
@@ -134,7 +134,7 @@ internal class Anime4KShaderProgram(
             current[saved] = TexRef(target.texId, target.width, target.height)
         }
 
-        // Презентация: MAIN → выходная текстура Media3, alpha форсируется в 1.
+        // Presentation: MAIN → the Media3 output texture, alpha is forced to 1.
         val main = current.getValue(MAIN)
         GlUtil.focusFramebufferUsingCurrentContext(outputFbo[0], plan.outputWidth, plan.outputHeight)
         presentProgram.use()
@@ -143,7 +143,7 @@ internal class Anime4KShaderProgram(
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
     }
 
-    /** Passthrough при деградации: копируем вход в выходную текстуру Media3. */
+    /** Passthrough on degradation: copy the input into the Media3 output texture. */
     private fun blitInput(inputTexId: Int, width: Int, height: Int) {
         val outputFbo = IntArray(1)
         GLES30.glGetIntegerv(GLES30.GL_FRAMEBUFFER_BINDING, outputFbo, 0)
@@ -176,7 +176,7 @@ internal class Anime4KShaderProgram(
         targets = emptyList()
     }
 
-    /** Активен ли uniform в программе (иначе GLSL-компилятор его выкинул). */
+    /** Whether a uniform is active in the program (otherwise the GLSL compiler dropped it). */
     private fun isActive(programId: Int, name: String): Boolean =
         GLES20.glGetUniformLocation(programId, name) >= 0
 
@@ -203,7 +203,7 @@ internal class Anime4KShaderProgram(
         if (status != GLES30.GL_FRAMEBUFFER_COMPLETE) {
             GLES30.glDeleteFramebuffers(1, fbo, 0)
             GLES30.glDeleteTextures(1, texture, 0)
-            throw GlUtil.GlException("Anime4K: FP16 FBO неполон (status=$status) — нет color-renderable RGBA16F")
+            throw GlUtil.GlException("Anime4K: FP16 FBO is incomplete (status=$status) — color-renderable RGBA16F is unavailable")
         }
         return Target(texture[0], fbo[0], width, height)
     }
@@ -217,7 +217,7 @@ internal class Anime4KShaderProgram(
         const val PRESENT_SAMPLER = "uTex"
         const val COORD_SIZE = 4
 
-        /** OUTPUT считаем в N× входа, чтобы `//!WHEN`-гейты апскейла срабатывали. */
+        /** We compute OUTPUT as N× the input so the `//!WHEN` upscale gates trigger. */
         const val OUTPUT_GATE_SCALE = 4
 
         const val PRESENT_FRAGMENT = """#version 300 es

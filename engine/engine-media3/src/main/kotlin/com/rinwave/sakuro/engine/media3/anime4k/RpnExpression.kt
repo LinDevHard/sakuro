@@ -1,40 +1,40 @@
 package com.rinwave.sakuro.engine.media3.anime4k
 
 /**
- * Мини-эвалюатор выражений mpv user-shaders в обратной польской записи (RPN).
+ * A mini evaluator for mpv user-shader expressions in reverse Polish notation (RPN).
  *
- * Директивы `//!WIDTH`, `//!HEIGHT`, `//!WHEN` задают формулы в RPN, где
- * операнды — числовые литералы либо ссылки на размеры текстур вида `MAIN.w`,
- * `conv2d_last_tf.h`, `OUTPUT.w` (libplacebo hook-language). Пример:
- * `conv2d_last_tf.w 2 *` (ширина ×2), `OUTPUT.w MAIN.w / 1.200 > OUTPUT.h MAIN.h / 1.200 > *`.
+ * The `//!WIDTH`, `//!HEIGHT`, `//!WHEN` directives define formulas in RPN, where the
+ * operands are numeric literals or references to texture sizes such as `MAIN.w`,
+ * `conv2d_last_tf.h`, `OUTPUT.w` (libplacebo hook-language). Example:
+ * `conv2d_last_tf.w 2 *` (width ×2), `OUTPUT.w MAIN.w / 1.200 > OUTPUT.h MAIN.h / 1.200 > *`.
  *
- * Поддерживаемые операторы: `+ - * /` (арифметика), `> < >= <= =` (сравнение,
- * дают 1.0/0.0), `* +` над булевыми значениями работают как AND/OR по правилу
- * «ненулевое = истина». Разбор — один раз при парсинге шейдера; вычисление —
- * при [RpnExpression.eval] с текущими размерами текстур.
+ * Supported operators: `+ - * /` (arithmetic), `> < >= <= =` (comparison,
+ * yielding 1.0/0.0); `* +` over boolean values act as AND/OR under the
+ * "non-zero = true" rule. Parsing happens once when the shader is parsed; evaluation
+ * happens in [RpnExpression.eval] with the current texture sizes.
  */
 internal class RpnExpression private constructor(private val tokens: List<String>) {
 
     /**
-     * Вычисляет выражение. [resolve] отдаёт значение переменной вида `MAIN.w`;
-     * для неизвестной переменной должен бросить исключение (баг в шейдере/графе).
+     * Evaluates the expression. [resolve] returns the value of a variable such as `MAIN.w`;
+     * for an unknown variable it must throw (a bug in the shader/graph).
      */
     fun eval(resolve: (String) -> Float): Float {
         val stack = ArrayDeque<Float>()
         for (token in tokens) {
             val op = OPERATORS[token]
             if (op != null) {
-                val b = stack.removeLastOrNull() ?: error("RPN: недостаточно операндов для '$token' в $tokens")
-                val a = stack.removeLastOrNull() ?: error("RPN: недостаточно операндов для '$token' в $tokens")
+                val b = stack.removeLastOrNull() ?: error("RPN: not enough operands for '$token' in $tokens")
+                val a = stack.removeLastOrNull() ?: error("RPN: not enough operands for '$token' in $tokens")
                 stack.addLast(op(a, b))
             } else {
                 stack.addLast(token.toFloatOrNull() ?: resolve(token))
             }
         }
-        return stack.singleOrNull() ?: error("RPN: выражение не свелось к одному значению: $tokens")
+        return stack.singleOrNull() ?: error("RPN: expression did not reduce to a single value: $tokens")
     }
 
-    /** Истинно, если результат ненулевой (соглашение mpv для `//!WHEN`). */
+    /** True if the result is non-zero (the mpv convention for `//!WHEN`). */
     fun isTruthy(resolve: (String) -> Float): Boolean = eval(resolve) != 0f
 
     companion object {
@@ -50,10 +50,10 @@ internal class RpnExpression private constructor(private val tokens: List<String
             "=" to { a, b -> if (a == b) 1f else 0f },
         )
 
-        /** Разбивает строку директивы по пробелам в токены RPN. */
+        /** Splits a directive string on whitespace into RPN tokens. */
         fun parse(expression: String): RpnExpression {
             val tokens = expression.trim().split(WHITESPACE).filter { it.isNotEmpty() }
-            require(tokens.isNotEmpty()) { "RPN: пустое выражение" }
+            require(tokens.isNotEmpty()) { "RPN: empty expression" }
             return RpnExpression(tokens)
         }
 

@@ -1,29 +1,29 @@
 package com.rinwave.sakuro.engine.media3.anime4k
 
 /**
- * Один проход mpv user-shader — тело `hook()` плюс распарсенные директивы
- * `//!HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN` (см. [MpvUserShaderParser]).
+ * A single mpv user-shader pass — the `hook()` body plus the parsed directives
+ * `//!HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN` (see [MpvUserShaderParser]).
  *
- * Имена [hook]/[save] могут быть «стадиями» пайплайна (`MAIN`, `PREKERNEL`,
- * `HOOKED`) или именованными промежутками (`conv2d_tf`); runtime резолвит их
- * в конкретные текстуры при исполнении графа.
+ * The [hook]/[save] names may be pipeline "stages" (`MAIN`, `PREKERNEL`,
+ * `HOOKED`) or named intermediates (`conv2d_tf`); the runtime resolves them
+ * to concrete textures while executing the graph.
  */
 internal data class UserShaderPass(
     val desc: String,
-    /** Стадия, которую хукаем; `HOOKED` в теле ссылается на её текстуру. */
+    /** The stage being hooked; `HOOKED` in the body refers to its texture. */
     val hook: String,
-    /** Входные текстуры (в порядке `//!BIND`); может включать `HOOKED`/`MAIN`. */
+    /** Input textures (in `//!BIND` order); may include `HOOKED`/`MAIN`. */
     val binds: List<String>,
-    /** Куда пишем результат; по умолчанию — хукнутая стадия (in-place). */
+    /** Where the result is written; defaults to the hooked stage (in-place). */
     val save: String,
-    /** RPN-формула ширины выхода; null → ширина хукнутой стадии. */
+    /** RPN formula for the output width; null → the hooked stage's width. */
     val width: RpnExpression?,
-    /** RPN-формула высоты выхода; null → высота хукнутой стадии. */
+    /** RPN formula for the output height; null → the hooked stage's height. */
     val height: RpnExpression?,
-    /** Число значимых компонент выхода (1..4); влияет только на семантику. */
+    /** Number of significant output components (1..4); affects semantics only. */
     val components: Int,
-    /** RPN-условие применения прохода; null → применять всегда. */
+    /** RPN condition for applying the pass; null → always apply. */
     val condition: RpnExpression?,
-    /** Тело GLSL: всё между директивами (обычно `vec4 hook() { ... }`). */
+    /** GLSL body: everything between directives (usually `vec4 hook() { ... }`). */
     val body: String,
 )

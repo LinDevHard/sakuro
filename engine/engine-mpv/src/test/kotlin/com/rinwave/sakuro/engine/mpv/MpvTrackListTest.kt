@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class MpvTrackListTest {
 
     @Test
-    fun `парсит видео, аудио и субтитры из track-list`() {
+    fun `parses video, audio and subtitles from track-list`() {
         val json = """
             [
               {"id":1,"type":"video","selected":true,"codec":"h264","demux-w":1920,"demux-h":1080},
@@ -32,7 +32,7 @@ class MpvTrackListTest {
     }
 
     @Test
-    fun `дорожки одного типа различаются числовым id mpv`() {
+    fun `tracks of the same type are told apart by the numeric mpv id`() {
         val json = """[{"id":1,"type":"audio"},{"id":2,"type":"audio"}]"""
 
         val tracks = parseMpvTrackList(json)
@@ -41,7 +41,7 @@ class MpvTrackListTest {
     }
 
     @Test
-    fun `неизвестные типы и мусор пропускаются`() {
+    fun `unknown types and junk are skipped`() {
         val json = """[{"id":1,"type":"attachment"},{"foo":"bar"},{"id":2,"type":"video"}]"""
 
         val tracks = parseMpvTrackList(json)
@@ -51,7 +51,7 @@ class MpvTrackListTest {
     }
 
     @Test
-    fun `не-JSON и пустая строка дают пустой список`() {
+    fun `non-JSON and an empty string yield an empty list`() {
         assertEquals(emptyList(), parseMpvTrackList(""))
         assertEquals(emptyList(), parseMpvTrackList("not json"))
         assertEquals(emptyList(), parseMpvTrackList("{}"))

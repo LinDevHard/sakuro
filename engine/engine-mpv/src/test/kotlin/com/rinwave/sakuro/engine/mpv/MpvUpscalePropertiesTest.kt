@@ -18,7 +18,7 @@ class MpvUpscalePropertiesTest {
         buildMpvRenderConfig(profile).shaders
 
     @Test
-    fun `пресет Выкл сбрасывает всё в нейтральные значения без шейдеров`() {
+    fun `the Off preset resets everything to neutral values with no shaders`() {
         val props = props(BuiltInPresets.OFF)
 
         assertEquals("bilinear", props["scale"])
@@ -28,7 +28,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `аниме-пресет строит цепочку Anime4K в каноническом порядке`() {
+    fun `an anime preset builds the Anime4K chain in canonical order`() {
         val sd = shaders(BuiltInPresets.ANIME_SD)
 
         assertEquals(
@@ -43,7 +43,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `слабые проходы берут малые CNN-модели`() {
+    fun `weak passes use the small CNN models`() {
         val hd = shaders(BuiltInPresets.ANIME_HD)
 
         assertEquals(
@@ -57,7 +57,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `при цепочке шейдеров свойство sharpen обнуляется — резкость делает Restore`() {
+    fun `with a shader chain the sharpen property is zeroed — Restore does the sharpening`() {
         val sd = props(BuiltInPresets.ANIME_SD)
 
         assertEquals("0.0", sd["sharpen"])
@@ -65,7 +65,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `live-action не трогает Anime4K и работает свойствами`() {
+    fun `live-action does not touch Anime4K and works via properties`() {
         val light = BuiltInPresets.LIVE_ACTION_LIGHT
 
         assertTrue(shaders(light).isEmpty())
@@ -74,7 +74,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `Denoise вне аниме деградирует — vf не задаётся`() {
+    fun `Denoise outside anime degrades — vf is not set`() {
         val profile = UpscaleProfile(
             id = "t",
             name = "t",
@@ -88,7 +88,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `аниме-пресет только с Denoise получает кламп и денойз-шейдер`() {
+    fun `an anime preset with Denoise only gets the clamp and denoise shaders`() {
         val profile = UpscaleProfile(
             id = "t",
             name = "t",
@@ -103,7 +103,7 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `значения формируются с точкой независимо от локали`() {
+    fun `values are formatted with a dot regardless of locale`() {
         val profile = UpscaleProfile(
             id = "t",
             name = "t",

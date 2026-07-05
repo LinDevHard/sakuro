@@ -6,9 +6,9 @@ import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlin.math.roundToInt
 
 /**
- * Конфигурация рендера mpv для пресета: свойства + цепочка user-shaders.
- * [shaders] — имена файлов из assets/anime4k; в свойство `glsl-shaders`
- * движок подставляет абсолютные пути (см. [MpvShaderStore]).
+ * mpv render configuration for a preset: properties + a user-shader chain.
+ * [shaders] — file names from assets/anime4k; into the `glsl-shaders` property
+ * the engine substitutes absolute paths (see [MpvShaderStore]).
  */
 internal data class MpvRenderConfig(
     val properties: List<Pair<String, String>>,
@@ -16,20 +16,20 @@ internal data class MpvRenderConfig(
 )
 
 /**
- * Перевод абстрактной цепочки [UpscalePass] в конфигурацию mpv (ARCHITECTURE.md §4).
+ * Translates the abstract [UpscalePass] chain into an mpv configuration (ARCHITECTURE.md §4).
  *
- * Для аниме/мультипликации проходы транслируются в родные Anime4K `.glsl`
- * user-shaders (вкл. Denoise — в бандл-ffmpeg денойз-фильтров нет, а шейдеру
- * libavfilter не нужен). Порядок цепочки канонический для Anime4K
- * (Clamp → Denoise → Restore → Upscale), а не порядок проходов пресета.
- * Размер CNN (S/M) выбирается по силе прохода.
+ * For anime/animation the passes are translated into native Anime4K `.glsl`
+ * user-shaders (including Denoise — the bundled ffmpeg has no denoise filters, and the shader
+ * does not need libavfilter). The chain order is the canonical Anime4K one
+ * (Clamp → Denoise → Restore → Upscale), not the preset's pass order.
+ * The CNN size (S/M) is chosen by the pass strength.
  *
- * Для остального контента Anime4K не подходит по назначению — остаются
- * свойства mpv: Upscale → качественный скейлер (mpv всегда масштабирует
- * к размеру surface, фактор не нужен), Sharpen → `sharpen`, Denoise
- * деградирует (контракт [UpscaleProfile]).
+ * For other content Anime4K is not a fit by design — only mpv properties remain:
+ * Upscale → a high-quality scaler (mpv always scales
+ * to the surface size, so no factor is needed), Sharpen → `sharpen`, Denoise
+ * degrades (the [UpscaleProfile] contract).
  *
- * Всё применяется на лету, без re-prepare — в отличие от Media3.
+ * Everything is applied on the fly, without re-prepare — unlike Media3.
  */
 internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
     val shaders = buildAnime4kChain(profile)
@@ -38,7 +38,7 @@ internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
     for (pass in profile.passes) {
         when (pass) {
             is UpscalePass.Upscale -> scale = "ewa_lanczossharp"
-            // Резкость аниме делает Restore_CNN — свойство продублировало бы эффект.
+            // Restore_CNN handles anime sharpening — the property would duplicate the effect.
             is UpscalePass.Sharpen -> if (shaders.isEmpty()) sharpen = pass.strength
             is UpscalePass.Denoise -> Unit
         }
@@ -68,15 +68,15 @@ private fun buildAnime4kChain(profile: UpscaleProfile): List<String> {
         }
     }
     if (chain.isEmpty()) return emptyList()
-    // Кламп подсветки защищает CNN-проходы от рингинга на пересвеченных линиях.
+    // Highlight clamping protects the CNN passes from ringing on blown-out lines.
     return listOf("Anime4K_Clamp_Highlights.glsl") + chain
 }
 
-/** Порог силы Sharpen, с которого берётся средняя CNN-модель вместо малой. */
+/** Sharpen-strength threshold at or above which the medium CNN model is used instead of the small one. */
 private const val HEAVY_SHARPEN = 0.6f
 
-/** Порог фактора Upscale, с которого берётся средняя CNN-модель вместо малой. */
+/** Upscale-factor threshold at or above which the medium CNN model is used instead of the small one. */
 private const val HEAVY_UPSCALE = 1.75f
 
-/** Float → строка с 2 знаками и точкой-разделителем независимо от локали. */
+/** Float → a string with 2 decimals and a dot separator regardless of locale. */
 private fun Float.fmt(): String = ((this * 100).roundToInt() / 100.0).toString()

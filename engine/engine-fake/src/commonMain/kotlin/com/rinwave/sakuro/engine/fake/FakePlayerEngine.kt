@@ -27,8 +27,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Мок движка для desktop-таргета и тестов (ARCHITECTURE.md §3.2):
- * симулирует состояние, прогресс и дорожки без нативных зависимостей.
+ * A stub engine for the desktop sandbox and UI debugging (ARCHITECTURE.md §3.2):
+ * simulates progress, metadata and upscaling without native dependencies.
  */
 class FakePlayerEngine : PlayerEngine {
 
@@ -97,9 +97,9 @@ class FakePlayerEngine : PlayerEngine {
             activeUpscaleProfileId = profile.id,
             tracks = listOf(
                 TrackInfo("v:0", TrackType.VIDEO, "854x480 fake/av1", selected = true),
-                TrackInfo("a:0", TrackType.AUDIO, "Японский (opus 2.0)", language = "ja", selected = true),
-                TrackInfo("a:1", TrackType.AUDIO, "Русский (opus 2.0)", language = "ru"),
-                TrackInfo("s:0", TrackType.SUBTITLE, "Русские субтитры", language = "ru", selected = true),
+                TrackInfo("a:0", TrackType.AUDIO, "Japanese (opus 2.0)", language = "ja", selected = true),
+                TrackInfo("a:1", TrackType.AUDIO, "Russian (opus 2.0)", language = "ru"),
+                TrackInfo("s:0", TrackType.SUBTITLE, "Russian subtitles", language = "ru", selected = true),
             ),
         )
     }

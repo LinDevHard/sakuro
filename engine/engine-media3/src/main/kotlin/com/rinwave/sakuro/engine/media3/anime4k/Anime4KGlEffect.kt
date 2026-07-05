@@ -6,12 +6,12 @@ import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 
 /**
- * Единый [GlEffect] Anime4K для Media3: прячет весь многопроходный рендер-граф
- * mpv user-shaders за одним эффектом (docs/anime4k-media3-port-plan.md §2, §4).
+ * A single Anime4K [GlEffect] for Media3: hides the whole multi-pass render graph
+ * of the mpv user-shaders behind one effect (docs/anime4k-media3-port-plan.md §2, §4).
  *
- * [passes] — уже распарсенные проходы всей цепочки пресета
- * (Clamp→Denoise→Restore→Upscale), склеенные по порядку из нескольких `.glsl`.
- * Пустой список делает эффект no-op.
+ * [passes] — the already-parsed passes of the whole preset chain
+ * (Clamp→Denoise→Restore→Upscale), concatenated in order from several `.glsl` files.
+ * An empty list makes the effect a no-op.
  */
 @UnstableApi
 internal class Anime4KGlEffect(private val passes: List<UserShaderPass>) : GlEffect {

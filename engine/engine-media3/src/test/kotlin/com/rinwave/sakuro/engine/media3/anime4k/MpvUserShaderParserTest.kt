@@ -6,10 +6,10 @@ import kotlin.test.assertTrue
 
 class MpvUserShaderParserTest {
 
-    // Урезанный, но структурно точный Upscale_CNN_x2_S: два conv-прохода и
-    // финальный depth-to-space с мультибиндом MAIN + conv2d_last_tf.
+    // A trimmed but structurally accurate Upscale_CNN_x2_S: two conv passes and
+    // a final depth-to-space with a multi-bind of MAIN + conv2d_last_tf.
     private val upscaleS = """
-        // MIT License (лицензионная шапка отбрасывается)
+        // MIT License (the license header is discarded)
 
         //!DESC Anime4K-Upscale-Conv-4x3x3x3
         //!HOOK MAIN
@@ -44,7 +44,7 @@ class MpvUserShaderParserTest {
     """.trimIndent()
 
     @Test
-    fun `три прохода распознаны с директивами`() {
+    fun `three passes are recognized with their directives`() {
         val passes = MpvUserShaderParser.parse(upscaleS)
         assertEquals(3, passes.size)
 
@@ -58,20 +58,20 @@ class MpvUserShaderParserTest {
     }
 
     @Test
-    fun `лицензионная шапка до первого прохода отброшена`() {
+    fun `the license header before the first pass is discarded`() {
         val passes = MpvUserShaderParser.parse(upscaleS)
         assertTrue(passes.none { it.body.contains("MIT License") })
     }
 
     @Test
-    fun `мультибинд depth-to-space сохраняет оба входа по порядку`() {
+    fun `a depth-to-space multi-bind keeps both inputs in order`() {
         val last = MpvUserShaderParser.parse(upscaleS).last()
         assertEquals(listOf("MAIN", "conv2d_last_tf"), last.binds)
         assertEquals("MAIN", last.save)
     }
 
     @Test
-    fun `SAVE по умолчанию равен хукнутой стадии`() {
+    fun `SAVE defaults to the hooked stage`() {
         val src = """
             //!DESC Clamp
             //!HOOK MAIN

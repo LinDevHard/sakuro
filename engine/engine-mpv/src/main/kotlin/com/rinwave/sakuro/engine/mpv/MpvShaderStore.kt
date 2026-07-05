@@ -5,17 +5,17 @@ import android.util.Log
 import java.io.File
 
 /**
- * Выдаёт mpv абсолютные пути к вендоренным Anime4K-шейдерам
- * (assets/anime4k, MIT, licenses/anime4k). libmpv читает `glsl-shaders`
- * только с файловой системы, поэтому ассеты при первом обращении
- * копируются в filesDir; каталог версионирован — смена версии шейдеров
- * в ассетах приводит к новой копии, старые версии удаляются.
+ * Gives mpv the absolute paths to the vendored Anime4K shaders
+ * (assets/anime4k, MIT, licenses/anime4k). libmpv reads `glsl-shaders`
+ * only from the file system, so the assets are copied into filesDir on
+ * first use; the directory is versioned — changing the shader version
+ * in the assets produces a new copy, and old versions are removed.
  */
 internal class MpvShaderStore(private val context: Context) {
 
     private val dir: File? by lazy { provision() }
 
-    /** Пути в порядке цепочки; null — копия не удалась, шейдеры недоступны. */
+    /** Paths in chain order; null — the copy failed and shaders are unavailable. */
     fun resolve(names: List<String>): List<String>? {
         val root = dir ?: return null
         return names.map { File(root, it).absolutePath }
@@ -37,14 +37,14 @@ internal class MpvShaderStore(private val context: Context) {
             check(staging.renameTo(target)) { "rename $staging -> $target" }
         }
         target
-    }.onFailure { Log.w(TAG, "Не удалось развернуть шейдеры", it) }.getOrNull()
+    }.onFailure { Log.w(TAG, "Failed to deploy shaders", it) }.getOrNull()
 
     private companion object {
         const val TAG = "MpvShaderStore"
         const val ASSET_DIR = "anime4k"
         const val STORE_DIR = "shaders/anime4k"
 
-        /** Версия вендоренного набора; поднимать при обновлении ассетов. */
+        /** Version of the vendored set; bump it when the assets are updated. */
         const val VERSION = "v4.0.1"
     }
 }

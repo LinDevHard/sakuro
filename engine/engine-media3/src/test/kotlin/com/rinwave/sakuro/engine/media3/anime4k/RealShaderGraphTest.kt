@@ -7,27 +7,27 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Прогоняет РЕАЛЬНЫЕ вендоренные Anime4K `.glsl` (assets/anime4k из engine-mpv)
- * через парсер и планировщик — проверка, что дженерик-рантайм тянет все 6
- * шейдеров, включая широкие M-модели (~300 строк, conv2d_1..6, CReLU) и
- * Denoise со стадиями PREKERNEL/LINELUMA/STATSMAX и `COMPONENTS 1`.
+ * Runs the REAL vendored Anime4K `.glsl` files (assets/anime4k from engine-mpv)
+ * through the parser and planner — checks that the generic runtime handles all 6
+ * shaders, including the wide M models (~300 lines, conv2d_1..6, CReLU) and
+ * Denoise with the PREKERNEL/LINELUMA/STATSMAX stages and `COMPONENTS 1`.
  *
- * Читает файлы из репозитория относительно модуля (рабочая директория
- * unit-теста = каталог модуля).
+ * Reads files from the repository relative to the module (the unit test's
+ * working directory = the module directory).
  */
 class RealShaderGraphTest {
 
     private val assetsDir: File = locateAssets()
 
     private fun locateAssets(): File {
-        // Ищем anime4k вверх от рабочей директории теста (каталог модуля).
+        // Look for anime4k upward from the test's working directory (the module directory).
         var dir: File? = File("").absoluteFile
         while (dir != null) {
             val candidate = File(dir, "engine/engine-mpv/src/main/assets/anime4k")
             if (candidate.isDirectory) return candidate
             dir = dir.parentFile
         }
-        fail("не найден каталог assets/anime4k относительно ${File("").absolutePath}")
+        fail("assets/anime4k directory not found relative to ${File("").absolutePath}")
     }
 
     private fun source(file: String): String = File(assetsDir, file).readText()
@@ -42,17 +42,17 @@ class RealShaderGraphTest {
     )
 
     @Test
-    fun `все шесть шейдеров парсятся в непустые проходы`() {
+    fun `all six shaders parse into non-empty passes`() {
         for (file in allShaders) {
             val passes = MpvUserShaderParser.parse(source(file))
-            assertTrue(passes.isNotEmpty(), "$file не дал проходов")
-            assertTrue(passes.all { it.body.contains("hook()") }, "$file: у прохода нет hook()")
+            assertTrue(passes.isNotEmpty(), "$file produced no passes")
+            assertTrue(passes.all { it.body.contains("hook()") }, "$file: a pass has no hook()")
         }
     }
 
     @Test
-    fun `полная аниме-цепочка Clamp→Restore→Upscale планируется и даёт ×2`() {
-        // Как собирает Anime4KChain для профиля ANIME с Sharpen+Upscale.
+    fun `the full anime chain Clamp→Restore→Upscale plans and yields ×2`() {
+        // As Anime4KChain builds it for an ANIME profile with Sharpen+Upscale.
         val chainFiles = listOf(
             "Anime4K_Clamp_Highlights.glsl",
             "Anime4K_Restore_CNN_S.glsl",
@@ -62,62 +62,62 @@ class RealShaderGraphTest {
         val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640 * 4, 360 * 4)
 
         assertTrue(plan.passes.isNotEmpty())
-        // Upscale-ветвь активна (OUTPUT ≫ MAIN) → depth-to-space удваивает MAIN.
+        // The upscale branch is active (OUTPUT ≫ MAIN) → depth-to-space doubles MAIN.
         assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
-    fun `M-модель апскейла планируется без ошибок и удваивает MAIN`() {
+    fun `the M upscale model plans without errors and doubles MAIN`() {
         val passes = MpvUserShaderParser.parse(source("Anime4K_Upscale_CNN_x2_M.glsl"))
         val plan = Anime4KGraphPlanner.plan(passes, 720, 480, 720 * 4, 480 * 4)
         assertEquals(1440 to 960, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
-    fun `Denoise со стадиями PREKERNEL и COMPONENTS 1 планируется, размер MAIN не меняется`() {
+    fun `Denoise with PREKERNEL stages and COMPONENTS 1 plans, MAIN size unchanged`() {
         val passes = MpvUserShaderParser.parse(source("Anime4K_Denoise_Bilateral_Mode.glsl"))
         assertTrue(passes.isNotEmpty())
         val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640 * 4, 360 * 4)
-        // Деноиз не масштабирует.
+        // Denoise does not scale.
         assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
-    fun `без апскейла (OUTPUT равен входу) депт-ту-спейс отсекается, MAIN исходный`() {
+    fun `without upscale (OUTPUT equals input) depth-to-space is cut, MAIN stays source`() {
         val passes = MpvUserShaderParser.parse(source("Anime4K_Upscale_CNN_x2_S.glsl"))
         val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640, 360)
         assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
-    fun `фрагментный шейдер генерится для каждого реального прохода`() {
+    fun `a fragment shader is generated for every real pass`() {
         for (file in allShaders) {
             for (pass in MpvUserShaderParser.parse(source(file))) {
                 val fragment = ShaderPreamble.fragmentShader(pass, isFinal = false)
-                assertTrue(fragment.startsWith("#version 300 es"), "$file: нет версии в шиме")
-                assertTrue(fragment.contains("void main()"), "$file: нет main() в шиме")
+                assertTrue(fragment.startsWith("#version 300 es"), "$file: no version in the shim")
+                assertTrue(fragment.contains("void main()"), "$file: no main() in the shim")
             }
         }
     }
 
-    // Каждый `<name>_tex/_texOff/_pos/_pt/_size` из тела должен быть объявлен в
-    // шиме — иначе шейдер не компилится (баг Denoise: BIND HOOKED, тело зовёт
-    // MAIN_texOff). Ловит недостающие алиасы стадий на всех реальных шейдерах.
+    // Every `<name>_tex/_texOff/_pos/_pt/_size` from the body must be declared in
+    // the shim — otherwise the shader fails to compile (Denoise bug: BIND HOOKED, body calls
+    // MAIN_texOff). Catches missing stage aliases across all real shaders.
     private val symbolRef = Regex("([A-Za-z_][A-Za-z0-9_]*)_(texOff|tex|pos|pt|size|mul)\\b")
 
     @Test
-    fun `Clamp с BIND HOOKED и телом на MAIN_texOff получает алиас MAIN`() {
-        // Именно этот проход (De-Ring-Compute-Statistics: HOOK MAIN, BIND HOOKED,
-        // тело зовёт MAIN_texOff) ронял компиляцию на устройстве → passthrough.
+    fun `Clamp with BIND HOOKED and a MAIN_texOff body gets the MAIN alias`() {
+        // This exact pass (De-Ring-Compute-Statistics: HOOK MAIN, BIND HOOKED,
+        // body calls MAIN_texOff) used to break compilation on device → passthrough.
         val stats = MpvUserShaderParser.parse(source("Anime4K_Clamp_Highlights.glsl"))
             .first { it.body.contains("MAIN_texOff") }
         val fragment = ShaderPreamble.fragmentShader(stats, isFinal = false)
-        assertTrue(fragment.contains("vec4 MAIN_tex("), "нет алиаса MAIN_tex")
-        assertTrue(fragment.contains("vec4 MAIN_texOff("), "нет алиаса MAIN_texOff")
+        assertTrue(fragment.contains("vec4 MAIN_tex("), "no MAIN_tex alias")
+        assertTrue(fragment.contains("vec4 MAIN_texOff("), "no MAIN_texOff alias")
     }
 
     @Test
-    fun `все mpv-символы из тел реальных шейдеров объявлены в шиме`() {
+    fun `all mpv symbols from real shader bodies are declared in the shim`() {
         var checked = 0
         for (file in allShaders) {
             for (pass in MpvUserShaderParser.parse(source(file))) {
@@ -125,15 +125,15 @@ class RealShaderGraphTest {
                 val referenced = symbolRef.findAll(pass.body).map { it.groupValues[1] }.toSet()
                 for (name in referenced) {
                     checked++
-                    // Любое объявленное имя (бинд или алиас) всегда получает `<name>_tex(`.
+                    // Any declared name (bind or alias) always gets `<name>_tex(`.
                     assertTrue(
                         fragment.contains("vec4 ${name}_tex(") || fragment.contains("#define ${name}_pos"),
-                        "$file / '${pass.desc}': символ '${name}_*' не объявлен в шиме",
+                        "$file / '${pass.desc}': symbol '${name}_*' not declared in the shim",
                     )
                 }
             }
         }
-        // Защита от вырожденного теста: символы реально извлекались и проверялись.
-        assertTrue(checked > 20, "проверено слишком мало символов ($checked) — регекс не сработал")
+        // Guard against a degenerate test: symbols were actually extracted and checked.
+        assertTrue(checked > 20, "too few symbols checked ($checked) — the regex did not match")
     }
 }

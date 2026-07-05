@@ -1,16 +1,16 @@
 package com.rinwave.sakuro.engine.media3.anime4k
 
 /**
- * Генерация GLSL ES 3.00 вокруг тела `hook()` прохода mpv user-shader, чтобы
- * оно компилировалось **без изменений** (docs/anime4k-media3-port-plan.md §3.3).
+ * Generates the GLSL ES 3.00 around an mpv user-shader pass's `hook()` body so that
+ * it compiles **unchanged** (docs/anime4k-media3-port-plan.md §3.3).
  *
- * На каждый `//!BIND <n>` mpv-тело ожидает набор символов:
+ * For each `//!BIND <n>` the mpv body expects a set of symbols:
  * `<n>_tex(vec2)`, `<n>_texOff(vec2)`, `<n>_pos`, `<n>_pt`, `<n>_size`.
- * Здесь они синтезируются поверх обычного `sampler2D`; координата берётся из
- * varying `v_texcoord` (единая для всех входов — рисуем фулскрин-квад).
+ * Here they are synthesized on top of a plain `sampler2D`; the coordinate comes from
+ * the varying `v_texcoord` (shared by all inputs — we draw a fullscreen quad).
  *
- * Промежуточные текстуры — `GL_RGBA16F` (нужно, т.к. фичемапы CNN выходят за
- * [0,1] и уходят в минус), поэтому вся математика в `highp`.
+ * Intermediate textures are `GL_RGBA16F` (needed because CNN feature maps go beyond
+ * [0,1] and go negative), so all the math is in `highp`.
  */
 internal object ShaderPreamble {
 
@@ -23,19 +23,19 @@ void main() {
 }
 """
 
-    /** Uniform-имя сэмплера для входа [bind]. */
+    /** Uniform name of the sampler for input [bind]. */
     fun samplerUniform(bind: String): String = "${bind}_sampler"
 
-    /** Uniform-имя размера (в текселях) для входа [bind]. */
+    /** Uniform name of the size (in texels) for input [bind]. */
     fun sizeUniform(bind: String): String = "${bind}_size"
 
-    /** Uniform-имя шага текселя (1/size) для входа [bind]. */
+    /** Uniform name of the texel step (1/size) for input [bind]. */
     fun pointUniform(bind: String): String = "${bind}_pt"
 
     /**
-     * Собирает полный фрагментный шейдер прохода [pass].
-     * [isFinal] — последний проход графа: пишем в выходную текстуру Media3
-     * с alpha=1 (промежуточные проходы сохраняют все 4 канала как есть).
+     * Assembles the full fragment shader for pass [pass].
+     * [isFinal] — the last pass of the graph: we write into the Media3 output texture
+     * with alpha=1 (intermediate passes keep all 4 channels as-is).
      */
     fun fragmentShader(pass: UserShaderPass, isFinal: Boolean): String = buildString {
         appendLine("#version 300 es")
@@ -48,7 +48,7 @@ void main() {
             appendLine("uniform sampler2D ${samplerUniform(bind)};")
             appendLine("uniform vec2 ${sizeUniform(bind)};")
             appendLine("uniform vec2 ${pointUniform(bind)};")
-            // Координата и шаг текселя — как в mpv (единый v_texcoord на все входы).
+            // Coordinate and texel step — as in mpv (a single v_texcoord for all inputs).
             appendLine("#define ${bind}_pos v_texcoord")
             appendLine("#define ${bind}_mul 1.0")
             appendLine("vec4 ${bind}_tex(vec2 p) { return texture(${samplerUniform(bind)}, p); }")
@@ -57,10 +57,10 @@ void main() {
                     "return texture(${samplerUniform(bind)}, v_texcoord + o * ${pointUniform(bind)}); }",
             )
         }
-        // В mpv `HOOKED` и имя хукнутой стадии (`MAIN`/`PREKERNEL`/`NATIVE`) —
-        // псевдонимы ОДНОЙ текстуры: доступны оба набора символов. Проход может
-        // забиндить одно имя, а в теле обращаться к другому (Denoise: BIND HOOKED,
-        // тело зовёт MAIN_texOff). Достраиваем недостающий алиас поверх того же сэмплера.
+        // In mpv, `HOOKED` and the hooked-stage name (`MAIN`/`PREKERNEL`/`NATIVE`) are
+        // aliases of ONE texture: both symbol sets are available. A pass may
+        // bind one name and reference another in its body (Denoise: BIND HOOKED,
+        // the body calls MAIN_texOff). We add the missing alias over the same sampler.
         appendStageAlias(binds, MpvUserShaderParser.HOOKED, pass.hook)
         appendLine()
         appendLine(pass.body)
@@ -75,9 +75,9 @@ void main() {
     }
 
     /**
-     * Достраивает алиас между `HOOKED` и именем хукнутой стадии поверх сэмплера
-     * реально забинженного из них: символы `<target>_tex/_texOff/_pos/_pt/_size`
-     * ссылаются на уже объявленный `<source>_*`.
+     * Adds an alias between `HOOKED` and the hooked-stage name over the sampler
+     * actually bound from them: symbols `<target>_tex/_texOff/_pos/_pt/_size`
+     * reference the already-declared `<source>_*`.
      */
     private fun StringBuilder.appendStageAlias(binds: List<String>, hooked: String, hookName: String) {
         val (target, source) = when {

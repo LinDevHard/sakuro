@@ -8,25 +8,25 @@ import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import java.io.IOException
 
 /**
- * Выбор и загрузка цепочки Anime4K `.glsl` под [UpscaleProfile] для движка Media3.
+ * Selects and loads the Anime4K `.glsl` chain for an [UpscaleProfile] on the Media3 engine.
  *
- * Порядок и выбор моделей S/M повторяют движок mpv
+ * The order and S/M model selection mirror the mpv engine
  * (`MpvUpscaleProperties.buildAnime4kChain`, docs/anime4k-media3-port-plan.md §3.5):
- * канонический порядок Clamp→Denoise→Restore→Upscale, размер CNN по силе прохода.
- * Ассеты берутся из `assets/anime4k/` (их вендорит модуль engine-mpv; в собранном
- * приложении ассеты модулей смёрджены в один [android.content.res.AssetManager]).
+ * the canonical order Clamp→Denoise→Restore→Upscale, with CNN size by pass strength.
+ * Assets come from `assets/anime4k/` (vendored by the engine-mpv module; in a built
+ * app the modules' assets are merged into a single [android.content.res.AssetManager]).
  */
 internal object Anime4KChain {
 
     private const val ASSET_DIR = "anime4k"
 
-    /** Порог силы Sharpen, с которого берётся средняя CNN-модель вместо малой. */
+    /** Sharpen-strength threshold at or above which the medium CNN model is used instead of the small one. */
     private const val HEAVY_SHARPEN = 0.6f
 
-    /** Порог фактора Upscale, с которого берётся средняя CNN-модель вместо малой. */
+    /** Upscale-factor threshold at or above which the medium CNN model is used instead of the small one. */
     private const val HEAVY_UPSCALE = 1.75f
 
-    /** Имена `.glsl`-файлов цепочки для профиля (пусто — Anime4K не применим). */
+    /** The `.glsl` file names of the chain for a profile (empty — Anime4K is not applicable). */
     fun shaderFilesFor(profile: UpscaleProfile): List<String> {
         val anime = profile.contentClass == ContentClass.ANIME || profile.contentClass == ContentClass.CARTOON
         if (!anime || profile.passes.isEmpty()) return emptyList()
@@ -43,14 +43,14 @@ internal object Anime4KChain {
             }
         }
         if (chain.isEmpty()) return emptyList()
-        // Кламп подсветки защищает CNN-проходы от рингинга на пересвеченных линиях.
+        // Highlight clamping protects the CNN passes from ringing on blown-out lines.
         return listOf("Anime4K_Clamp_Highlights.glsl") + chain
     }
 
     /**
-     * Загружает и парсит цепочку для профиля в плоский список проходов.
-     * Проходы файлов конкатенируются в порядке [shaderFilesFor]. Пустой список —
-     * Anime4K не применяется (профиль не аниме/мультик или без проходов).
+     * Loads and parses the chain for a profile into a flat list of passes.
+     * The files' passes are concatenated in [shaderFilesFor] order. An empty list —
+     * Anime4K is not applied (the profile is not anime/cartoon, or has no passes).
      */
     fun load(context: Context, profile: UpscaleProfile): List<UserShaderPass> {
         val files = shaderFilesFor(profile)
@@ -61,8 +61,8 @@ internal object Anime4KChain {
                 MpvUserShaderParser.parse(source)
             }
         } catch (e: IOException) {
-            // Ассеты Anime4K не в этой сборке (нет модуля engine-mpv) — откат на legacy-цепочку.
-            Log.w(TAG, "Anime4K assets недоступны, откат на legacy: ${e.message}")
+            // Anime4K assets are not in this build (no engine-mpv module) — fall back to the legacy chain.
+            Log.w(TAG, "Anime4K assets unavailable, falling back to legacy: ${e.message}")
             emptyList()
         }
     }

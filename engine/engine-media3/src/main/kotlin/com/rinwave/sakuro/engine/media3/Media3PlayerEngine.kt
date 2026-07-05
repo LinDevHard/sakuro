@@ -42,11 +42,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Движок №1 (ARCHITECTURE.md §2): Media3/ExoPlayer.
- * Апскейл — через `setVideoEffects()` с цепочкой `GlEffect` (см. [UpscaleEffectChain]).
+ * English №1 (ARCHITECTURE.md §2): Media3/ExoPlayer.
+ * English — English `setVideoEffects()` English English `GlEffect` (English. [UpscaleEffectChain]).
  *
- * Ограничение Media3: эффекты применяются надёжно, если выставлены до `prepare()`,
- * поэтому смена пресета на лету выполняется быстрым re-prepare с восстановлением позиции.
+ * English Media3: English English English, English English English `prepare()`,
+ * English English English English English English English re-prepare English English English.
  */
 @UnstableApi
 class Media3PlayerEngine(context: Context) : PlayerEngine {
@@ -63,7 +63,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     private var currentMedia: MediaSource? = null
     private var currentProfile: UpscaleProfile = BuiltInPresets.OFF
 
-    /** Высота источника, с которой собрана текущая цепочка эффектов (0 — размер ещё неизвестен). */
+    /** English English, English English English English English English (0 — English English English). */
     private var effectsBuiltForHeight = -1
 
     private var videoDecoderName: String? = null
@@ -138,8 +138,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
                         bufferedMs = player.bufferedPosition.coerceAtLeast(0),
                     )
                 }
-                // При включённых видеоэффектах onVideoSizeChanged может не приходить —
-                // размер источника достаём из формата дорожки.
+                // English English English onVideoSizeChanged English English English —
+                // English English English English English English.
                 val format = player.videoFormat
                 if (format != null && format.width > 0 && format.height > 0) {
                     onSourceSizeKnown(format.width, format.height)
@@ -154,8 +154,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         if (changed) {
             _state.update { it.copy(videoWidth = width, videoHeight = height) }
         }
-        // Цепочка с Upscale-проходом, собранная до того, как стал известен размер
-        // источника, не содержит Presentation — пересобираем её один раз.
+        // English English Upscale-passEnglish, English English English, English English English English
+        // English, English English Presentation — English English English English.
         val needsRebuild = effectsBuiltForHeight == 0 &&
             currentProfile.passes.any { it is UpscalePass.Upscale }
         if (needsRebuild) {
@@ -218,7 +218,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             setEffectsInternal()
             return
         }
-        // Смена эффектов на подготовленном плеере: быстрый re-prepare с той же позиции.
+        // English English English English English: English re-prepare English English English English.
         val media = currentMedia ?: return
         val resumePosition = player.currentPosition
         val wasPlaying = player.playWhenReady
@@ -240,7 +240,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         runCatching {
             player.setVideoEffects(UpscaleEffectChain.build(appContext, currentProfile, sourceHeight))
         }.onFailure {
-            _state.update { s -> s.copy(errorMessage = "Не удалось применить эффекты: ${it.message}") }
+            _state.update { s -> s.copy(errorMessage = "Failed to apply effects: ${it.message}") }
         }
     }
 

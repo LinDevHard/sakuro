@@ -29,21 +29,21 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Режим кадра для mpv; UI мапит сюда свой ScaleMode (пинч-жест, FEATURES.md §3.1). */
+/** Frame scaling mode for mpv; the UI maps its ScaleMode here (pinch gesture, FEATURES.md §3.1). */
 enum class MpvScaleMode { FIT, FILL, ZOOM }
 
 /**
- * Движок №2 (ARCHITECTURE.md §2): libmpv через prebuilt JNI-обёртку
- * `dev.jdtech.mpv:libmpv` (форк libmpv-android от Findroid).
+ * Engine #2 (ARCHITECTURE.md §2): libmpv via a prebuilt JNI wrapper
+ * `dev.jdtech.mpv:libmpv` (Findroid's libmpv-android fork).
  *
- * Отличия от Media3: рендер идёт в обычный [Surface] (не PlayerView), пресеты
- * апскейла применяются на лету свойствами mpv без re-prepare, `content://`-URI
- * открываются через file descriptor (`fdclose://`) — у libmpv нет доступа
- * к ContentResolver.
+ * Differences from Media3: rendering goes to a plain [Surface] (not PlayerView), upscale
+ * presets are applied on the fly via mpv properties without re-prepare, `content://` URIs
+ * are opened through a file descriptor (`fdclose://`) — libmpv has no access
+ * to the ContentResolver.
  */
 class MpvPlayerEngine(private val context: Context) : PlayerEngine {
 
-    private val mpv: MPVLib = checkNotNull(MPVLib.create(context)) { "MPVLib.create() вернул null" }
+    private val mpv: MPVLib = checkNotNull(MPVLib.create(context)) { "MPVLib.create() returned null" }
     private val shaderStore = MpvShaderStore(context)
     private val released = AtomicBoolean(false)
 
@@ -52,11 +52,11 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
 
     private var currentProfile: UpscaleProfile = BuiltInPresets.OFF
 
-    // Surface появляется позже load(): отложенный loadfile ждёт attachSurface().
+    // The Surface appears after load(): a deferred loadfile waits for attachSurface().
     private var surfaceAttached = false
     private var pendingLoad: String? = null
 
-    // Слепок событийных флагов mpv, из которого выводится PlaybackStatus.
+    // A snapshot of mpv event flags from which PlaybackStatus is derived.
     private var fileLoaded = false
     private var paused = true
     private var pausedForCache = false
@@ -74,8 +74,8 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
             }
         }
 
-        // track-list наблюдается без значения (MPV_FORMAT_NONE) и перечитывается
-        // строкой: mpv отдаёт его как JSON.
+        // track-list is observed without a value (MPV_FORMAT_NONE) and re-read
+        // as a string: mpv returns it as JSON.
         override fun eventProperty(property: String) {
             if (property == "track-list" && !released.get()) {
                 val json = mpv.getPropertyString("track-list") ?: return
@@ -113,18 +113,18 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
     }
 
     init {
-        // Опции до init(): GL-рендер на Android-поверхность + аппаратный декод.
+        // Options before init(): GL rendering to an Android surface + hardware decode.
         mpv.setOptionString("vo", "gpu")
         mpv.setOptionString("gpu-context", "android")
         mpv.setOptionString("opengl-es", "yes")
-        // -copy: кадры копируются из декодера и рисуются GL-конвейером mpv
-        // (прямой hwdec=mediacodec рендерит мимо GL — шейдеры/скейлеры не работают).
-        // На эмуляторе goldfish-декодер не отдаёт кадры ffmpeg-мосту и вешает core
-        // (зависает даже чтение свойств) — там декодируем программно.
+        // -copy: frames are copied out of the decoder and drawn by mpv's GL pipeline
+        // (plain hwdec=mediacodec renders around GL — shaders/scalers do not work).
+        // On the emulator the goldfish decoder does not hand frames to the ffmpeg bridge and hangs the core
+        // (even property reads freeze) — there we decode in software.
         mpv.setOptionString("hwdec", if (isEmulator()) "no" else "mediacodec-copy")
         mpv.setOptionString("hwdec-codecs", "h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1")
         mpv.setOptionString("ao", "audiotrack")
-        // На EOF файл не выгружается — конец ловим по eof-reached (статус ENDED).
+        // On EOF the file is not unloaded — we catch the end via eof-reached (status ENDED).
         mpv.setOptionString("keep-open", "always")
         mpv.setOptionString("force-window", "no")
         mpv.setOptionString("idle", "yes")
@@ -146,8 +146,8 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         mpv.observeProperty("eof-reached", MPVLib.MpvFormat.MPV_FORMAT_FLAG)
     }
 
-    // Опрос свойств — не на main: getProperty ждёт core-лок mpv, который
-    // во время (ре)инициализации VO бывает занят надолго.
+    // Property polling — off the main thread: getProperty waits on mpv's core lock, which
+    // can be held for a long time during (re)initialization of the VO.
     override val debugStats: Flow<DebugStats> = flow {
         while (currentCoroutineContext().isActive) {
             emit(buildStats())
@@ -172,12 +172,12 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         applyUpscaleProperties()
         val target = resolvePlayableUri(media.uri)
         if (target == null) {
-            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = "Не удалось открыть файл") }
+            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = "Failed to open the file") }
             return
         }
-        // Паттерн mpv-android: пока нет Surface, loadfile откладывается —
-        // старт с vo=gpu без поверхности фатально роняет VO, а переключение
-        // vo на лету при активном видео блокирует core (ANR).
+        // The mpv-android pattern: while there is no Surface, loadfile is deferred —
+        // starting vo=gpu without a surface fatally crashes the VO, and switching
+        // the vo on the fly with active video blocks the core (ANR).
         if (surfaceAttached) {
             mpv.command(arrayOf("loadfile", target))
         } else {
@@ -233,7 +233,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         mpv.destroy()
     }
 
-    // --- Привязка Surface (зовёт VideoSurface из composeApp) ---
+    // --- Surface binding (called by VideoSurface from composeApp) ---
 
     fun attachSurface(surface: Surface) {
         if (released.get()) return
@@ -245,7 +245,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         if (pending != null) {
             mpv.command(arrayOf("loadfile", pending))
         } else {
-            // Поверхность вернулась к уже загруженному файлу (например, после смены окна).
+            // The surface returned to an already-loaded file (for example, after a window change).
             mpv.setPropertyString("vo", "gpu")
             redrawIfPaused()
         }
@@ -254,12 +254,12 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
     fun resizeSurface(width: Int, height: Int) {
         if (released.get()) return
         mpv.setPropertyString("android-surface-size", "${width}x$height")
-        // Вход/выход PiP не пересоздаёт surface, а только ресайзит его;
-        // на паузе VO после ресайза остаётся чёрным, пока кадр не перерисован.
+        // Entering/leaving PiP does not recreate the surface, only resizes it;
+        // while paused, the VO stays black after a resize until the frame is redrawn.
         redrawIfPaused()
     }
 
-    /** Refresh-seek: точный seek на 0 относительно перерисовывает текущий кадр на паузе. */
+    /** Refresh-seek: an exact relative seek by 0 redraws the current frame while paused. */
     private fun redrawIfPaused() {
         if (fileLoaded && !_state.value.isPlaying) {
             mpv.command(arrayOf("seek", "0", "exact"))
@@ -294,9 +294,9 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         }
     }
 
-    // --- Внутреннее ---
+    // --- Internal ---
 
-    /** Пересчёт статуса из флагов mpv; до FILE_LOADED статусом управляют load()/onEndFile(). */
+    /** Recomputes status from mpv flags; before FILE_LOADED, load()/onEndFile() drive the status. */
     private fun publishStatus() {
         if (!fileLoaded) return
         val status = when {
@@ -310,19 +310,19 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
     }
 
     /**
-     * END_FILE с keep-open=always приходит только при stop, замене файла или ошибке.
-     * Если файл так и не загрузился — это ошибка открытия (деталей событие не несёт).
+     * END_FILE with keep-open=always only arrives on stop, file replacement or an error.
+     * If the file never loaded, it is an open error (the event carries no details).
      */
     private fun onEndFile() {
         if (!fileLoaded) {
-            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = "Не удалось открыть файл") }
+            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = "Failed to open the file") }
         } else {
             fileLoaded = false
             _state.update { it.copy(status = PlaybackStatus.IDLE, isPlaying = false) }
         }
     }
 
-    /** libmpv не умеет content:// — открываем через fd; mpv закроет его сам (fdclose://). */
+    /** libmpv cannot handle content:// — we open via fd; mpv closes it itself (fdclose://). */
     private fun resolvePlayableUri(uri: String): String? {
         if (!uri.startsWith("content://")) return uri
         return runCatching {
@@ -336,8 +336,8 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         var config = buildMpvRenderConfig(currentProfile)
         val shaderPaths = shaderStore.resolve(config.shaders)
         if (shaderPaths == null) {
-            // Шейдеры не развернулись — деградация до пути свойствами
-            // (как для не-аниме контента), чтобы Sharpen не потерялся.
+            // Shaders did not deploy — degrade to the properties-only path
+            // (as for non-anime content) so that Sharpen is not lost.
             config = buildMpvRenderConfig(currentProfile.copy(contentClass = ContentClass.UNKNOWN))
         }
         mpv.setPropertyString("glsl-shaders", shaderPaths.orEmpty().joinToString(":"))
@@ -372,7 +372,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
             extras = buildMap {
                 mpv.getPropertyString("current-vo")?.let { put("vo", it) }
                 mpv.getPropertyString("mpv-version")?.let { put("mpv", it) }
-                // Фактическая цепочка user-shaders глазами mpv (короткие имена).
+                // The actual user-shader chain as mpv sees it (short names).
                 mpv.getPropertyString("glsl-shaders")?.takeIf { it.isNotBlank() }?.let { value ->
                     put("shaders", value.split(",", ":").joinToString(",") { it.substringAfterLast('/') })
                 }

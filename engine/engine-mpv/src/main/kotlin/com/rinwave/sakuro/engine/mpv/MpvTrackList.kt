@@ -11,8 +11,8 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Разбор свойства mpv `track-list` (JSON-массив дорожек).
- * `id` в [TrackInfo] — числовой id дорожки mpv; выбор — через свойства `vid`/`aid`/`sid`.
+ * Parses the mpv `track-list` property (a JSON array of tracks).
+ * `id` in [TrackInfo] is the numeric mpv track id; selection is via the `vid`/`aid`/`sid` properties.
  */
 internal fun parseMpvTrackList(json: String): List<TrackInfo> {
     val root = runCatching { Json.parseToJsonElement(json) }.getOrNull() as? JsonArray ?: return emptyList()

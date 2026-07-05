@@ -1,18 +1,18 @@
 package com.rinwave.sakuro.engine.media3.anime4k
 
 /**
- * Парсер формата mpv user-shaders (libplacebo hook-language) в список
- * [UserShaderPass]. Разбивает файл `.glsl` по директивам `//!` на проходы;
- * тело каждого прохода — GLSL между блоком директив и следующим `//!DESC`
- * (или концом файла).
+ * Parser of the mpv user-shader format (libplacebo hook-language) into a list of
+ * [UserShaderPass]. Splits a `.glsl` file into passes by `//!` directives;
+ * each pass body is the GLSL between the directive block and the next `//!DESC`
+ * (or the end of file).
  *
- * Поддерживаемые директивы: `DESC HOOK BIND SAVE WIDTH HEIGHT COMPONENTS WHEN`.
- * Незнакомые директивы (`OFFSET`, `WHEN` уже есть, `COMPUTE` и т.п.) осознанно
- * игнорируются — Anime4K v4.0.1 их не использует. Начальный лицензионный
- * комментарий и любые строки до первого `//!HOOK` отбрасываются.
+ * Supported directives: `DESC HOOK BIND SAVE WIDTH HEIGHT COMPONENTS WHEN`.
+ * Unknown directives (`OFFSET`, `COMPUTE`, etc.) are deliberately
+ * ignored — Anime4K v4.0.1 does not use them. The leading license
+ * comment and any lines before the first `//!HOOK` are discarded.
  *
- * Дизайн из docs/anime4k-media3-port-plan.md §3.1: тела проходов почти готовый
- * GLSL, парсеру нужно лишь разложить директивы и границы.
+ * Design from docs/anime4k-media3-port-plan.md §3.1: pass bodies are almost ready-to-use
+ * GLSL, the parser only has to lay out the directives and boundaries.
  */
 internal object MpvUserShaderParser {
 
@@ -30,7 +30,7 @@ internal object MpvUserShaderParser {
 
         for (rawLine in source.lineSequence()) {
             val line = rawLine.trim()
-            // Новый проход начинается на `//!DESC`, а если DESC нет — на первом `//!HOOK`.
+            // A new pass starts at `//!DESC`, or at the first `//!HOOK` if there is no DESC.
             val startsPass = line.startsWith(PREFIX + "DESC") ||
                 (line.startsWith(PREFIX + "HOOK") && current == null)
             when {
@@ -38,16 +38,16 @@ internal object MpvUserShaderParser {
                     if (line.startsWith(PREFIX + "DESC")) flush()
                     current = DirectiveBlock().apply { applyDirective(line) }
                 }
-                line.startsWith(PREFIX) -> current?.applyDirective(line) // до первого прохода игнор
+                line.startsWith(PREFIX) -> current?.applyDirective(line) // ignored before the first pass
                 current != null -> body.appendLine(rawLine)
-                // строки до первого прохода (лицензия) отбрасываем
+                // lines before the first pass (the license) are dropped
             }
         }
         flush()
         return passes
     }
 
-    /** Накопитель директив одного прохода до появления его тела. */
+    /** Accumulator for one pass's directives until its body appears. */
     private class DirectiveBlock {
         private var desc = ""
         private var hook = "MAIN"
@@ -71,14 +71,14 @@ internal object MpvUserShaderParser {
                 "HEIGHT" -> height = RpnExpression.parse(value)
                 "COMPONENTS" -> components = value.toIntOrNull() ?: DEFAULT_COMPONENTS
                 "WHEN" -> condition = RpnExpression.parse(value)
-                else -> Unit // OFFSET/COMPUTE/… — не используются Anime4K v4.0.1
+                else -> Unit // OFFSET/COMPUTE/… — not used by Anime4K v4.0.1
             }
         }
 
         fun toPass(body: String): UserShaderPass = UserShaderPass(
             desc = desc,
             hook = hook,
-            // Без явного BIND проход всё равно читает хукнутую стадию.
+            // Without an explicit BIND, the pass still reads the hooked stage.
             binds = if (binds.isEmpty()) listOf(HOOKED) else binds.toList(),
             save = save ?: HOOKED,
             width = width,
@@ -89,7 +89,7 @@ internal object MpvUserShaderParser {
         )
     }
 
-    /** Псевдо-имя текущей хукнутой стадии в mpv (`HOOKED_tex`, `SAVE HOOKED`). */
+    /** Pseudo-name of the current hooked stage in mpv (`HOOKED_tex`, `SAVE HOOKED`). */
     const val HOOKED = "HOOKED"
     private const val DEFAULT_COMPONENTS = 4
 }

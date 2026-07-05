@@ -18,13 +18,13 @@ import com.rinwave.sakuro.engine.media3.anime4k.Anime4KGlEffect
 import kotlin.math.roundToInt
 
 /**
- * Сборка цепочки `GlEffect` из абстрактного [UpscaleProfile] (ARCHITECTURE.md §4):
- * - аниме/мультик → единый [Anime4KGlEffect] с настоящим многопроходным Anime4K CNN
- *   (docs/anime4k-media3-port-plan.md); depth-to-space сам даёт ×2, отдельный
- *   [Presentation] не нужен;
- * - Upscale → [Presentation] с целевой высотой (реальное изменение выходного разрешения);
- * - Sharpen → GLSL ES-порт прохода в духе Anime4K «clamp highlights + sharpen»;
- * - Denoise → лёгкий edge-preserving проход (bilateral-lite).
+ * Builds a `GlEffect` chain from the abstract [UpscaleProfile] (ARCHITECTURE.md §4):
+ * - anime/cartoon → a single [Anime4KGlEffect] with a real multi-pass Anime4K CNN
+ *   (docs/anime4k-media3-port-plan.md); depth-to-space already gives ×2, a separate
+ *   [Presentation] is not needed;
+ * - Upscale → [Presentation] with the target height (a real change of output resolution);
+ * - Sharpen → a GLSL ES port of an Anime4K-style "clamp highlights + sharpen" pass;
+ * - Denoise → a light edge-preserving pass (bilateral-lite).
  */
 @UnstableApi
 object UpscaleEffectChain {
@@ -52,7 +52,7 @@ object UpscaleEffectChain {
         }
     }
 
-    /** Целевая высота кадра после цепочки — для debug-оверлея. */
+    /** Target frame height after the chain — for the debug overlay. */
     fun targetHeight(profile: UpscaleProfile, sourceHeight: Int): Int {
         var height = sourceHeight
         profile.passes.filterIsInstance<UpscalePass.Upscale>().forEach { pass ->
@@ -79,9 +79,9 @@ class DenoiseGlEffect(private val strength: Float) : GlEffect {
 }
 
 /**
- * Общая обвязка одно-текстурного фрагментного прохода GLSL ES 1.00
- * (формат mpv user-shaders сюда не переносится — математика проходов
- * переписана под обычный фрагментный шейдер, см. RESEARCH.md §5).
+ * Shared scaffolding for a single-texture GLSL ES 1.00 fragment pass
+ * (the mpv user-shader format is not ported here — the passes' math
+ * is rewritten for a plain fragment shader, see RESEARCH.md §5).
  */
 @UnstableApi
 private class SingleTexturePassShaderProgram(
@@ -141,8 +141,8 @@ void main() {
 """
 
 /**
- * Luma-guided unsharp mask с анти-рингингом (clamp к min/max окрестности) —
- * упрощённый аналог Anime4K Restore/Sharpen для одного прохода.
+ * Luma-guided unsharp mask with anti-ringing (clamped to the neighborhood min/max) —
+ * a simplified single-pass analog of Anime4K Restore/Sharpen.
  */
 private const val FRAGMENT_SHARPEN = """#version 100
 precision mediump float;
@@ -168,8 +168,8 @@ void main() {
 """
 
 /**
- * Bilateral-lite: усреднение окрестности с весами по цветовой близости —
- * давит шум/блочность, сохраняя контуры лайн-арта.
+ * Bilateral-lite: neighborhood averaging weighted by color proximity —
+ * suppresses noise/blockiness while preserving line-art edges.
  */
 private const val FRAGMENT_DENOISE = """#version 100
 precision mediump float;
