@@ -9,7 +9,7 @@ import java.awt.Frame
 actual fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit {
     val callback = rememberUpdatedState(onPicked)
     return {
-        val dialog = FileDialog(null as Frame?, "Открыть видео", FileDialog.LOAD)
+        val dialog = FileDialog(null as Frame?, "Open video", FileDialog.LOAD)
         dialog.isVisible = true
         val file = dialog.file
         val dir = dialog.directory

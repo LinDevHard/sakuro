@@ -16,7 +16,7 @@ import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.theme.SakuroColors
 
-/** «Stats for nerds» (FEATURES.md §4): моноширинный ненавязчивый оверлей. */
+/** "Stats for nerds" (FEATURES.md §4): a monospaced, unobtrusive overlay. */
 @Composable
 fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
     val stats by component.engine.debugStats.collectAsState(initial = DebugStats())
@@ -44,8 +44,8 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
         val confidencePercent = (detection.confidence * 100).toInt()
         add("detect    ${detection.contentClass.name.lowercase()} $confidencePercent% (${detection.source})")
         when {
-            // Тумблер выключен — пресет применяется как есть (чистота тестов).
-            !adaptiveEnabled -> add("adaptive  off (пресет как есть)")
+            // The toggle is off — the preset is applied as-is (clean measurements).
+            !adaptiveEnabled -> add("adaptive  off (preset as-is)")
             else -> adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
         }
         stats.extras.forEach { (k, v) -> add("$k  $v") }

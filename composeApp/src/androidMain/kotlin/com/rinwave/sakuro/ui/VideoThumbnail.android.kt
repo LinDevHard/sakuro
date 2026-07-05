@@ -9,7 +9,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.video.videoFramePercent
 
-/** Доля длительности, откуда берём кадр: начало часто чёрное или с логотипами. */
+/** Fraction of the duration to take the frame from: the start is often black or has logos. */
 private const val THUMBNAIL_FRAME_PERCENT = 0.2
 
 @Composable

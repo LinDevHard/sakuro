@@ -89,12 +89,12 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = component.onBack) {
-                Icon(Lucide.ChevronLeft, "Назад", tint = SakuroColors.TextPrimary)
+                Icon(Lucide.ChevronLeft, "Back", tint = SakuroColors.TextPrimary)
             }
-            Text("Настройки", style = MaterialTheme.typography.titleLarge, color = SakuroColors.TextPrimary)
+            Text("Settings", style = MaterialTheme.typography.titleLarge, color = SakuroColors.TextPrimary)
         }
 
-        SectionTitle("Движок воспроизведения")
+        SectionTitle("Playback engine")
         component.availableEngines.forEach { type ->
             EngineRow(
                 type = type,
@@ -109,7 +109,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Пресет апскейла по умолчанию")
+        SectionTitle("Default upscale preset")
         presets.forEach { preset ->
             Row(
                 Modifier
@@ -132,10 +132,10 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Свои пресеты")
+        SectionTitle("Custom presets")
         if (userPresets.isEmpty()) {
             Text(
-                "Пока нет своих пресетов — создайте или вставьте из буфера обмена.",
+                "No custom presets yet - create one or paste one from the clipboard.",
                 color = SakuroColors.TextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -150,11 +150,11 @@ fun SettingsScreen(component: SettingsComponent) {
                 },
                 onExport = {
                     clipboard.setText(AnnotatedString(component.exportUserPreset(preset)))
-                    presetMessage = "«${preset.name}» скопирован в буфер обмена"
+                    presetMessage = "${preset.name} copied to clipboard"
                 },
                 onDelete = {
                     component.deleteUserPreset(preset.id)
-                    presetMessage = "«${preset.name}» удалён"
+                    presetMessage = "${preset.name} deleted"
                 },
             )
         }
@@ -167,20 +167,20 @@ fun SettingsScreen(component: SettingsComponent) {
             ) {
                 Icon(Lucide.Plus, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
                 Spacer(Modifier.size(6.dp))
-                Text("Создать", color = SakuroColors.AccentSakura)
+                Text("Create", color = SakuroColors.AccentSakura)
             }
             TextButton(
                 onClick = {
                     val raw = clipboard.getText()?.text.orEmpty()
                     presetMessage = component.importUserPreset(raw).fold(
-                        onSuccess = { "Импортирован «${it.name}»" },
-                        onFailure = { "В буфере обмена нет корректного пресета" },
+                        onSuccess = { "Imported ${it.name}" },
+                        onFailure = { "Clipboard does not contain a valid preset" },
                     )
                 },
             ) {
                 Icon(Lucide.ClipboardPaste, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
                 Spacer(Modifier.size(6.dp))
-                Text("Из буфера", color = SakuroColors.AccentSakura)
+                Text("From clipboard", color = SakuroColors.AccentSakura)
             }
         }
         presetMessage?.let { message ->
@@ -194,7 +194,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Управление")
+        SectionTitle("Controls")
         Row(
             Modifier
                 .fillMaxWidth()
@@ -203,9 +203,9 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Жесты в плеере", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text("Player gestures", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Свайпы: яркость/громкость/перемотка; пинч: режим кадра",
+                    "Swipes: brightness/volume/seek; pinch: frame mode",
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -222,7 +222,7 @@ fun SettingsScreen(component: SettingsComponent) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Чувствительность свайпов",
+                    "Swipe sensitivity",
                     color = if (gesturesEnabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
@@ -249,7 +249,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Отладка")
+        SectionTitle("Debug")
         Row(
             Modifier
                 .fillMaxWidth()
@@ -259,13 +259,13 @@ fun SettingsScreen(component: SettingsComponent) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Адаптивная смена шейдера",
+                    "Adaptive shader switching",
                     color = SakuroColors.TextPrimary,
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    "Упрощает цепочку при нагреве/просадке FPS. " +
-                        "Выключите для чистоты тестов — пресет применяется как есть.",
+                    "Simplifies the chain under heat or FPS drops. " +
+                        "Turn off for clean tests - the preset is applied as selected.",
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -288,9 +288,9 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Debug-оверлей", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text("Debug overlay", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "«Stats for nerds» поверх плеера",
+                    "Stats for nerds over the player",
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -307,9 +307,9 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("О приложении")
+        SectionTitle("About")
         Text(
-            "Sakuro 0.1.0 — видеоплеер с реалтайм-апскейлом.\nOpen source (GPLv3), by Rinwave.",
+            "Sakuro 0.1.0 — video player with real-time upscaling.\nOpen source (GPLv3), by Rinwave.",
             color = SakuroColors.TextMuted,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -322,7 +322,7 @@ fun SettingsScreen(component: SettingsComponent) {
             initial = editorInitial,
             onSave = { profile ->
                 val saved = component.saveUserPreset(profile)
-                presetMessage = "Сохранён «${saved.name}»"
+                presetMessage = "Saved ${saved.name}"
                 editorVisible = false
             },
             onDismiss = { editorVisible = false },
@@ -346,18 +346,18 @@ private fun UserPresetRow(
             Text(preset.description, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
         }
         IconButton(onClick = onEdit) {
-            Icon(Lucide.Pencil, "Изменить", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(Lucide.Pencil, "Edit", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
         }
         IconButton(onClick = onExport) {
-            Icon(Lucide.Copy, "Экспорт в буфер обмена", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(Lucide.Copy, "Export to clipboard", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
         }
         IconButton(onClick = onDelete) {
-            Icon(Lucide.Trash2, "Удалить", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(Lucide.Trash2, "Delete", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
         }
     }
 }
 
-/** Редактор пресета (FEATURES.md §2.2): имя, класс контента, цепочка из трёх проходов. */
+/** Preset editor: name, content class, and a three-pass chain. */
 @Composable
 private fun PresetEditorDialog(
     initial: UpscaleProfile?,
@@ -387,14 +387,14 @@ private fun PresetEditorDialog(
         ) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    if (initial == null) "Новый пресет" else "Изменить пресет",
+                    if (initial == null) "New preset" else "Edit preset",
                     style = MaterialTheme.typography.titleMedium,
                     color = SakuroColors.TextPrimary,
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Название") },
+                    label = { Text("Name") },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SakuroColors.AccentSakura,
@@ -405,7 +405,7 @@ private fun PresetEditorDialog(
                 )
 
                 Text(
-                    "Класс контента",
+                    "Content class",
                     style = MaterialTheme.typography.labelLarge,
                     color = SakuroColors.AccentLavender,
                     modifier = Modifier.padding(top = 16.dp),
@@ -428,36 +428,36 @@ private fun PresetEditorDialog(
                     }
                 }
                 Text(
-                    "Для «Аниме» и «Мультфильм» движок mpv применяет Anime4K-шейдеры",
+                    "mpv uses Anime4K shaders for Anime and Cartoon",
                     style = MaterialTheme.typography.bodySmall,
                     color = SakuroColors.TextMuted,
                 )
 
                 EditorSlider(
-                    title = "Апскейл",
-                    valueText = if (upscale > UserPresetStore.UPSCALE_MIN) "×${formatMultiplier(upscale)}" else "выкл",
+                    title = "Upscale",
+                    valueText = if (upscale > UserPresetStore.UPSCALE_MIN) "×${formatMultiplier(upscale)}" else "off",
                     value = upscale,
                     range = UserPresetStore.UPSCALE_MIN..UserPresetStore.UPSCALE_MAX,
                     steps = UPSCALE_SLIDER_STEPS,
                     onChange = { upscale = it },
                 )
                 EditorSlider(
-                    title = "Резкость",
-                    valueText = if (sharpen > 0f) formatPercent(sharpen) else "выкл",
+                    title = "Sharpness",
+                    valueText = if (sharpen > 0f) formatPercent(sharpen) else "off",
                     value = sharpen,
                     range = 0f..1f,
                     onChange = { sharpen = it },
                 )
                 EditorSlider(
-                    title = "Деноиз",
-                    valueText = if (denoise > 0f) formatPercent(denoise) else "выкл",
+                    title = "Denoise",
+                    valueText = if (denoise > 0f) formatPercent(denoise) else "off",
                     value = denoise,
                     range = 0f..1f,
                     onChange = { denoise = it },
                 )
 
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Отмена", color = SakuroColors.TextMuted) }
+                    TextButton(onClick = onDismiss) { Text("Cancel", color = SakuroColors.TextMuted) }
                     TextButton(
                         onClick = {
                             val passes = buildList {
@@ -476,7 +476,7 @@ private fun PresetEditorDialog(
                             )
                         },
                     ) {
-                        Text("Сохранить", color = SakuroColors.AccentSakura)
+                        Text("Save", color = SakuroColors.AccentSakura)
                     }
                 }
             }
@@ -519,22 +519,22 @@ private fun EditorSlider(
 
 private val ContentClass.label: String
     get() = when (this) {
-        ContentClass.ANIME -> "Аниме"
-        ContentClass.CARTOON -> "Мультфильм"
+        ContentClass.ANIME -> "Anime"
+        ContentClass.CARTOON -> "Cartoon"
         ContentClass.LIVE_ACTION -> "Live-action"
-        ContentClass.UNKNOWN -> "Любой"
+        ContentClass.UNKNOWN -> "Any"
     }
 
-/** Читаемое описание цепочки для списков пресетов. */
+/** Human-readable chain description for preset lists. */
 private fun chainSummary(passes: List<UpscalePass>): String =
     if (passes.isEmpty()) {
-        "Без обработки"
+        "No processing"
     } else {
         passes.joinToString(" · ") { pass ->
             when (pass) {
-                is UpscalePass.Upscale -> "апскейл ×${formatMultiplier(pass.factor)}"
-                is UpscalePass.Sharpen -> "резкость ${formatPercent(pass.strength)}"
-                is UpscalePass.Denoise -> "деноиз ${formatPercent(pass.strength)}"
+                is UpscalePass.Upscale -> "upscale ×${formatMultiplier(pass.factor)}"
+                is UpscalePass.Sharpen -> "sharpness ${formatPercent(pass.strength)}"
+                is UpscalePass.Denoise -> "denoise ${formatPercent(pass.strength)}"
             }
         }
     }
@@ -543,13 +543,13 @@ private fun formatPercent(value: Float): String = "${(value * PERCENT).toInt()}%
 
 private const val PERCENT = 100
 
-// 1×..4× с шагом 0.25 → 11 промежуточных делений слайдера.
+// 1x..4x with a 0.25 step gives 11 intermediate slider ticks.
 private const val UPSCALE_SLIDER_STEPS = 11
 
-// 0.5×..2× с шагом 0.25 → 5 промежуточных делений слайдера.
+// 0.5x..2x with a 0.25 step gives 5 intermediate slider ticks.
 private const val SENSITIVITY_STEPS = 5
 
-/** «1», «1.25» — множитель без хвостовых нулей (чувствительность, фактор апскейла). */
+/** "1", "1.25" - multiplier without trailing zeroes for sensitivity and upscale factor. */
 private fun formatMultiplier(value: Float): String {
     val rounded = (value * PERCENT).toInt()
     return if (rounded % PERCENT == 0) "${rounded / PERCENT}" else (rounded / PERCENT.toFloat()).toString()
@@ -587,9 +587,9 @@ private fun EngineRow(type: EngineType, selected: Boolean, enabled: Boolean, onC
                 style = MaterialTheme.typography.bodyLarge,
             )
             val hint = when (type) {
-                EngineType.MEDIA3 -> "Нативный Android-движок, апскейл через GlEffect-цепочку"
-                EngineType.MPV -> "libmpv: широкий декод, пресеты на лету без re-prepare"
-                EngineType.FAKE -> "Мок для отладки интерфейса без воспроизведения"
+                EngineType.MEDIA3 -> "Native Android engine, upscale through a GlEffect chain"
+                EngineType.MPV -> "libmpv: broad decoding, live presets without re-prepare"
+                EngineType.FAKE -> "Mock for UI debugging without playback"
             }
             Text(hint, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
         }

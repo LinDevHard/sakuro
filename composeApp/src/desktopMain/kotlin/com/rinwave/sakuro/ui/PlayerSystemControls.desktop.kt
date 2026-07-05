@@ -3,7 +3,7 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 
-/** Desktop-заглушка: значения живут в памяти, системные регуляторы не трогаем. */
+/** Desktop stub: values live in memory, we do not touch the system controls. */
 @Composable
 actual fun rememberPlayerSystemControls(): PlayerSystemControls =
     remember { InMemoryPlayerSystemControls() }

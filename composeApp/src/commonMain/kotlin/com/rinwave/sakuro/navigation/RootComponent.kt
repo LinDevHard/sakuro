@@ -11,7 +11,7 @@ import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.di.AppDependencies
 import kotlinx.serialization.Serializable
 
-/** Корень дерева компонентов Decompose: Library → Player / Settings. */
+/** The Decompose navigation root: Library ↔ Player / Settings. */
 class RootComponent(
     componentContext: ComponentContext,
     private val deps: AppDependencies,
@@ -50,6 +50,7 @@ class RootComponent(
             LibraryComponent(
                 componentContext = componentContext,
                 mediaLibrary = deps.mediaLibrary,
+                preferences = deps.libraryPreferences,
                 onOpenVideo = { uri, title -> navigation.push(Config.Player(uri, title)) },
                 onOpenSettings = { navigation.push(Config.Settings) },
             ),

@@ -21,7 +21,7 @@ actual fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Uni
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            callback.value(uri.toString(), context.displayName(uri) ?: "Видео")
+            callback.value(uri.toString(), context.displayName(uri) ?: "English")
         }
     }
 

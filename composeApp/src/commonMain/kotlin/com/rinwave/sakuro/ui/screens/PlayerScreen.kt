@@ -16,21 +16,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -44,7 +42,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,9 +58,8 @@ import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Maximize
-import com.composables.icons.lucide.Pause
+import com.composables.icons.lucide.Minimize
 import com.composables.icons.lucide.Pin
-import com.composables.icons.lucide.Play
 import com.composables.icons.lucide.RotateCcw
 import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
@@ -69,12 +68,17 @@ import com.composables.icons.lucide.Volume2
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.navigation.PlayerComponent
+import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
 import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
-import com.rinwave.sakuro.ui.displayName
+import com.rinwave.sakuro.ui.components.EclipseLoader
+import com.rinwave.sakuro.ui.components.PlayPauseButton
+import com.rinwave.sakuro.ui.components.SakuroSeekBar
+import com.rinwave.sakuro.ui.components.SkipButton
+import com.rinwave.sakuro.ui.components.YouTubeSeekOverlay
 import com.rinwave.sakuro.ui.gestures.LevelSwipeSession
-import com.rinwave.sakuro.ui.gestures.PinchSession
+import com.rinwave.sakuro.ui.gestures.PinchZoomSession
 import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
 import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
 import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
@@ -84,17 +88,45 @@ import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val CONTROLS_HIDE_DELAY_MS = 3500L
 private const val DOUBLE_TAP_SEEK_MS = 10_000L
+private const val DOUBLE_TAP_SEEK_SEC = 10
 private const val INDICATOR_LINGER_MS = 600L
+private const val DOUBLE_TAP_LINGER_MS = 650L
 
-/** Что показывает центральный индикатор во время жеста. */
+/** What the center indicator shows during a gesture. */
 private sealed interface GestureIndicator {
     data class Seek(val targetMs: Long, val deltaMs: Long) : GestureIndicator
     data class Level(val isVolume: Boolean, val value: Float) : GestureIndicator
-    data class Frame(val mode: ScaleMode) : GestureIndicator
+    data class Zoom(val mode: ScaleMode, val manual: Float, val totalFactor: Float) : GestureIndicator
 }
+
+/**
+ * Screen-fill multiplier for a [vw] x [vh] video inside a [cw] x [ch] container:
+ * how much the fitted frame must grow to remove letterboxing by cropping.
+ */
+private fun fillFactorFor(vw: Int, vh: Int, cw: Int, ch: Int): Float {
+    if (minOf(vw, vh, cw, ch) <= 0) return 1f
+    val videoAspect = vw.toFloat() / vh
+    val containerAspect = cw.toFloat() / ch
+    return maxOf(videoAspect / containerAspect, containerAspect / videoAspect)
+}
+
+/** "x2.3" zoom multiplier with one decimal digit. */
+private fun formatZoom(factor: Float): String {
+    val tenths = (factor * 10f).roundToInt()
+    return "×${tenths / 10}.${tenths % 10}"
+}
+
+/** Accumulated double-tap seek indicator, +/-N seconds per side. */
+private data class DoubleTapSeek(
+    val forward: Boolean,
+    val totalSec: Int,
+    val key: Int,
+    val verticalFraction: Float,
+)
 
 @Composable
 fun PlayerScreen(component: PlayerComponent) {
@@ -107,9 +139,12 @@ fun PlayerScreen(component: PlayerComponent) {
     val systemControls = rememberPlayerSystemControls()
     val haptics = LocalHapticFeedback.current
 
-    // PiP при сворачивании (FEATURES.md §3.1); в PiP-окне — только видео.
+    // Enter PiP on backgrounding; the PiP window shows video only.
     PipEffect(state.isPlaying, state.videoWidth, state.videoHeight)
     val inPip = rememberIsInPip()
+
+    // Fullscreen immersive mode hides system bars in the player, outside PiP.
+    ImmersiveMode(enabled = !inPip)
     var wasInPip by remember { mutableStateOf(inPip) }
     LaunchedEffect(inPip) {
         if (inPip != wasInPip) {
@@ -121,13 +156,17 @@ fun PlayerScreen(component: PlayerComponent) {
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
     var speedBoost by remember { mutableStateOf(false) }
+    // YouTube-like frame scaling: the engine applies discrete crop first,
+    // then [manualZoom] adds an overlay transform (1.0 means no extra zoom).
     var scaleMode by remember { mutableStateOf(ScaleMode.FIT) }
+    var manualZoom by remember { mutableStateOf(1f) }
 
     var indicator by remember { mutableStateOf<GestureIndicator?>(null) }
     var gestureActive by remember { mutableStateOf(false) }
     var lingerKey by remember { mutableStateOf(0) }
+    var doubleTapSeek by remember { mutableStateOf<DoubleTapSeek?>(null) }
 
-    // Авто-скрытие контролов при воспроизведении (DESIGN.md §6).
+    // Auto-hide controls during playback.
     LaunchedEffect(controlsVisible, state.isPlaying) {
         if (controlsVisible && state.isPlaying) {
             delay(CONTROLS_HIDE_DELAY_MS)
@@ -135,7 +174,7 @@ fun PlayerScreen(component: PlayerComponent) {
         }
     }
 
-    // Индикатор жеста задерживается на экране после отпускания пальца.
+    // Keep the gesture indicator briefly after the finger is released.
     LaunchedEffect(lingerKey) {
         if (lingerKey > 0) {
             delay(INDICATOR_LINGER_MS)
@@ -143,12 +182,29 @@ fun PlayerScreen(component: PlayerComponent) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        VideoSurface(component.engine, scaleMode, Modifier.fillMaxSize())
+    // Fade the double-tap badge after the tap series ends.
+    LaunchedEffect(doubleTapSeek?.key) {
+        if (doubleTapSeek != null) {
+            delay(DOUBLE_TAP_LINGER_MS)
+            doubleTapSeek = null
+        }
+    }
 
-        // Жесты (FEATURES.md §3.1): тап — контролы, двойной тап — перемотка/пауза,
-        // удержание — ускорение 2× на время удержания; свайпы и пинч —
-        // в отдельном pointerInput (detectPlayerGestures).
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        // The engine handles crop; manual zoom is a layer transform above it.
+        VideoSurface(
+            component.engine,
+            scaleMode,
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = manualZoom
+                    scaleY = manualZoom
+                },
+        )
+
+        // Gestures: tap toggles controls, double tap seeks or pauses, long press gives 2x speed,
+        // and swipes/pinch live in a separate pointerInput (detectPlayerGestures).
         if (!inPip) {
             Box(
                 Modifier
@@ -157,13 +213,32 @@ fun PlayerScreen(component: PlayerComponent) {
                         detectTapGestures(
                             onTap = { controlsVisible = !controlsVisible },
                             onDoubleTap = { offset ->
+                                val current = component.engine.state.value.positionMs
+                                val yFraction = (offset.y / size.height).coerceIn(0f, 1f)
                                 when {
-                                    offset.x < size.width / 3f -> component.engine.seekTo(
-                                        (state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0),
-                                    )
+                                    offset.x < size.width / 3f -> {
+                                        component.engine.seekTo((current - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0))
+                                        val prev = doubleTapSeek?.takeIf { !it.forward }
+                                        doubleTapSeek = DoubleTapSeek(
+                                            forward = false,
+                                            totalSec = (prev?.totalSec ?: 0) + DOUBLE_TAP_SEEK_SEC,
+                                            key = (doubleTapSeek?.key ?: 0) + 1,
+                                            verticalFraction = yFraction,
+                                        )
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
 
-                                    offset.x > size.width * 2f / 3f ->
-                                        component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS)
+                                    offset.x > size.width * 2f / 3f -> {
+                                        component.engine.seekTo(current + DOUBLE_TAP_SEEK_MS)
+                                        val prev = doubleTapSeek?.takeIf { it.forward }
+                                        doubleTapSeek = DoubleTapSeek(
+                                            forward = true,
+                                            totalSec = (prev?.totalSec ?: 0) + DOUBLE_TAP_SEEK_SEC,
+                                            key = (doubleTapSeek?.key ?: 0) + 1,
+                                            verticalFraction = yFraction,
+                                        )
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
 
                                     else -> if (state.isPlaying) component.engine.pause() else component.engine.play()
                                 }
@@ -190,7 +265,7 @@ fun PlayerScreen(component: PlayerComponent) {
                         var seekTargetMs = 0L
                         var levelSession: LevelSwipeSession? = null
                         var levelIsVolume = false
-                        var pinchSession: PinchSession? = null
+                        var pinchSession: PinchZoomSession? = null
 
                         detectPlayerGestures(object : PlayerGestureCallbacks {
                             override fun onSeekStart() {
@@ -245,13 +320,23 @@ fun PlayerScreen(component: PlayerComponent) {
 
                             override fun onPinch(cumulativeZoom: Float) {
                                 gestureActive = true
-                                val session = pinchSession ?: PinchSession(scaleMode).also { pinchSession = it }
-                                val newMode = session.update(cumulativeZoom)
-                                if (newMode != scaleMode) {
-                                    scaleMode = newMode
+                                val videoState = component.engine.state.value
+                                val fill = fillFactorFor(
+                                    videoState.videoWidth,
+                                    videoState.videoHeight,
+                                    size.width,
+                                    size.height,
+                                )
+                                val session = pinchSession
+                                    ?: PinchZoomSession(scaleMode, manualZoom).also { pinchSession = it }
+                                val next = session.update(cumulativeZoom)
+                                if (next.mode != scaleMode) {
+                                    // Haptic feedback when switching the standard fit/fill crop.
+                                    scaleMode = next.mode
                                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
-                                indicator = GestureIndicator.Frame(newMode)
+                                if (next.manual != manualZoom) manualZoom = next.manual
+                                indicator = GestureIndicator.Zoom(next.mode, next.manual, fill * next.manual)
                             }
 
                             override fun onPinchEnd() {
@@ -287,11 +372,31 @@ fun PlayerScreen(component: PlayerComponent) {
             )
         }
 
-        // Поверх контролов: в центре у них play/pause, бейдж не должен прятаться за ним.
+        // Above controls: the center play/pause button should not cover the badge.
         if (!inPip) {
             indicator?.let { current ->
                 GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
             }
+        }
+
+        // YouTube-like double-tap feedback: side lens with ripples.
+        if (!inPip) {
+            doubleTapSeek?.let { seek ->
+                YouTubeSeekOverlay(
+                    forward = seek.forward,
+                    seconds = seek.totalSec,
+                    rippleKey = seek.key,
+                    verticalFraction = seek.verticalFraction,
+                    modifier = Modifier
+                        .align(if (seek.forward) Alignment.CenterEnd else Alignment.CenterStart)
+                        .fillMaxWidth(0.45f),
+                )
+            }
+        }
+
+        // Buffering without controls shows the brand loader in the center.
+        if (state.status == PlaybackStatus.BUFFERING && !controlsVisible && !inPip) {
+            EclipseLoader(Modifier.align(Alignment.Center))
         }
 
         if (debugEnabled && !inPip) {
@@ -325,23 +430,42 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
     val activePreset = BuiltInPresets.byId(state.activeUpscaleProfileId) ?: BuiltInPresets.OFF
     val upscaleActive = activePreset.isEnabled
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(SakuroColors.Background.copy(alpha = 0.35f)),
-    ) {
+    Box(Modifier.fillMaxSize()) {
+        // Gradient scrims keep the frame center bright.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(SakuroColors.Background.copy(alpha = 0.82f), Color.Transparent),
+                    ),
+                ),
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, SakuroColors.Background.copy(alpha = 0.88f)),
+                    ),
+                ),
+        )
         Column(
             Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
-            // Верхняя панель: назад, название, пресет, debug.
+            // Top bar: back, title, preset, debug.
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = component::onBack) {
-                    Icon(Lucide.ChevronLeft, "Назад", tint = SakuroColors.TextPrimary)
+                    Icon(Lucide.ChevronLeft, "Back", tint = SakuroColors.TextPrimary)
                 }
                 Text(
                     text = component.media.title,
@@ -351,7 +475,7 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                // Индикатор «апскейл включён» (DESIGN.md §5).
+                // Upscale-on indicator.
                 Surface(
                     onClick = onPresetClick,
                     shape = RoundedCornerShape(50),
@@ -383,61 +507,47 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
 
             Spacer(Modifier.weight(1f))
 
-            // Центральный транспорт.
+            // Center transport controls.
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(36.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(
+                SkipButton(
+                    icon = Lucide.RotateCcw,
+                    contentDescription = "-10 sec",
                     onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
-                ) {
-                    Icon(Lucide.RotateCcw, "-10 сек", tint = SakuroColors.TextPrimary, modifier = Modifier.size(30.dp))
+                )
+                Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
+                    if (state.status == PlaybackStatus.BUFFERING) {
+                        EclipseLoader(size = 60.dp)
+                    } else {
+                        PlayPauseButton(
+                            isPlaying = state.isPlaying,
+                            onClick = { if (state.isPlaying) component.engine.pause() else component.engine.play() },
+                        )
+                    }
                 }
-                Surface(
-                    onClick = { if (state.isPlaying) component.engine.pause() else component.engine.play() },
-                    shape = CircleShape,
-                    color = SakuroColors.AccentSakura,
-                    contentColor = SakuroColors.Background,
-                ) {
-                    Icon(
-                        if (state.isPlaying) Lucide.Pause else Lucide.Play,
-                        if (state.isPlaying) "Пауза" else "Играть",
-                        modifier = Modifier.padding(18.dp).size(30.dp),
-                    )
-                }
-                IconButton(onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) }) {
-                    Icon(Lucide.RotateCw, "+10 сек", tint = SakuroColors.TextPrimary, modifier = Modifier.size(30.dp))
-                }
+                SkipButton(
+                    icon = Lucide.RotateCw,
+                    contentDescription = "+10 sec",
+                    onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
+                )
             }
 
             Spacer(Modifier.weight(1f))
 
-            // Нижняя панель: прогресс и время.
+            // Bottom bar: progress and time.
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                var dragPosition by remember { mutableStateOf<Float?>(null) }
-                val sliderValue = dragPosition
-                    ?: if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f
-                Slider(
-                    value = sliderValue,
-                    onValueChange = { dragPosition = it },
-                    onValueChangeFinished = {
-                        dragPosition?.let { component.engine.seekTo((it * state.durationMs).toLong()) }
-                        dragPosition = null
-                    },
-                    colors = SliderDefaults.colors(
-                        thumbColor = SakuroColors.AccentSakura,
-                        activeTrackColor = SakuroColors.GlowMagenta,
-                        inactiveTrackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
-                    ),
+                SakuroSeekBar(
+                    positionMs = state.positionMs,
+                    durationMs = state.durationMs,
+                    bufferedMs = state.bufferedMs,
+                    onSeek = { component.engine.seekTo(it) },
                 )
-                Row(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     TimeText(formatTime(state.positionMs))
                     Spacer(Modifier.weight(1f))
-                    if (state.status == PlaybackStatus.BUFFERING) {
-                        Text("буферизация…", fontSize = 11.sp, color = SakuroColors.TextMuted)
-                        Spacer(Modifier.weight(1f))
-                    }
                     TimeText(formatTime(state.durationMs))
                 }
             }
@@ -481,13 +591,29 @@ private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifie
                 value = indicator.value,
             )
 
-            is GestureIndicator.Frame -> Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-            ) {
-                Icon(Lucide.Maximize, null, Modifier.size(18.dp), tint = SakuroColors.AccentSakura)
-                Text(indicator.mode.displayName, fontSize = 14.sp)
+            is GestureIndicator.Zoom -> {
+                val isFit = indicator.mode == ScaleMode.FIT
+                val isFill = !isFit && indicator.manual <= 1.01f
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isFit) Lucide.Minimize else Lucide.Maximize,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = SakuroColors.AccentSakura,
+                    )
+                    Text(
+                        text = when {
+                            isFit -> "Fit to screen"
+                            isFill -> "Fill screen"
+                            else -> formatZoom(indicator.totalFactor)
+                        },
+                        fontSize = 14.sp,
+                    )
+                }
             }
         }
     }
@@ -545,7 +671,7 @@ private fun PresetSheet(
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                "Пресет апскейла",
+                "Upscale preset",
                 style = MaterialTheme.typography.titleMedium,
                 color = SakuroColors.TextPrimary,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -579,7 +705,7 @@ private fun PresetSheet(
     }
 }
 
-/** Закрепление пресета за файлом (FEATURES.md §1.3): пин приоритетнее общего дефолта и «Авто». */
+/** Preset pinning for a file: the pin has priority over the global default and Auto. */
 @Composable
 private fun PinRow(component: PlayerComponent) {
     val isPinned by component.isPinned.collectAsState()
@@ -599,12 +725,12 @@ private fun PinRow(component: PlayerComponent) {
         )
         Column(Modifier.weight(1f)) {
             Text(
-                "Закрепить за этим файлом",
+                "Pin to this file",
                 color = SakuroColors.TextPrimary,
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                "Пресет применяется только к этому видео и не меняет общий выбор",
+                "The preset applies only to this video and does not change the global selection",
                 color = SakuroColors.TextMuted,
                 style = MaterialTheme.typography.bodySmall,
             )

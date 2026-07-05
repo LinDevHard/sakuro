@@ -10,37 +10,37 @@ class SeekSwipeSessionTest {
         SeekSwipeSession(startMs, durationMs, widthPx)
 
     @Test
-    fun `свайп вправо на всю ширину даёт полный шаг перемотки`() {
+    fun `a full-width swipe seeks one full window forward`() {
         assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS, session().positionFor(1000f))
     }
 
     @Test
-    fun `свайп влево на полширины даёт минус половину шага`() {
+    fun `a leftward swipe rewinds proportionally`() {
         assertEquals(60_000 - SeekSwipeSession.FULL_WIDTH_SEEK_MS / 2, session().positionFor(-500f))
     }
 
     @Test
-    fun `нулевое смещение не меняет позицию`() {
+    fun `no displacement keeps the position`() {
         assertEquals(60_000, session().positionFor(0f))
     }
 
     @Test
-    fun `позиция не уходит ниже нуля`() {
+    fun `seeking below zero clamps to zero`() {
         assertEquals(0, session(startMs = 5_000).positionFor(-1000f))
     }
 
     @Test
-    fun `позиция не превышает длительность`() {
+    fun `seeking past the end clamps to the duration`() {
         assertEquals(600_000, session(startMs = 590_000).positionFor(1000f))
     }
 
     @Test
-    fun `при неизвестной длительности перемотка вперёд не ограничивается`() {
+    fun `with unknown duration the seek is unbounded`() {
         assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS, session(durationMs = 0).positionFor(1000f))
     }
 
     @Test
-    fun `чувствительность масштабирует шаг перемотки`() {
+    fun `sensitivity scales the seek distance`() {
         val half = SeekSwipeSession(60_000, 600_000, 1000f, sensitivity = 0.5f)
         assertEquals(60_000 + SeekSwipeSession.FULL_WIDTH_SEEK_MS / 2, half.positionFor(1000f))
 
@@ -52,62 +52,71 @@ class SeekSwipeSessionTest {
 class LevelSwipeSessionTest {
 
     @Test
-    fun `движение вверх увеличивает уровень`() {
+    fun `swiping up raises the level`() {
         assertEquals(0.75f, LevelSwipeSession(0.5f, 1000f).levelFor(-250f))
     }
 
     @Test
-    fun `движение вниз уменьшает уровень`() {
+    fun `swiping down lowers the level`() {
         assertEquals(0.25f, LevelSwipeSession(0.5f, 1000f).levelFor(250f))
     }
 
     @Test
-    fun `уровень зажат в диапазон 0-1`() {
+    fun `the level is clamped to 0-1`() {
         assertEquals(1f, LevelSwipeSession(0.9f, 1000f).levelFor(-500f))
         assertEquals(0f, LevelSwipeSession(0.1f, 1000f).levelFor(500f))
     }
 
     @Test
-    fun `чувствительность масштабирует изменение уровня`() {
+    fun `sensitivity scales the level change`() {
         assertEquals(0.625f, LevelSwipeSession(0.5f, 1000f, sensitivity = 0.5f).levelFor(-250f))
         assertEquals(1f, LevelSwipeSession(0.5f, 1000f, sensitivity = 2f).levelFor(-250f))
     }
 }
 
-class PinchSessionTest {
+class PinchZoomSessionTest {
+
+    private val threshold = PinchZoomSession.EXPAND_THRESHOLD
 
     @Test
-    fun `раздвигание пальцев шагает fit-fill-zoom`() {
-        val session = PinchSession(ScaleMode.FIT)
-        assertEquals(ScaleMode.FILL, session.update(1.4f))
-        assertEquals(ScaleMode.ZOOM, session.update(1.4f * 1.4f))
+    fun `expanding past the threshold switches from fit to zoom`() {
+        val session = PinchZoomSession(ScaleMode.FIT, startManual = 1f)
+        // Below the threshold we stay in fit.
+        assertEquals(PinchZoomState(ScaleMode.FIT, 1f), session.update(1.1f))
+        // Crossing the threshold switches to zoom, and the mode persists for the gesture.
+        assertEquals(ScaleMode.ZOOM, session.update(threshold + 0.01f).mode)
     }
 
     @Test
-    fun `сведение пальцев шагает обратно`() {
-        val session = PinchSession(ScaleMode.ZOOM)
-        assertEquals(ScaleMode.FILL, session.update(0.7f))
-        assertEquals(ScaleMode.FIT, session.update(0.7f * 0.7f))
+    fun `within zoom the pinch scales the manual factor`() {
+        val session = PinchZoomSession(ScaleMode.ZOOM, startManual = 1f)
+        // Doubling the pinch within zoom yields a manual factor of 2.0.
+        assertEquals(PinchZoomState(ScaleMode.ZOOM, 2f), session.update(2f))
     }
 
     @Test
-    fun `малое изменение не переключает режим`() {
-        val session = PinchSession(ScaleMode.FIT)
-        assertEquals(ScaleMode.FIT, session.update(1.1f))
-        assertEquals(ScaleMode.FIT, session.update(0.95f))
+    fun `pinching back steps down and returns to fit`() {
+        // Pinching halves within zoom; from 2x it drops to the lower zoom bound (manual 1).
+        assertEquals(
+            PinchZoomState(ScaleMode.ZOOM, 1f),
+            PinchZoomSession(ScaleMode.ZOOM, startManual = 2f).update(0.5f),
+        )
+        // Pinching further from fit collapses back below the threshold to fit.
+        assertEquals(
+            PinchZoomState(ScaleMode.FIT, 1f),
+            PinchZoomSession(ScaleMode.ZOOM, startManual = 1f).update(0.5f),
+        )
     }
 
     @Test
-    fun `режим не выходит за края списка`() {
-        assertEquals(ScaleMode.FIT, PinchSession(ScaleMode.FIT).update(0.5f))
-        assertEquals(ScaleMode.ZOOM, PinchSession(ScaleMode.ZOOM).update(2f))
+    fun `the manual factor is clamped to the maximum`() {
+        val session = PinchZoomSession(ScaleMode.ZOOM, startManual = 1f)
+        assertEquals(PinchZoomSession.MAX_MANUAL, session.update(100f).manual)
     }
 
     @Test
-    fun `после шага база сбрасывается и нужен новый порог`() {
-        val session = PinchSession(ScaleMode.FIT)
-        assertEquals(ScaleMode.FILL, session.update(1.4f))
-        // Относительно новой базы 1.4 фактор 1.5/1.4 ≈ 1.07 — ниже порога.
-        assertEquals(ScaleMode.FILL, session.update(1.5f))
+    fun `pinching in while in fit stays in fit`() {
+        val session = PinchZoomSession(ScaleMode.FIT, startManual = 1f)
+        assertEquals(PinchZoomState(ScaleMode.FIT, 1f), session.update(0.3f))
     }
 }

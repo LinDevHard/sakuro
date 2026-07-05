@@ -24,8 +24,8 @@ import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
 
 /**
- * Отрисовка «кадра» фейкового движка: сумеречный градиент и кольцо-«затмение»
- * из бренда (BRAND.md §3) как индикатор прогресса.
+ * Draws the fake engine's "frame": a twilight gradient and the "eclipse" ring
+ * from the brand (BRAND.md §3) as a progress indicator.
  */
 @Composable
 fun FakeVideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier) {
@@ -76,7 +76,7 @@ fun FakeVideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "FAKE ENGINE — полигон UI",
+                text = "FAKE ENGINE — UI sandbox",
                 color = SakuroColors.TextMuted,
                 fontSize = 12.sp,
                 letterSpacing = 2.sp,

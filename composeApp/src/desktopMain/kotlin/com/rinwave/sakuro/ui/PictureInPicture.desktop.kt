@@ -2,7 +2,7 @@ package com.rinwave.sakuro.ui
 
 import androidx.compose.runtime.Composable
 
-/** Desktop: системного PiP нет — обычное окно и так «поверх». */
+/** Desktop: there is no system PiP — a normal window is "on top" anyway. */
 @Composable
 actual fun PipEffect(isPlaying: Boolean, videoWidth: Int, videoHeight: Int) = Unit
 

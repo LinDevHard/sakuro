@@ -22,7 +22,7 @@ import org.koin.core.context.startKoin
 
 class SakuroApplication : Application(), SingletonImageLoader.Factory {
 
-    // Без VideoFrameDecoder Coil не умеет доставать превью-кадры из видеофайлов.
+    // Without VideoFrameDecoder, Coil cannot pull preview frames from video files.
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
             .components { add(VideoFrameDecoder.Factory()) }
@@ -35,7 +35,7 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                 appModule(
                     settings = SakuroSettings(defaultEngine = EngineType.MEDIA3),
                     mediaLibrary = MediaStoreVideoLibrary(this@SakuroApplication),
-                    // Media3 первым — он же fallback при недоступном предпочтении.
+                    // Media3 first — it is also the fallback when the preference is unavailable.
                     engineRegistry = EngineRegistry(
                         listOf(
                             Media3EngineFactory(this@SakuroApplication),
@@ -44,8 +44,8 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                         ),
                     ),
                     deviceStatusMonitor = AndroidDeviceStatusMonitor(this@SakuroApplication),
-                    // Имя файла отвечает мгновенно, анализ кадров подтягивается
-                    // следом и замещает результат более уверенным.
+                    // The file name answers instantly, frame analysis follows
+                    // and replaces the result with a more confident one.
                     contentClassifier = CompositeContentClassifier(
                         FilenameContentClassifier(),
                         FrameContentClassifier(RetrieverFrameSampler(this@SakuroApplication)),

@@ -24,8 +24,8 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 
 /**
- * Desktop-таргет — полигон для быстрой итерации по UI (ARCHITECTURE.md §3.2):
- * реального воспроизведения нет, движок — FakePlayerEngine.
+ * Desktop target — a sandbox for fast UI iteration (ARCHITECTURE.md §3.2):
+ * there is no real playback, the engine is FakePlayerEngine.
  */
 fun main() {
     startKoin {
@@ -35,8 +35,8 @@ fun main() {
                 mediaLibrary = SampleVideoLibrary(),
                 engineRegistry = EngineRegistry(listOf(FakeEngineFactory())),
                 deviceStatusMonitor = StaticDeviceStatusMonitor(),
-                // Как на Android: имя файла отвечает сразу, кадры (системный
-                // ffmpeg, если есть) замещают результат более уверенным.
+                // As on Android: the file name answers immediately, frames (system
+                // ffmpeg, if present) replace the result with a more confident one.
                 contentClassifier = CompositeContentClassifier(
                     FilenameContentClassifier(),
                     FrameContentClassifier(FfmpegFrameSampler()),

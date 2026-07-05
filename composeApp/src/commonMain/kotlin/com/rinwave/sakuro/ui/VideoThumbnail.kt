@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * Превью-кадр видео для карточки библиотеки (DESIGN.md §"Библиотека").
- * Android: Coil 3 + coil-video достаёт кадр из файла; desktop: no-op —
- * видео-декодера в Coil на JVM нет, снизу остаётся плейсхолдер карточки.
+ * A video preview frame for the library card (DESIGN.md §"Library").
+ * Android: Coil 3 + coil-video pulls a frame from the file; desktop: no-op —
+ * Coil has no video decoder on the JVM, so the card placeholder remains below.
  */
 @Composable
 expect fun VideoThumbnail(uri: String, modifier: Modifier)

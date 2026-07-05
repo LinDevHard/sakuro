@@ -34,12 +34,12 @@ class SettingsComponent(
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
     val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
-    /** Встроенные + пользовательские пресеты (FEATURES.md §2.2) — кандидаты в «по умолчанию». */
+    /** Built-in + user presets (FEATURES.md §2.2) — candidates for the default. */
     val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
         .map { user -> BuiltInPresets.all + user }
         .stateIn(scope, SharingStarted.Eagerly, BuiltInPresets.all + userPresets.presets.value)
 
-    /** Только пользовательские — для секции управления своими пресетами. */
+    /** User presets only — for the section that manages your own presets. */
     val userPresetList: StateFlow<List<UpscaleProfile>> = userPresets.presets
 
     fun selectEngine(type: EngineType) = settings.setEngineType(type)
@@ -50,7 +50,7 @@ class SettingsComponent(
 
     fun deleteUserPreset(id: String) {
         userPresets.delete(id)
-        // Удалённый пресет не должен оставаться ни «по умолчанию», ни в пинах файлов.
+        // A deleted preset must remain neither the default nor in the file pins.
         if (settings.presetId.value == id) settings.setPresetId(BuiltInPresets.OFF.id)
         pinnedPresets.removeAllFor(id)
     }

@@ -3,27 +3,27 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 
 /**
- * Picture-in-Picture (FEATURES.md §3.1 «свайп вниз — PiP/сворачивание»):
- * на Android плеер уходит в PiP при сворачивании приложения во время
- * воспроизведения (auto-enter на 12+, onUserLeaveHint раньше); свайп вниз
- * занят жестом яркости/громкости. Desktop — no-op.
+ * Picture-in-Picture (FEATURES.md §3.1 "swipe down — PiP/minimize"):
+ * on Android the player goes into PiP when the app is minimized during
+ * playback (auto-enter on 12+, onUserLeaveHint earlier); swipe down
+ * is taken by the brightness/volume gesture. Desktop — no-op.
  */
 
 /**
- * Пока композиция активна, сообщает платформе состояние плеера для PiP:
- * играет ли видео (входим в PiP только при воспроизведении) и его размеры
- * (аспект PiP-окна). Вне экрана плеера PiP не включается.
+ * While the composition is active, reports the player state for PiP to the platform:
+ * whether video is playing (we enter PiP only during playback) and its size
+ * (the PiP window aspect). Outside the player screen, PiP is not enabled.
  */
 @Composable
 expect fun PipEffect(isPlaying: Boolean, videoWidth: Int, videoHeight: Int)
 
-/** Находится ли активити в PiP-режиме сейчас (в PiP рисуем только видео). */
+/** Whether the activity is in PiP mode now (in PiP we draw video only). */
 @Composable
 expect fun rememberIsInPip(): Boolean
 
 /**
- * Снимок PiP-состояния вне композиции — для lifecycle-колбэков
- * (onPause при входе в PiP не должен останавливать воспроизведение;
- * система шлёт onPictureInPictureModeChanged до onPause).
+ * A PiP-state snapshot outside the composition — for lifecycle callbacks
+ * (onPause when entering PiP must not stop playback;
+ * the system sends onPictureInPictureModeChanged before onPause).
  */
 expect fun isInPipNow(): Boolean

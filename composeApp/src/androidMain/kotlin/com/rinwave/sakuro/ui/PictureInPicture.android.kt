@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Мост плеер → [com.rinwave.sakuro.MainActivity]: активити подписывается
- * на [request] (обновляет PictureInPictureParams / входит в PiP из
- * onUserLeaveHint) и пишет в [isInPip] из onPictureInPictureModeChanged.
+ * Player → [com.rinwave.sakuro.MainActivity] bridge: the activity subscribes
+ * to [request] (updates PictureInPictureParams / enters PiP from
+ * onUserLeaveHint) and writes to [isInPip] from onPictureInPictureModeChanged.
  */
 object PipBridge {
 
-    /** Состояние плеера для PiP; null — экран плеера не активен, PiP запрещён. */
+    /** Player state for PiP; null — the player screen is not active and PiP is disallowed. */
     data class Request(val playing: Boolean, val videoWidth: Int, val videoHeight: Int)
 
     private val _request = MutableStateFlow<Request?>(null)

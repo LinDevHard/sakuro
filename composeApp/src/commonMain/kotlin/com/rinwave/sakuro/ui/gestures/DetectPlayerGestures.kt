@@ -9,7 +9,7 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.positionChanged
 import kotlin.math.abs
 
-/** Колбэки жестов плеера; сессии ([SeekSwipeSession] и т.п.) создаёт вызывающая сторона в on*Start. */
+/** Player gesture callbacks; sessions ([SeekSwipeSession] etc.) are created by the caller in on*Start. */
 interface PlayerGestureCallbacks {
 
     fun onSeekStart()
@@ -18,14 +18,14 @@ interface PlayerGestureCallbacks {
 
     fun onSeekEnd()
 
-    /** @param leftSide жест начат в левой половине экрана (яркость), иначе правая (громкость). */
+    /** @param leftSide the gesture started in the left half of the screen (brightness), otherwise the right (volume). */
     fun onLevelStart(leftSide: Boolean)
 
     fun onLevelDrag(totalDyPx: Float)
 
     fun onLevelEnd()
 
-    /** @param cumulativeZoom произведение zoom-факторов с начала жеста. */
+    /** @param cumulativeZoom the product of zoom factors since the gesture started. */
     fun onPinch(cumulativeZoom: Float)
 
     fun onPinchEnd()
@@ -34,13 +34,13 @@ interface PlayerGestureCallbacks {
 private enum class GestureKind { SEEK, LEVEL, PINCH }
 
 /**
- * Свайпы и пинч плеера (FEATURES.md §3.1) поверх detectTapGestures:
- * до порога touchSlop события не потребляются (тапы и long-press живут
- * в соседнем pointerInput), после — потребляются, и тап-детектор отменяется.
- * Если события уже потреблены (long-press ускорение), жест не начинается.
+ * Player swipes and pinch (FEATURES.md §3.1) on top of detectTapGestures:
+ * below the touchSlop threshold events are not consumed (taps and long-press live
+ * in a sibling pointerInput); above it they are consumed and the tap detector is cancelled.
+ * If events are already consumed (long-press speed-up), the gesture does not start.
  */
-@Suppress("CyclomaticComplexMethod", "LoopWithTooManyJumpStatements") // конечный автомат жеста —
-// один проход по awaitEachGesture, дробление разорвёт общее состояние (kind/totalPan/cancelled)
+@Suppress("CyclomaticComplexMethod", "LoopWithTooManyJumpStatements") // the gesture state machine —
+// a single pass over awaitEachGesture; splitting it would break the shared state (kind/totalPan/cancelled)
 suspend fun PointerInputScope.detectPlayerGestures(callbacks: PlayerGestureCallbacks) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)

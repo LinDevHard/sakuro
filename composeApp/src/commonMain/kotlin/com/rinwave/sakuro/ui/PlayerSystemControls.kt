@@ -3,8 +3,8 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 
 /**
- * Системные регуляторы для свайп-жестов плеера (FEATURES.md §3.1):
- * яркость экрана и громкость медиа, значения нормированы в 0..1.
+ * System controls for the player's swipe gestures (FEATURES.md §3.1):
+ * screen brightness and media volume, values normalized to 0..1.
  */
 interface PlayerSystemControls {
 
@@ -18,8 +18,8 @@ interface PlayerSystemControls {
 }
 
 /**
- * Android: яркость — атрибуты окна Activity (сбрасывается при выходе с экрана),
- * громкость — AudioManager/STREAM_MUSIC. Desktop: заглушка в памяти.
+ * Android: brightness via the Activity window attributes (reset when leaving the screen),
+ * volume via AudioManager/STREAM_MUSIC. Desktop: an in-memory stub.
  */
 @Composable
 expect fun rememberPlayerSystemControls(): PlayerSystemControls

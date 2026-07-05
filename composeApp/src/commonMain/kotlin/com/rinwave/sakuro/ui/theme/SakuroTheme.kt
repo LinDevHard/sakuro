@@ -19,7 +19,7 @@ import sakuro.composeapp.generated.resources.inter_medium
 import sakuro.composeapp.generated.resources.inter_regular
 import sakuro.composeapp.generated.resources.inter_semibold
 
-/** Палитра бренда (BRAND.md §2). */
+/** Brand palette (BRAND.md §2). */
 object SakuroColors {
     val Background = Color(0xFF120A17)
     val Surface = Color(0xFF1E1226)
@@ -60,7 +60,7 @@ private val SakuroShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-/** Inter (variable-дизайн, статические начертания) — единый UI-шрифт (DESIGN.md §3). */
+/** Inter (variable design, static weights) — the single UI font (DESIGN.md §3). */
 @Composable
 private fun interFontFamily() = FontFamily(
     Font(Res.font.inter_regular, FontWeight.Normal),

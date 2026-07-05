@@ -45,32 +45,32 @@ class PlayerComponent(
 
     private val scope = componentScope()
 
-    /** Фактический движок (выбор пользователя, если доступен на таргете). */
+    /** The actual engine (the user's choice if available on the target). */
     val activeEngineType: EngineType = engineRegistry.resolve(settings.engineType.value)
 
     val engine: PlayerEngine = engineRegistry.create(settings.engineType.value)
 
-    /** «Авто» + встроенные + пользовательские пресеты (FEATURES.md §2.2). */
+    /** "Auto" + built-in + user presets (FEATURES.md §2.2). */
     val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
         .map { user -> listOf(AUTO_PRESET) + BuiltInPresets.all + user }
         .stateIn(scope, SharingStarted.Eagerly, listOf(AUTO_PRESET) + BuiltInPresets.all + userPresets.presets.value)
 
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
 
-    /** Включена ли адаптивная деградация пресета (для индикации в debug-оверлее). */
+    /** Whether adaptive preset degradation is enabled (for the debug overlay indicator). */
     val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
 
-    /** Свайпы/пинч в плеере (FEATURES.md §3.2). */
+    /** Swipes/pinch in the player (FEATURES.md §3.2). */
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
 
-    /** Множитель чувствительности свайпов (FEATURES.md §3.2). */
+    /** Swipe sensitivity multiplier (FEATURES.md §3.2). */
     val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
-    /** Выбор пользователя (включая «auto»); фактически применённая цепочка может отличаться. */
+    /** The user's choice (including "auto"); the actually applied chain may differ. */
     private val _selectedPresetId = MutableStateFlow(initialPresetId())
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
 
-    /** Пресет закреплён за этим файлом (FEATURES.md §1.3): выбор в шторке меняет пин, а не общий дефолт. */
+    /** The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin, not the global default. */
     val isPinned: StateFlow<Boolean> = pinnedPresets.pins
         .map { media.uri in it }
         .stateIn(scope, SharingStarted.Eagerly, media.uri in pinnedPresets.pins.value)
@@ -89,7 +89,7 @@ class PlayerComponent(
         appliedProfile = resolveUserProfile(_selectedPresetId.value, _detection.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
-        // В PiP активити «на паузе», но видео должно продолжать играть.
+        // In PiP the activity is "paused", but the video must keep playing.
         lifecycle.doOnPause { if (!isInPipNow()) engine.pause() }
         lifecycle.doOnDestroy { engine.release() }
 
@@ -97,8 +97,8 @@ class PlayerComponent(
             contentClassifier.classify(ClassificationRequest(uri = media.uri, title = media.title))
                 .collect { _detection.value = it }
         }
-        // Адаптивный контур (ARCHITECTURE.md §5): решение пересчитывается на каждом
-        // снимке debug-статистики и при смене пресета/класса/состояния устройства.
+        // The adaptive loop (ARCHITECTURE.md §5): the decision is recomputed on every
+        // debug-stats snapshot and on any change of preset/class/device state.
         scope.launch {
             combine(
                 engine.debugStats,
@@ -112,16 +112,16 @@ class PlayerComponent(
                 if (adaptive) {
                     adaptiveController.update(inputs.user, inputs.device, inputs.health)
                 } else {
-                    // Тумблер выключен — применяем выбранный пресет без деградации
-                    // (чистота замеров качества). Контроллер сбрасываем, чтобы при
-                    // повторном включении стрик/уровень стартовали заново.
+                    // The toggle is off — apply the selected preset without degradation
+                    // (clean quality measurements). We reset the controller so that on
+                    // re-enable the streak/level start over.
                     adaptiveController.reset()
                     AdaptiveController.Decision(effective = inputs.user, level = 0, reason = null)
                 }
             }.collect { decision ->
                 _adaptiveDecision.value = decision
-                // applyUpscale на подготовленном плеере = re-prepare,
-                // поэтому дёргаем движок только при реальной смене цепочки.
+                // applyUpscale on a prepared player = re-prepare,
+                // so we poke the engine only on a real chain change.
                 if (decision.effective != appliedProfile) {
                     appliedProfile = decision.effective
                     engine.applyUpscale(decision.effective)
@@ -136,7 +136,7 @@ class PlayerComponent(
             else -> BuiltInPresets.byId(selectedId) ?: userPresets.byId(selectedId) ?: BuiltInPresets.OFF
         }
 
-    /** Закреплённый за файлом пресет приоритетнее общего дефолта; битый пин снимается. */
+    /** A file-pinned preset takes priority over the global default; a broken pin is cleared. */
     private fun initialPresetId(): String {
         val pinned = pinnedPresets.presetIdFor(media.uri) ?: return settings.presetId.value
         if (isKnownPreset(pinned)) return pinned
@@ -153,7 +153,7 @@ class PlayerComponent(
         _selectedPresetId.value = id
     }
 
-    /** Снятие пина не трогает текущий выбор — общий дефолт вернётся при следующем открытии. */
+    /** Unpinning does not touch the current choice — the global default returns on next open. */
     fun togglePinned() {
         if (isPinned.value) {
             pinnedPresets.unpin(media.uri)
@@ -163,9 +163,9 @@ class PlayerComponent(
     }
 
     /**
-     * Вход/выход PiP: GL-конвейер videoEffects в Media3 привязан к размеру
-     * surface на момент prepare, после ресайза окна кадр рисуется со старой
-     * геометрией — перезапускаем цепочку (быстрый re-prepare с той же позиции).
+     * Entering/leaving PiP: the Media3 videoEffects GL pipeline is bound to the surface
+     * size at prepare time; after a window resize the frame is drawn with the old
+     * geometry — so we restart the chain (a fast re-prepare from the same position).
      */
     fun onPipModeChanged() {
         engine.applyUpscale(appliedProfile)
@@ -178,17 +178,17 @@ class PlayerComponent(
     companion object {
         const val AUTO_PRESET_ID = "auto"
 
-        /** Псевдо-пресет: реальная цепочка выбирается по классу контента (core-detect). */
+        /** A pseudo-preset: the real chain is chosen by content class (core-detect). */
         val AUTO_PRESET = UpscaleProfile(
             id = AUTO_PRESET_ID,
-            name = "Авто",
-            description = "Пресет подбирается по классу контента",
+            name = "Auto",
+            description = "The preset is chosen by content class",
             builtIn = true,
         )
     }
 }
 
-/** Снимок входов адаптивного контура — чтобы соединить с тумблером adaptiveEnabled. */
+/** A snapshot of the adaptive loop's inputs — to combine with the adaptiveEnabled toggle. */
 private data class AdaptiveInputs(
     val user: UpscaleProfile,
     val device: DeviceStatus,

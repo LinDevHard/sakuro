@@ -51,7 +51,7 @@ private class AndroidPlayerSystemControls(context: Context) : PlayerSystemContro
         )
     }
 
-    /** Возврат к системной яркости при уходе с экрана плеера. */
+    /** Restores system brightness when leaving the player screen. */
     fun resetBrightness() {
         val window = activity?.window ?: return
         window.attributes = window.attributes.apply {
@@ -60,7 +60,7 @@ private class AndroidPlayerSystemControls(context: Context) : PlayerSystemContro
     }
 
     private companion object {
-        // Совсем нулевая яркость выглядит как выключенный экран — оставляем нижний порог.
+        // Zero brightness looks like a powered-off screen — we keep a lower bound.
         const val MIN_BRIGHTNESS = 0.01f
         const val DEFAULT_BRIGHTNESS = 0.5f
     }

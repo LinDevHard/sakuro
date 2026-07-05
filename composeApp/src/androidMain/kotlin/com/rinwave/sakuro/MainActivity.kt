@@ -42,8 +42,8 @@ class MainActivity : ComponentActivity() {
 
         requestMediaPermissionIfNeeded()
 
-        // PiP при сворачивании во время воспроизведения (FEATURES.md §3.1):
-        // на 12+ система входит сама (autoEnter), раньше — onUserLeaveHint.
+        // PiP when minimized during playback (FEATURES.md §3.1):
+        // on 12+ the system enters it itself (autoEnter), earlier — onUserLeaveHint.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             lifecycleScope.launch {
                 PipBridge.request.collect { setPictureInPictureParams(buildPipParams(it)) }
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
         val width = request?.videoWidth ?: 0
         val height = request?.videoHeight ?: 0
         if (width <= 0 || height <= 0) return Rational(16, 9)
-        // Система принимает аспект только в диапазоне 1:2.39..2.39:1.
+        // The system only accepts an aspect within 1:2.39..2.39:1.
         val ratio = width.toFloat() / height
         return when {
             ratio > MAX_PIP_RATIO -> Rational(239, 100)

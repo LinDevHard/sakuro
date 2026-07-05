@@ -41,9 +41,9 @@ actual fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Mo
 }
 
 /**
- * mpv рендерит в обычный SurfaceView на всю площадь контейнера:
- * леттербокс (FIT), растяжение (FILL) и кроп (ZOOM) делает сам движок
- * через keepaspect/panscan — см. [MpvPlayerEngine.setScaleMode].
+ * mpv renders into a plain SurfaceView across the whole container:
+ * letterbox (FIT), stretch (FILL) and crop (ZOOM) are done by the engine itself
+ * via keepaspect/panscan — see [MpvPlayerEngine.setScaleMode].
  */
 @Composable
 private fun MpvVideoSurface(engine: MpvPlayerEngine, scaleMode: ScaleMode, modifier: Modifier) {

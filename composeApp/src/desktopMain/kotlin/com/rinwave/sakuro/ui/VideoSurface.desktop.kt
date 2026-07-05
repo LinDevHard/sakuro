@@ -6,6 +6,6 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 
 @Composable
 actual fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Modifier) {
-    // FakePlayerEngine рисует синтетический кадр — режим кадра не влияет.
+    // FakePlayerEngine draws a synthetic frame — the scaling mode has no effect.
     FakeVideoSurface(engine, modifier)
 }
