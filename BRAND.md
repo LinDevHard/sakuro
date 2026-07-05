@@ -1,75 +1,65 @@
-# Sakuro — бренд и визуальный вайб
+# Sakuro Brand And Visual Mood
 
-> Проект: **Sakuro** by **Rinwave** (`com.rinwave.sakuro`)
-> Дата: 2026-07-02
-> Статус: визуальная идентичность / mood. Ключевой арт — teaser «Coming Soon».
-> Связано: [DESIGN.md](DESIGN.md) (дизайн-система), [ARCHITECTURE.md](ARCHITECTURE.md).
+> Project: **Sakuro** by **Rinwave** (`com.rinwave.sakuro`)
+> Date: 2026-07-02
+> Status: visual identity and mood.
+> Related: [DESIGN.md](DESIGN.md), [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Ключевой арт-референс (teaser) положить в `assets/branding/sakuro-teaser.png`.
+Put the key teaser art reference at `assets/branding/sakuro-teaser.png`.
 
----
+## 1. Mood
 
-## 1. Настроение (mood)
+Cinematic night **twilight**: dark plum-purple background, sakura branch and falling petals, a Mount Fuji silhouette reflected in a lake, a chrome-pink logo with a small flare, and a thin glowing eclipse ring.
 
-Кинематографичный ночной **twilight**: тёмный сливово-фиолетовый фон, ветвь сакуры и падающие лепестки, силуэт **Фудзи** с зеркальным озером, хромово-розовый логотип с бликом-вспышкой и тонким световым кольцом-«затмением».
+Keywords: premium, cinematic, serene, ethereal, Japanese aesthetics, sakura, Fuji, twilight, dreamlike.
 
-Ключевые слова: **премиально, кинематографично, безмятежно, эфирно, японская эстетика (сакура + Фудзи), сумеречно, мечтательно**.
+The feeling should be a flagship-product teaser, not a hobbyist fork. Content and image quality come first; UI serves the atmosphere.
 
-Ощущение — «дорогой» тизер флагманского продукта, а не гиковский форк. Контент и картинка в приоритете, UI служит атмосфере.
+## 2. Palette
 
----
+Dark plum base, pink-lavender accents, and metallic logo chrome.
 
-## 2. Палитра (из тизера)
-
-Тёмная сливовая база + розово-лавандовые акценты + металлический хром на логотипе.
-
-| Токен | Hex (ориентир) | Назначение |
+| Token | Hex | Purpose |
 |---|---|---|
-| `background` | `#120A17` | почти чёрный плам — базовый фон |
-| `surface` | `#1E1226` | поверхности 1-го уровня |
-| `surfaceElevated` | `#2A1A34` | карточки/оверлеи |
-| `twilight` | `#4A2A5A` | сумеречный фиолетовый (градиенты неба) |
-| `accentSakura` | `#EC8FC0` | основной акцент (розовый лепесток) |
-| `accentLavender` | `#A57FD6` | вторичный акцент (лаванда/сумерки) |
-| `glowMagenta` | `#C94F9C` | свечение/подсветка активных состояний, вспышка |
-| `textPrimary` | `#F3E9F2` | мягкий розово-белый текст |
-| `textMuted` | `#B9A7C4` | вторичный текст |
+| `background` | `#120A17` | near-black plum base |
+| `surface` | `#1E1226` | level-1 surfaces |
+| `surfaceElevated` | `#2A1A34` | cards and overlays |
+| `twilight` | `#4A2A5A` | twilight purple for sky gradients |
+| `accentSakura` | `#EC8FC0` | primary sakura-petal accent |
+| `accentLavender` | `#A57FD6` | secondary lavender accent |
+| `glowMagenta` | `#C94F9C` | glow, active states, flare |
+| `textPrimary` | `#F3E9F2` | soft pink-white text |
+| `textMuted` | `#B9A7C4` | secondary text |
 
-**Металлический градиент логотипа:** `#F6D9E6 → #E79ECB → #B98CD9` (розовый → роза → лаванда), с мягким внешним glow и точечным бликом-flare.
+Logo metallic gradient: `#F6D9E6 -> #E79ECB -> #B98CD9`, with a soft outer glow and a small flare.
 
-Правила: база всегда тёмная; акценты — точечно (активный пресет, индикатор «апскейл включён», фокус). Свечение — сдержанно, как в тизере, без «неона».
+Rules: the base is always dark; accents are targeted; glow stays restrained.
 
----
+## 3. Motifs
 
-## 3. Мотивы
+- **Sakura and petals:** a subtle branch in a corner and delicate falling petals for splash, empty states, or very light background particles.
+- **Eclipse ring:** a thin glowing ring behind the logo; reuse it as loader, spinner, progress motif, and the "O" in the wordmark.
+- **Fuji and reflection:** promo, splash, and onboarding only; avoid it in work screens.
+- **Lens flare:** small accent detail, used sparingly.
 
-- **Сакура и лепестки** — тонкая ветвь в углу, деликатно падающие лепестки (уместно для splash/empty-state/лёгких фоновых частиц; не мешать контенту).
-- **Кольцо-«затмение»** — тонкое светящееся кольцо за логотипом с точкой-вспышкой. Переиспользовать как **лоадер/спиннер** и акцентный элемент (форма буквы «O»).
-- **Фудзи + отражение** — для промо/сплэша/onboarding, не для рабочих экранов.
-- **Lens flare / световая вспышка** — акцентная деталь, дозировано.
+## 4. Logo
 
----
+- **SAKURO** uses a wide, elegant geometric sans shape, all caps, high contrast, and large tracking.
+- The "O" is a thin glowing ring.
+- Use the pink-lavender metallic gradient on a dark background and preserve the outer glow.
+- **BY RINWAVE** uses muted color, smaller size, and wide tracking.
+- Clearspace: at least one letter height around the wordmark. Do not place it on bright or busy backgrounds without a dark backing.
 
-## 4. Логотип
+## 5. Design-System Link
 
-- Начертание **SAKURO** — широкий, элегантный геометрический sans, высокий контраст, крупный трекинг, заглавные. Буква «O» — тонкое светящееся кольцо.
-- Металлический розово-лавандовый градиент (§2) на тёмном фоне; сохранять внешний glow.
-- Подпись **BY RINWAVE** — разрядка, приглушённый цвет, малый кегль.
-- Клиршпейс: не менее высоты буквы вокруг вордмарка; не размещать на светлом/пёстром фоне без тёмной подложки.
+- Palette maps to the theme tokens in [DESIGN.md](DESIGN.md).
+- The eclipse ring becomes loaders, progress, and micro-accents.
+- Brand/display lettering is only for wordmark and splash; UI text remains neutral.
+- Fonts must be freely licensed for F-Droid.
+- Splash/onboarding may use full art; working screens stay restrained.
 
----
+## 6. Assets
 
-## 5. Связь с дизайн-системой
-
-- Палитра §2 → токены темы в [DESIGN.md](DESIGN.md) §4 (Material 3 dark, акцент = `accentSakura`, вторичный = `accentLavender`).
-- Кольцо-«затмение» → лоадеры/прогресс, микроакценты.
-- Display/бренд-начертание — только для вордмарка/сплэша; UI-текст остаётся на нейтральном variable-шрифте (DESIGN §3). Шрифты — свободной лицензии (OFL) для F-Droid.
-- Splash/onboarding используют полный арт (сакура + Фудзи); рабочие экраны — сдержанная тёмная база, атмосфера через фон/градиенты, а не через тяжёлые иллюстрации.
-
----
-
-## 6. Ассеты (для F-Droid)
-
-- Ключевой арт и производные — в `assets/branding/`.
-- Иконка приложения — на основе кольца-«затмения» + сакура/градиент, тёмный фон.
-- Все ассеты/шрифты в `foss`-флейворе — свободных лицензий (см. DESIGN §9).
+- Store key art and derivatives in `assets/branding/`.
+- App icon is based on the eclipse ring, sakura, gradient, and dark background.
+- All assets and fonts in the `foss` flavor must use free licenses.

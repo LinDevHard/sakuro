@@ -1,136 +1,89 @@
-# План: порт Anime4K CNN в движок Media3
+# Plan: Port Anime4K CNN To The Media3 Engine
 
-Статус: **предложение** (не начато). Автор-контекст: замер sakuro-bench 2026-07-04
-показал, что media3-«аниме» (одноходовой unsharp+bilateral) почти не даёт выигрыша
-(VMAF 61–64 ≈ off), тогда как engine-mpv с настоящими Anime4K-шейдерами берёт
-VMAF 88–91 и визуально чистые линии. Этот документ — план переноса Anime4K на Media3.
+Status: **proposal / implementation plan**. Context: the 2026-07-04 `sakuro-bench` run showed that the Media3 "anime" path based on one-pass unsharp/bilateral processing barely improves quality, while real Anime4K shaders in `engine-mpv` reach much higher VMAF and cleaner line art.
 
-Связано: [ARCHITECTURE.md](../ARCHITECTURE.md) §3, `engine/engine-media3`,
-`engine/engine-mpv` (`MpvUpscaleProperties.kt`), инструмент `tools/sakuro-bench`.
+Related: [ARCHITECTURE.md](../ARCHITECTURE.md), `engine/engine-media3`, `engine/engine-mpv`, and `tools/sakuro-bench`.
 
----
+## 0. Key Discovery
 
-## 0. Ключевое открытие (меняет суть задачи)
+This is **not an ML task**. Anime4K weights are embedded directly in GLSL as `mat4(...)` literals. There is no checkpoint to train or extract. The task is an execution framework: reproduce the mpv/libplacebo multi-pass render graph on top of Media3's GL pipeline.
 
-Это **не ML-задача**. Веса Anime4K **вшиты прямо в GLSL** как `mat4(...)`-литералы —
-тренировать/извлекать чекпоинты не нужно. Задача — **исполнительный фреймворк**:
-воспроизвести многопроходный рендер-граф mpv/libplacebo поверх GL-пайплайна Media3.
+Each pass body is almost ready GLSL. It mainly needs the mpv environment: samplers such as `<tex>_texOff`, texture sizes, and intermediate textures.
 
-Тело каждого прохода — почти готовый GLSL; ему нужно лишь окружение mpv
-(сэмплеры `<tex>_texOff`, размеры, промежуточные текстуры).
+## 1. Anime4K Internals
 
-## 1. Что устроено внутри Anime4K (факты из vendored-шейдеров v4.0.1)
+`Anime4K_Upscale_CNN_x2_S` is a 5-pass graph:
 
-`Anime4K_Upscale_CNN_x2_S` = **5 связанных проходов**:
-
-```
-MAIN(RGB) ─conv3x3→4ch─▶ conv2d_tf ─conv─▶ conv2d_1_tf ─conv─▶ conv2d_2_tf
-          ─conv─▶ conv2d_last_tf ─depth-to-space ×2 + residual(MAIN)─▶ MAIN(2×)
+```text
+MAIN(RGB) -> conv3x3/4ch -> conv2d_tf -> conv2d_1_tf -> conv2d_2_tf
+          -> conv2d_last_tf -> depth-to-space x2 + MAIN residual -> MAIN(2x)
 ```
 
-Каждый проход — директивы:
-`//!HOOK MAIN` · `//!BIND <вход(ы)>` · `//!SAVE <выход>` ·
-`//!WIDTH/HEIGHT <формула>` · `//!COMPONENTS 4` · `//!WHEN <условие масштаба>`.
+Each pass uses directives such as `//!HOOK MAIN`, `//!BIND`, `//!SAVE`, `//!WIDTH`, `//!HEIGHT`, `//!COMPONENTS`, and `//!WHEN`.
 
-Детали, влияющие на порт:
-- **Активация — CReLU**: `go_0=max(x,0)`, `go_1=max(-x,0)` (удвоение каналов).
-- **Веса инлайн** в `hook()` как `mat4()`.
-- **Финал — depth-to-space** (pixel-shuffle 2×2) + резидуал бикубик/бинейр MAIN.
-- **COMPONENTS 4** промежутки: значения выходят за [0,1] и уходят в минус →
-  **обязательны float/half render-таргеты**, 8 бит не годится.
-- Multi-BIND: depth-to-space читает `MAIN` + `conv2d_last_tf` одновременно.
-- M-модель — шире/глубже (~300 строк). Restore_S/M — та же CNN без апскейла.
-  Clamp/Denoise — одно/несколько-проходные, тот же формат.
+Porting details:
 
-## 2. Архитектурное решение
+- Activation is CReLU: `max(x, 0)` and `max(-x, 0)`.
+- Weights are inline in `hook()` as `mat4()`.
+- The final pass uses depth-to-space plus a bicubic/bilinear residual from `MAIN`.
+- Intermediate `COMPONENTS 4` values can go below zero or above one, so float/half render targets are required.
+- Depth-to-space uses multi-bind input: `MAIN` plus `conv2d_last_tf`.
+- M models are wider/deeper; Restore, Clamp, and Denoise use the same user-shader format.
 
-- **Один `Anime4KGlEffect : GlEffect`**, внутри — мини-рантайм рендер-графа со
-  своими FBO. Media3 видит один эффект; вся многопроходность спрятана внутри
-  (не плодим `GlEffect` на проход, не воюем с resolution-negotiation Media3).
-- Строить **дженерик-рантайм user-shaders mpv**, а НЕ хардкодить каждый шейдер:
-  тогда все 6 (и будущие) шейдеры работают без правки — многократное плечо.
-- `Presentation`-апскейл на аниме-ветке не нужен: 2× делает сам depth-to-space.
+## 2. Architecture
 
-## 3. Компоненты (что писать)
+- Implement a single `Anime4KGlEffect : GlEffect` with an internal render-graph runtime and private FBOs.
+- Media3 sees one effect; multi-pass execution is hidden inside it, avoiding Media3 resolution-negotiation issues between many effects.
+- Build a generic mpv user-shader runtime instead of hardcoding each shader. Then current and future `.glsl` files can run without per-shader code changes.
+- The anime branch does not need a separate `Presentation` upscale because depth-to-space performs 2x scaling.
 
-1. **Парсер директив** `//!HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN`.
-   Разбивка на проходы; входы (мультибинд), выход, формула размера в обратной
-   польской (`conv2d_last_tf.w 2 *` — нужен мини-эвалюатор), компоненты, WHEN.
-2. **Менеджер текстур/FBO**: именованные промежутки (`conv2d_tf`…), ping-pong,
-   переиспользование; **`GL_RGBA16F`** (GLES 3.0 + `EXT_color_buffer_half_float`);
-   вычисление разрешения каждого прохода (вкл. ×2).
-3. **Шим-преамбула** (генерится на проход): на каждый BIND — `sampler2D <n>_tex`,
-   `<n>_texOff(vec2)`, `<n>_pt`, `<n>_size`, координата — чтобы тело `hook()`
-   компилировалось **без изменений** (~50 строк генерации).
-4. **Исполнитель прохода**: бинд входов, viewport = WIDTH×HEIGHT, фулскрин-квад в
-   SAVE-таргет, гейтинг по WHEN (коэффициент масштаба).
-5. **Построитель цепочки пресета**: переиспользовать логику
-   `MpvUpscaleProperties.buildShaderChain()` (Clamp→Denoise→Restore→Upscale, S/M по
-   порогам) — она отдаёт список файлов, рантайм исполняет по порядку, прокидывая MAIN.
+## 3. Components
 
-## 4. Интеграция в Media3
+1. Directive parser for `HOOK`, `BIND`, `SAVE`, `WIDTH`, `HEIGHT`, `COMPONENTS`, and `WHEN`.
+2. RPN evaluator for formulas such as `conv2d_last_tf.w 2 *`.
+3. Texture/FBO manager for named intermediates, ping-pong reuse, `GL_RGBA16F`, and pass-size computation.
+4. Generated preamble for every bind: `sampler2D <name>_tex`, `<name>_texOff(vec2)`, `<name>_pt`, and `<name>_size`.
+5. Pass executor: bind inputs, set viewport, draw fullscreen quad into the `SAVE` target, and gate by `WHEN`.
+6. Preset chain builder that reuses mpv chain order: Clamp -> Denoise -> Restore -> Upscale, with S/M model selection.
 
-- `Anime4KGlEffect` → внутренний `GlShaderProgram`, в `drawFrame` гоняет весь граф,
-  возвращает финальную текстуру.
-- Multi-BIND → кастомная программа с N сэмплерами; FBO/текстурами управляем сами
-  внутри эффекта (штатный `BaseGlShaderProgram` даёт один вход).
-- Подключение в `Media3PlayerEngine` рядом с текущими `SharpenGlEffect/DenoiseGlEffect`
-  (`UpscaleEffects.build`): для ANIME/CARTOON-профилей — `Anime4KGlEffect`, иначе старый путь.
+## 4. Media3 Integration
 
-## 5. Точность и устройства — риск №1
+`Anime4KGlEffect` creates an internal `GlShaderProgram` whose `drawFrame` runs the whole graph and returns the final texture. It owns multi-bind samplers and intermediate FBOs itself. `Media3PlayerEngine` should use this path for ANIME/CARTOON profiles and keep the legacy Sharpen/Denoise/Presentation path for other content.
 
-- Требование: **GLES 3.0 + color-renderable FP16**. На части бюджетных Mali/Adreno
-  может отсутствовать/тормозить.
-- Fallback: нет FP16-таргетов или слабый GPU → только **S-модель** или откат на
-  текущий media3-sharpen.
-- Гейтить через существующий `AdaptiveController` (SoC/термалка) — на слабом железе
-  не пускать M. Это та же FP16-грабля, что отмечена для offline-mpv в sakuro-bench.
+## 5. Device Risk: FP16
 
-## 6. Производительность — риск №2
+The port requires GLES 3.0 plus color-renderable FP16. Some budget Mali/Adreno devices may lack support or perform poorly. Fallback should be S models only or the existing Media3 sharpen path. Gate this through `AdaptiveController`.
 
-- Полный граф = N полноэкранных render-to-texture на кадр (S = 5 проходов, M больше).
-  На 60fps на слабом SoC может не тянуть → S/M-гейтинг обязателен.
-- Профилировать на реальном железе (эмулятор рендерит хост-GPU — нерепрезентативно).
+## 6. Performance Risk
 
-## 7. Валидация — замыкаем на sakuro-bench
+The full graph is several fullscreen render-to-texture passes per frame. S is 5 passes; M is heavier. Real-device profiling is required because emulators render on host GPU and are not representative.
 
-Приёмочный тест: один кадр прогнать offline-mpv (эталон реализации) и Media3-портом,
-скормить `capture-compare`. **Дельта между двумя реализациями должна быть много меньше
-различий между режимами** (VMAF/SSIM порт↔mpv ≫ порог). Инструмент уже есть — он и есть
-оракул корректности порта. `synth-mpv` даёт эталонные кадры offline.
+## 7. Validation
 
-## 8. Фазы и трудозатраты (грубо)
+Use `sakuro-bench` as the oracle. Compare one frame processed by offline mpv with one frame processed by the Media3 port. The implementation delta should be much smaller than the visible difference between modes. `synth-mpv` provides reference frames.
 
-| Фаза | Содержание | Оценка |
+## 8. Rough Phases
+
+| Phase | Scope | Estimate |
 |---|---|---|
-| 0 | Прототип: один conv3x3-проход на Media3 в FP16-FBO, сверка с mpv | 1–2 дня |
-| 1 | Парсер директив + менеджер FBO + шим-преамбула | 3–5 дней |
-| 2 | Полный граф `Upscale_CNN_x2_S` (5 проходов, depth-to-space, residual) | 2–3 дня |
-| 3 | Остальные шейдеры (Restore_S/M, Upscale_M, Clamp, Denoise) на том же рантайме | 2–3 дня |
-| 4 | Цепочка пресетов + `Anime4KGlEffect` в Media3PlayerEngine | 2–3 дня |
-| 5 | Детекция FP16/перфа + fallback + гейтинг AdaptiveController | 2–4 дня |
-| 6 | Валидация через sakuro-bench, калибровка, тесты | 2–3 дня |
+| 0 | One conv3x3 pass in Media3 with FP16 FBO, compared with mpv | 1-2 days |
+| 1 | Directive parser, FBO manager, generated preamble | 3-5 days |
+| 2 | Full `Upscale_CNN_x2_S` graph | 2-3 days |
+| 3 | Remaining shaders: Restore S/M, Upscale M, Clamp, Denoise | 2-3 days |
+| 4 | Preset chain and `Anime4KGlEffect` integration | 2-3 days |
+| 5 | FP16/performance detection, fallback, adaptive gating | 2-4 days |
+| 6 | Validation, calibration, tests | 2-3 days |
 
-Итого ~**2.5–4 недели** одного разработчика.
+Total: roughly **2.5-4 weeks** for one developer.
 
-## 9. Риски и критерии остановки
+## 9. Stop Criteria
 
-- **FP16 не поддержан/медленный** на целевом парке GPU → порт теряет смысл на слабом
-  железе (там и так S-гейтинг). Проверить в фазе 0 до крупных вложений.
-- **Перф многопроходности** на 60fps → если M не тянет даже на среднем SoC, оставить
-  только S.
-- **Дельта с mpv велика** (фаза 6) из-за FP16/точности → расследовать highp-пути.
+- FP16 is unsupported or too slow on target GPUs.
+- Multi-pass performance cannot sustain practical playback.
+- The Media3-vs-mpv quality delta remains large because of precision or pipeline differences.
 
-## 10. Рекомендация
+## 10. Recommendation
 
-Порт **технически прямой** (веса вшиты, тела почти готовы), но это ~месяц ради
-дублирования того, что engine-mpv уже делает лучше. Сначала взвесить дешёвую
-альтернативу:
+The port is technically straightforward because weights and shader bodies already exist, but it duplicates what `engine-mpv` already does well. First consider engine steering: when content is anime, the UI and adaptive controller can recommend `engine-mpv` and deliver the same result with no shader port.
 
-- **Стеринг движка**: при аниме-контенте (есть content-классификатор) UI/AdaptiveController
-  **рекомендует engine-mpv**. 0 строк шейдеров, тот же результат для юзера.
-- Порт оправдан, только если Anime4K нужен **именно на Media3**: сценарии, где mpv
-  недоступен (будущий iOS/DRM-путь, требование единого движка).
-
-**Предлагаемый первый шаг:** фаза 0 (прототип одного conv-прохода + сверка с mpv через
-sakuro-bench) — снимает главный риск (FP16) малой кровью до решения о полном порте.
+The Media3 port is justified only if Anime4K is required specifically on Media3. The lowest-risk first step is Phase 0: one convolution pass plus `sakuro-bench` comparison.

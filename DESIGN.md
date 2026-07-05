@@ -1,113 +1,81 @@
-# Sakuro — дизайн-система
+# Sakuro Design System
 
-> Проект: **Sakuro** (`com.rinwave.sakuro`)
-> Дата: 2026-07-02
-> Статус: направление и решения по дизайну. Реализации пока нет.
-> Связано: [ARCHITECTURE.md](ARCHITECTURE.md).
+> Project: **Sakuro** (`com.rinwave.sakuro`)
+> Date: 2026-07-02
+> Status: design direction and decisions.
+> Related: [ARCHITECTURE.md](ARCHITECTURE.md).
 
----
+## 1. Direction
 
-## 1. Направление
+Sakuro should feel like a premium media player: dark plum twilight, sakura accents, chrome-pink highlights, careful typography, generous spacing, soft shadows/blur, and smooth transitions. The reference is a modern premium player or streaming app, not a hobbyist fork.
 
-Премиальный, «дорогой» вид медиаплеера в фирменном вайбе Sakuro (тёмный сливовый twilight, сакура, хромово-розовые акценты — см. [BRAND.md](BRAND.md)): аккуратная типографика, много воздуха, мягкие тени/размытия, плавные переходы. Ориентир по ощущению — современные премиальные плееры/стриминг-приложения, а не «гиковский» DIY-форк.
+Principles:
 
-Принципы:
-- **Контент важнее хрома** — UI не спорит с видео, при воспроизведении отходит на второй план (auto-hide, затемнение).
-- **Единый язык на оба движка** — пользователь не видит разницы между libmpv и Media3, кроме пункта в настройках.
-- **Тактильность** — отклик на жесты, микроанимации, haptics на ключевых действиях.
+- **Content over chrome:** UI does not compete with video and fades back during playback.
+- **One language across engines:** users should not feel whether libmpv or Media3 is underneath, except in settings.
+- **Tactility:** gestures, micro-animations, and haptics should make actions feel responsive.
 
----
+## 2. Icons
 
-## 2. Иконки — Lucide
+- Use **Lucide** as the single icon family.
+- Compose Multiplatform uses **Compose Icons** (`br.com.devsrsouza.compose.icons:lucide`).
+- Keep one outline style, consistent stroke weight, and context-appropriate sizes such as 24 dp in bars and 20 dp inline. Do not mix with Material Icons.
 
-- Библиотека иконок: **Lucide** (единый набор во всём приложении).
-- Для Compose Multiplatform: **Compose Icons** (`br.com.devsrsouza.compose.icons:lucide`) — мультиплатформенный порт Lucide.
-- Правила: один стиль (Lucide outline), единая толщина штриха, единый размер по контексту (напр. 24dp в барах, 20dp inline). Не смешивать с Material Icons.
+## 3. Typography
 
----
+- Bundle variable or static app fonts instead of relying on system fonts.
+- Primary UI/text font: Inter, because it is neutral and highly readable.
+- Optional display accent: Geist or another free grotesk for titles and timeline numbers.
+- Use a complete type scale and tabular figures for timecodes.
+- Keep font licenses in the repository; OFL/free licensing matters for F-Droid.
 
-## 3. Типографика
+## 4. Color And Theme
 
-- **Variable-шрифты**, встроенные в приложение (не системные) для единого вида на Android/iOS.
-- Предлагаемая пара (перепроверить лицензии — нужны OFL/свободные для FOSS):
-  - **UI/текст:** Inter (variable) — нейтральный, отличная читаемость.
-  - **Акценты/дисплей (опц.):** Geist или другой гротеск для заголовков/чисел таймлайна.
-- Полноценная **type scale** (display / title / body / label), tabular figures для таймкодов.
-- Лицензии шрифтов держать в репозитории (OFL) — важно для F-Droid.
-
----
-
-## 4. Цвет и тема
-
-- База — тёмная кинематографичная (сливово-фиолетовый twilight), по бренд-вайбу — см. [BRAND.md](BRAND.md).
-- **Material 3 (Compose)** как основа токенов; поверх — фирменная палитра:
+- Base: dark cinematic plum/twilight palette from [BRAND.md](BRAND.md).
+- Material 3 is the token foundation, extended with brand colors:
   - `background #120A17`, `surface #1E1226`, `surfaceElevated #2A1A34`, `twilight #4A2A5A`
-  - акцент `accentSakura #EC8FC0`, вторичный `accentLavender #A57FD6`, свечение `glowMagenta #C94F9C`
-  - текст `#F3E9F2` / muted `#B9A7C4`
-- Акценты — точечно (активный пресет, индикатор «апскейл включён», фокус); свечение сдержанное, без «неона».
-- Полупрозрачные оверлеи для контролов поверх видео; кольцо-«затмение» из бренда → лоадеры/прогресс.
-- Контраст по WCAG для контролов поверх произвольного кадра (подложки/градиенты).
+  - `accentSakura #EC8FC0`, `accentLavender #A57FD6`, `glowMagenta #C94F9C`
+  - text `#F3E9F2`, muted text `#B9A7C4`
+- Accents are used sparingly for active preset, upscale-on state, and focus.
+- Glow is restrained and should not read as neon.
+- Video controls use translucent overlays and scrims with WCAG-minded contrast over arbitrary frames.
 
----
+## 5. Key Screens
 
-## 5. Ключевые экраны (Фаза 1, локальное медиа)
+- **Library:** grid/list of local files, thumbnails, metadata, quick search.
+- **Player:** minimal chrome, gestures, upscale indicator, track/subtitle selection.
+- **Settings:** engine, default upscale preset, content auto-detect, gestures, theme, auto-hide behavior.
+- **Preset manager:** built-in and user presets, create/edit, import/export.
+- **Upscale overlay:** quick preset and status access.
+- **Debug overlay:** unobtrusive monospace "stats for nerds".
 
-- **Библиотека** — сетка/список локальных файлов, превью-кадры, метаданные, быстрый поиск.
-- **Плеер** — минимальный хром, жесты (seek/громкость/яркость), индикатор апскейла, выбор дорожек/сабов.
-- **Настройки** — выбор движка (libmpv / Media3), пресет апскейла (Anime4K A/B/C, ArtCNN…), авто-детект контента вкл/выкл, жесты, тема, поведение авто-скрытия.
-- **Менеджер пресетов** — список встроенных/пользовательских, создание/редактирование, импорт/экспорт (FEATURES.md §2).
-- **Оверлей апскейла** — быстрый доступ к пресету и статусу (активный профиль, определённый класс контента, FPS/термал в Фазе 2).
-- **Debug-оверлей («stats for nerds»)** — моноширинный, ненавязчивый; тоггл жестом/настройкой (FEATURES.md §4).
+UI iteration happens on the Desktop target with `FakePlayerEngine`, Compose Multiplatform, and Compose Hot Reload.
 
-Фичи (авто-детект, пресеты, жесты, debug) — см. [FEATURES.md](FEATURES.md).
+## 6. Motion
 
-> Итерация по UI ведётся на **desktop-таргете** (Compose Multiplatform, Compose Hot Reload) с `FakePlayerEngine` — быстро, без эмулятора. См. [ARCHITECTURE.md](ARCHITECTURE.md) §3.2.
+- Transitions are smooth, short, and stable.
+- Controls fade out automatically during playback.
+- Paused state can add a subtle dim.
+- Switching upscale should include a small feedback animation so the feature feels real.
 
----
+## 7. Adaptivity
 
-## 6. Движение
+The app must work across phones, tablets, foldables, resizable/multi-window, split-screen, and desktop windows. Avoid fixed sizes and portrait-only assumptions.
 
-- Плавные, короткие переходы (Compose animation), без «дёрганья».
-- Auto-hide контролов с fade; при паузе — деликатное затемнение.
-- Микроанимации на переключении апскейла (подчеркнуть, что фича работает).
+- Use `WindowSizeClass` branches, not "phone/tablet" checks or hardcoded dp thresholds.
+- Use `calculateWindowSizeClass()` from Material3 Adaptive for shared Android/desktop/iOS behavior.
+- Navigation can move from bottom bar to rail to wider drawer/rail as size grows.
+- Library/player can use `ListDetailPaneScaffold` on larger screens and separate Decompose screens on compact screens.
+- Library grids use adaptive columns, not fixed counts.
+- Video surfaces fit the window and support portrait, landscape, and fullscreen.
+- Controls scale with room: spacious on tablets/expanded layouts, compact on phones, with bottom sheets when needed.
+- Respect safe areas, cutouts, rounded corners, and system bars through `WindowInsets`.
+- Foldable and resizable changes must preserve state.
+- The lower supported width should be around 320-360 dp; content scrolls, long text wraps, and critical actions remain reachable.
+- Check layouts under larger system font sizes and high density.
 
----
+## 8. Assets And Licenses
 
-## 8. Адаптивность (с первого дня)
-
-Приложение обязано корректно работать на всём спектре форм-факторов: смартфоны, планшеты, складные, resizable/multi-window, split-screen, desktop-окно любого размера. Никаких фиксированных размеров и «только portrait».
-
-### 8.1 Основа — window size classes
-- Ветвление лейаута по **WindowSizeClass** (Compact / Medium / Expanded), не по «телефон/планшет» и не по хардкоду dp.
-- Мультиплатформенный `calculateWindowSizeClass()` из `material3-adaptive` — единый механизм на Android/desktop/iOS.
-- Все размеры — в масштабируемых единицах, реакция на изменение окна в реальном времени (resizable, поворот, разложение фолда).
-
-### 8.2 Canonical adaptive layouts
-- **Навигация:** `NavigationSuiteScaffold` — bottom bar (Compact) → navigation rail (Medium) → drawer/rail расширенный (Expanded). Один код, разные представления.
-- **Библиотека → плеер:** `ListDetailPaneScaffold` — на Expanded/планшете список и детали/плеер рядом; на Compact — раздельные экраны (навигация Decompose).
-- **Сетка библиотеки:** число колонок адаптивное (`GridCells.Adaptive(minSize)`), а не фиксированное.
-
-### 8.3 Плеер и ориентация
-- Видео-поверхность подстраивается под окно; корректные landscape/portrait и полноэкранный режим.
-- Контролы масштабируются под размер: на планшете/Expanded — просторнее, на Compact — компактные, при необходимости в bottom sheet.
-- Учитывать безопасные зоны (вырезы, скругления, системные бары) — `WindowInsets`.
-
-### 8.4 Складные и resizable
-- Реакция на изменение окна без потери состояния (Decompose переживает конфиг-смену/процесс-смерть).
-- Учитывать посадку фолда (hinge) для tabletop/двухпанельных сценариев там, где доступно (Android WindowManager); минимум — не ломаться на изгибе.
-- Тестировать в multi-window / split-screen и на resizable-эмуляторе.
-
-### 8.5 Маленькие устройства
-- Нижняя граница ширины поддерживается (напр. ~320–360dp): контент скроллится, ничего не обрезается и не наезжает.
-- Динамическая типографика/спейсинг, длинные строки переносятся, критичные действия всегда достижимы.
-- Тексты и лейауты проверяются при увеличенном системном шрифте (font scale) и высокой плотности.
-
-> Быстрая проверка адаптивности — на **desktop-таргете**: тянешь окно от узкого до широкого и видишь все брейкпоинты сразу (см. ARCHITECTURE.md §3.2).
-
----
-
-## 9. Ассеты и лицензии (для F-Droid)
-
-- Все шрифты — свободные (OFL) и встроены в репозиторий.
-- Иконки Lucide — ISC (свободная), совместимо.
-- Никаких проприетарных ассетов/шрифтов в `foss`-флейворе.
+- Fonts must be free and bundled with the repository.
+- Lucide icons are ISC licensed and compatible.
+- The `foss` flavor must not include proprietary assets or fonts.

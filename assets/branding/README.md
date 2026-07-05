@@ -1,9 +1,9 @@
 # Sakuro — branding assets
 
-Положить сюда ключевой арт и производные (см. [../../BRAND.md](../../BRAND.md)):
+Put the key art and its derivatives here (see [../../BRAND.md](../../BRAND.md)):
 
-- `sakuro-teaser.png` — ключевой арт «Coming Soon» (тёмный twilight, сакура, Фудзи, хромово-розовый логотип).
-- логотип (вордмарк) — SVG/PNG на прозрачном фоне.
-- иконка приложения — на основе кольца-«затмения» + сакура/градиент.
+- `sakuro-teaser.png` — the "Coming Soon" key art (dark twilight, sakura, Fuji, chrome-pink logo).
+- the logo (wordmark) — SVG/PNG on a transparent background.
+- the app icon — based on the "eclipse" ring + sakura/gradient.
 
-Все ассеты в `foss`-флейворе — свободных лицензий.
+All assets in the `foss` flavor are freely licensed.

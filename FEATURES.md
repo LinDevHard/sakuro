@@ -1,127 +1,106 @@
-# Sakuro — ключевые фичи
+# Sakuro Key Features
 
-> Проект: **Sakuro** (`com.rinwave.sakuro`)
-> Дата: 2026-07-02
-> Статус: зафиксированные обязательные фичи. Реализации пока нет.
-> Связано: [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN.md](DESIGN.md), [RESEARCH.md](RESEARCH.md).
+> Project: **Sakuro** (`com.rinwave.sakuro`)
+> Date: 2026-07-02
+> Status: required product features.
+> Related: [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN.md](DESIGN.md), [RESEARCH.md](RESEARCH.md).
 
-Раздел описывает фичи, которые точно должны быть в продукте, и как они ложатся на архитектуру.
+This document records the features that should definitely exist in the product and how they map to the architecture.
 
----
+## 1. Content Type Detection
 
-## 1. Авто-определение типа контента
+Sakuro should detect content type automatically and choose a suitable upscale preset: **anime / cartoon / live-action / movie**.
 
-Автоматически распознавать тип контента и подбирать под него пресет апскейла: **anime / cartoon / live-action / movie**.
+### 1.1 Taxonomy
 
-### 1.1 Уточнение таксономии (открытый вопрос)
-Категории пересекаются: «movie» — это чаще live-action, а бывает и анимационный. Предлагаемая модель — **две оси**, из которых складывается итоговый класс:
+The categories overlap: a movie is often live-action, but can also be animated. The preferred model uses two axes:
 
-- **Стиль изображения** (главное для апскейла): `anime` (яп. анимация) · `cartoon` (западная 2D/3D-анимация) · `live_action` (реальная съёмка).
-- **Характер источника** (доп. сигнал для пресета): `film`/`movie` (кинематографичное, film grain, 24fps) vs обычное видео.
+- **Visual style**, which matters most for upscaling: `anime`, `cartoon`, or `live_action`.
+- **Source character**, which is an additional preset signal: `film` / `movie` with film grain and 24 fps versus regular video.
 
-Итог: детектор выдаёт **стиль** (anime/cartoon/live-action) как первичный класс + флаги (film grain, кадровая частота). «Movie» трактуется как live-action + film-профиль. → **подтвердить/скорректировать желаемые классы.**
+The detector should emit the primary style plus flags such as film grain and frame rate. "Movie" is interpreted as live-action plus a film profile unless the taxonomy is revised later.
 
-### 1.2 Как определяем
-- Основа — **лёгкий on-device классификатор** по сэмплированным кадрам (раз в N сек), сглаживание во времени (majority vote) + порог уверенности.
-- Признаки anime/cartoon хорошо отделимы (плоские заливки, лайн-арт, ограниченная палитра, характер краёв) — модель может быть маленькой.
-- Дешёвые эвристики как префильтр/фолбэк: метаданные, имя файла, жанр, разрешение/AR, film grain.
-- **Бюджет по батарее:** классификация редкая и лёгкая; при нагреве/эконом-режиме — реже или отключается.
-- Модель для `foss`-флейвора — **свободной лицензии** (важно для F-Droid); формат — переносимый (ONNX/TFLite через NNAPI/GPU delegate).
+### 1.2 Detection Approach
 
-### 1.3 Поведение
-- Результат детекции → авто-выбор пресета (см. §2), с показом «что определено» и уверенности.
-- **Ручной override всегда доступен** и приоритетнее авто; выбор можно закрепить для файла/папки.
-- Класс + уверенность выводятся в дебаг-оверлей (§4).
+- Use a lightweight on-device classifier over sampled frames with temporal smoothing and a confidence threshold.
+- Anime/cartoon features are usually separable: flat fills, line art, limited palette, and characteristic edges.
+- Cheap heuristics can be used as prefilter or fallback: metadata, file name, genre, resolution/aspect ratio, and film grain.
+- Battery budget matters: classification should be sparse and cheap, and should slow down or disable itself under thermal or power-saving pressure.
+- The `foss` flavor needs a freely licensed model and portable format such as ONNX or TFLite.
 
-### 1.4 Технически
-- Новый модуль `:core:core-detect` (KMP) — интерфейс `ContentClassifier`, реализации по платформам.
-- Работает над сэмплами кадров/превью, **не зависит от движка** (одинаково для libmpv и Media3).
-- Выход `Flow<ContentClass>` → потребляет `core-upscale` для выбора пресета.
+### 1.3 Behavior
 
----
+- Detection selects the preset and exposes the detected class and confidence.
+- Manual override is always available and has priority over automatic selection.
+- The chosen class can be pinned per file or folder.
+- Class and confidence appear in the debug overlay.
 
-## 2. Пресеты
+### 1.4 Implementation
 
-Пресет — именованный набор параметров обработки, применяемый к воспроизведению.
+- `:core:core-detect` owns the KMP `ContentClassifier` interface and platform implementations.
+- It works from frame samples/previews and does not depend on the playback engine.
+- It emits `Flow<ContentClass>` for `core-upscale`.
 
-### 2.1 Что входит в пресет
-- Цепочка апскейл-шейдеров (Anime4K режимы A/B/C, ArtCNN-варианты, Ani4K…).
-- Деноиз / деблокинг / шарпен.
-- Алгоритм и целевое разрешение масштабирования.
-- (Опц.) цвет/тонмаппинг, дизеринг.
-- Привязка к классу контента (для авто-выбора, §1).
+## 2. Presets
 
-### 2.2 Виды
-- **Встроенные** пресеты под каждый класс (anime SD, anime HD, live-action light, off…).
-- **Пользовательские** — создание/редактирование/сохранение.
-- **Импорт/экспорт** пресета (файл/строка) — удобно для FOSS-комьюнити и шаринга настроек.
+A preset is a named set of processing parameters applied during playback.
 
-### 2.3 Взаимодействие
-- Авто-детект (§1) выбирает пресет по классу; пользователь может закрепить/переопределить.
-- **Адаптивный контроллер** (ARCHITECTURE §5) может временно понизить пресет при нагреве/просадке FPS, не меняя выбор пользователя.
-- Пресет абстрактный; каждый движок применяет что умеет (libmpv → `.glsl`-цепочка; Media3 → цепочка `GlEffect`). Несовместимые для движка опции — деградируют/скрываются.
+### 2.1 Preset Contents
 
-### 2.4 Технически
-- Живёт в `:core:core-upscale`: модель `UpscaleProfile`/`Preset`, встроенные пресеты, стор пользовательских, сериализация для импорта/экспорта.
-- Применение — через `PlayerEngine.applyUpscale(profile)` (ARCHITECTURE §4).
+- Upscale shader chain: Anime4K modes, ArtCNN variants, Ani4K, and similar options.
+- Denoise, deblocking, and sharpening.
+- Scaling algorithm and target resolution.
+- Optional color, tonemapping, and dithering settings.
+- Content-class binding for automatic selection.
 
----
+### 2.2 Preset Types
 
-## 3. Жесты управления
+- Built-in presets for each content class: anime SD, anime HD, live-action light, off, and similar.
+- User presets with create, edit, and save workflows.
+- Import/export as a file or text string for FOSS community sharing.
 
-Полный набор жестов плеера, конфигурируемый и адаптивный.
+### 2.3 Interaction
 
-### 3.1 Базовый набор
-- **Одиночный тап** — показать/скрыть контролы.
-- **Двойной тап** слева/справа — перемотка ∓10с; по центру — play/pause.
-- **Вертикальный свайп**: левая половина — яркость, правая — громкость.
-- **Горизонтальный свайп** — перемотка с превью позиции.
-- **Долгий тап/удержание** — ускорение (напр. 2×) на время удержания.
-- **Пинч (zoom)** — режимы кадра fit / fill / zoom (crop).
-- (Опц.) свайп вниз — PiP/сворачивание.
+- Auto-detection selects a preset by class; users can override or pin the choice.
+- `AdaptiveController` may temporarily reduce the active preset under heat or FPS drops without changing the user's saved choice.
+- Presets are abstract. Each engine applies what it supports: libmpv loads `.glsl` chains, Media3 builds `GlEffect` chains, and unsupported options degrade or hide.
 
-### 3.2 Требования
-- **Настраиваемость** — включение/чувствительность жестов в настройках.
-- **Адаптивность/безопасность** — учитывать размер устройства, `WindowInsets`, не конфликтовать с системными edge-жестами (DESIGN §8).
-- Тактильный отклик (haptics) на ключевых действиях.
+### 2.4 Implementation
 
-### 3.3 Технически
-- Реализация в UI-слое `composeApp` (Compose `pointerInput`: `detectTapGestures`, `detectDragGestures`, `transformable` для пинча) — общая для всех движков и таргетов.
-- На desktop разумные эквиваленты (колесо/драг) — второстепенно, основное на touch.
+- `:core:core-upscale` owns `UpscaleProfile`, presets, built-ins, user store, and import/export serialization.
+- Engines apply presets through `PlayerEngine.applyUpscale(profile)`.
 
----
+## 3. Player Gestures
 
-## 4. Debug-оверлей («stats for nerds»)
+The player needs a configurable and adaptive gesture set.
 
-Оверлей с техданными для продвинутых пользователей и отладки апскейла.
+- Single tap toggles controls.
+- Double tap left/right seeks by 10 seconds; double tap center toggles play/pause.
+- Vertical swipe controls brightness on the left and volume on the right.
+- Horizontal swipe seeks with position preview.
+- Long press temporarily speeds playback, for example to 2x.
+- Pinch changes fit / fill / zoom crop modes.
+- Optional downward swipe can enter PiP or minimize.
 
-### 4.1 Что показываем
-- **Движок**: mpv / Media3; декодер hw/sw, кодек, контейнер.
-- **Видео**: разрешение источник → выход (после апскейла), display FPS / video FPS, dropped/decoded кадры, битрейт, pixel format, цветовое пространство/HDR.
-- **Аудио**: кодек, каналы, sample rate, A/V sync.
-- **Апскейл**: активный пресет + список проходов шейдеров, (если доступно) GPU-время на кадр.
-- **Детекция**: определённый класс контента + уверенность (§1).
-- **Система**: тепловой статус, батарея/эконом-режим, память; CPU/GPU load если доступно.
-- **Воспроизведение**: скорость, буфер/кэш, таймстемпы.
+Requirements: configurable sensitivity, safe interaction with system edge gestures and `WindowInsets`, good behavior across device sizes, and haptics for key actions.
 
-### 4.2 Поведение
-- Тоггл через жест/настройку; моноширинный, ненавязчивый оверлей.
-- Полезен для отладки производительности апскейла (связка с адаптивным контроллером, ARCHITECTURE §5).
+Implementation belongs in `composeApp` through Compose gesture APIs so it is shared across engines and targets. Desktop equivalents such as mouse wheel and drag are secondary.
 
-### 4.3 Технически
-- В `:core:core-player` интерфейс расширяется: `PlayerEngine.debugStats: Flow<DebugStats>`.
-- Каждый движок наполняет `DebugStats` из своего API: **mpv** — свойства (аналог встроенного `stats`), **Media3** — `AnalyticsListener`/счётчики декодера.
-- Часть данных (класс контента, термал) добавляет `:shared` поверх движка.
+## 4. Debug Overlay
 
----
+The "stats for nerds" overlay serves advanced users and upscale debugging.
 
-## 5. Влияние на модули (сводка)
+It should show engine, decoder, codec, container, source-to-output resolution, display/video FPS, dropped and decoded frames, bitrate, pixel format, color space/HDR, audio details, active upscale preset and shader passes, optional GPU time, detected content class, confidence, thermal status, battery/power-saving mode, memory, CPU/GPU load when available, speed, buffering/cache, and timestamps.
 
-| Фича | Где живёт |
+The overlay is toggled through settings or gesture, uses a monospace style, and stays unobtrusive.
+
+Implementation: `PlayerEngine.debugStats: Flow<DebugStats>` in `:core:core-player`; mpv fills it from properties, Media3 fills it from `AnalyticsListener` and decoder counters, and shared modules add content and thermal data.
+
+## 5. Module Impact
+
+| Feature | Location |
 |---|---|
-| Авто-детект контента | новый `:core:core-detect` (`ContentClassifier` → `Flow<ContentClass>`) |
-| Пресеты | `:core:core-upscale` (`Preset`/`UpscaleProfile`, стор, импорт/экспорт) |
-| Жесты | UI в `composeApp` (Compose gesture handling) |
-| Debug-оверлей | `PlayerEngine.debugStats: Flow<DebugStats>` (`core-player`) + UI-оверлей |
-
-> Открытый вопрос для §1: подтвердить итоговый список классов (пересечение movie/live-action).
+| Content auto-detect | `:core:core-detect` with `ContentClassifier -> Flow<ContentClass>` |
+| Presets | `:core:core-upscale` with `Preset`, `UpscaleProfile`, store, import/export |
+| Gestures | `composeApp` gesture handling |
+| Debug overlay | `PlayerEngine.debugStats: Flow<DebugStats>` plus UI overlay |
