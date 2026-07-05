@@ -96,6 +96,15 @@ undeclared → шейдер не собрался → весь Anime4K свал�
 `<name>_tex/_texOff/_pos/_pt/_size` из тел всех 6 реальных шейдеров объявлен в
 шиме (ловит такие дыры впредь). 25 тестов.
 
+### Фикс №2 с устройства: NPE на неактивных uniform (коммит 1a022f8)
+
+После починки компиляции граф падал `NPE в GlProgram.setFloatsUniform`:
+GLSL-компилятор выкидывает неиспользуемые uniform'ы (`_size` нужен только
+depth-to-space; `_pt` — только где вызывается `_texOff`), а media3 `GlProgram`
+кидает `checkNotNull` на неактивном uniform. Обходим GlProgram-сеттеры для
+per-bind uniform'ов: id программы из `GL_CURRENT_PROGRAM`, `_size/_pt/сэмплер`
+ставим напрямую через `glGetUniformLocation` (location -1 → пропускаем).
+
 ### Про фазу 5 (гейтинг M-моделей) — уже частично закрыта
 
 `AdaptiveController.degradedTo` при термалке/просадке FPS убирает Sharpen и
