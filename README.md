@@ -7,6 +7,8 @@
 [![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
 [![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)
 
+![Sakuro neon logo banner](assets/branding/sakuro-readme-banner.png)
+
 Sakuro is a Kotlin Multiplatform video player focused on local playback and real-time upscaling.
 
 The Android app is the main product target. The Desktop/JVM target is kept as a fast UI and architecture sandbox, using a fake player engine where native Android playback is unavailable.
