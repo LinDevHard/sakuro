@@ -7,7 +7,7 @@ import androidx.media3.effect.GlShaderProgram
 
 /**
  * A single Anime4K [GlEffect] for Media3: hides the whole multi-pass render graph
- * of the mpv user-shaders behind one effect (docs/anime4k-media3-port-plan.md §2, §4).
+ * of the mpv user-shaders behind one effect.
  *
  * [passes] — the already-parsed passes of the whole preset chain
  * (Clamp→Denoise→Restore→Upscale), concatenated in order from several `.glsl` files.

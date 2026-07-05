@@ -11,8 +11,8 @@ package com.rinwave.sakuro.engine.media3.anime4k
  * ignored — Anime4K v4.0.1 does not use them. The leading license
  * comment and any lines before the first `//!HOOK` are discarded.
  *
- * Design from docs/anime4k-media3-port-plan.md §3.1: pass bodies are almost ready-to-use
- * GLSL, the parser only has to lay out the directives and boundaries.
+ * Pass bodies are almost ready-to-use GLSL; the parser only has to lay out
+ * directives and boundaries.
  */
 internal object MpvUserShaderParser {
 

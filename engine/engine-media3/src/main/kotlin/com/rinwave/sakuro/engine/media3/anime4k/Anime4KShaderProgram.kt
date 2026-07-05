@@ -11,10 +11,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BaseGlShaderProgram
 
 /**
- * A mini render-graph runtime for mpv user-shaders on top of a single [BaseGlShaderProgram]
- * (docs/anime4k-media3-port-plan.md §2, §4). Media3 sees one effect; the whole
- * multi-pass nature of Anime4K (conv chains, depth-to-space, residual) runs
- * inside `drawFrame` over its own FP16 FBOs.
+ * A mini render-graph runtime for mpv user-shaders on top of a single
+ * [BaseGlShaderProgram]. Media3 sees one effect; the whole multi-pass nature
+ * of Anime4K (conv chains, depth-to-space, residual) runs inside `drawFrame`
+ * over its own FP16 FBOs.
  *
  * Passes arrive already concatenated from several `.glsl` files of the preset
  * (Clamp→Denoise→Restore→Upscale). The resolution of each intermediate texture is

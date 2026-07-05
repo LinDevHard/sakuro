@@ -3,7 +3,7 @@
 > Project: **Sakuro** (`com.rinwave.sakuro`)
 > Date: 2026-07-02
 > Status: recorded stack decisions.
-> Related: [RESEARCH.md](RESEARCH.md), [DESIGN.md](DESIGN.md).
+> Related: [DESIGN.md](DESIGN.md), [FEATURES.md](FEATURES.md), [BRAND.md](BRAND.md).
 
 ---
 

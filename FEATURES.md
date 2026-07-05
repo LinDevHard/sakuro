@@ -3,7 +3,7 @@
 > Project: **Sakuro** (`com.rinwave.sakuro`)
 > Date: 2026-07-02
 > Status: required product features.
-> Related: [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN.md](DESIGN.md), [RESEARCH.md](RESEARCH.md).
+> Related: [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN.md](DESIGN.md), [BRAND.md](BRAND.md).
 
 This document records the features that should definitely exist in the product and how they map to the architecture.
 

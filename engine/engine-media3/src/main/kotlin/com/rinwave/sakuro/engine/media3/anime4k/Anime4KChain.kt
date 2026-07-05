@@ -10,9 +10,8 @@ import java.io.IOException
 /**
  * Selects and loads the Anime4K `.glsl` chain for an [UpscaleProfile] on the Media3 engine.
  *
- * The order and S/M model selection mirror the mpv engine
- * (`MpvUpscaleProperties.buildAnime4kChain`, docs/anime4k-media3-port-plan.md §3.5):
- * the canonical order Clamp→Denoise→Restore→Upscale, with CNN size by pass strength.
+ * The order and S/M model selection mirror the mpv engine:
+ * Clamp→Denoise→Restore→Upscale, with CNN size selected by pass strength.
  * Assets come from `assets/anime4k/` (vendored by the engine-mpv module; in a built
  * app the modules' assets are merged into a single [android.content.res.AssetManager]).
  */

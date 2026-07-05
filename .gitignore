@@ -1,14 +1,63 @@
+# OS / editors
+.DS_Store
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Gradle / Kotlin
 .gradle/
+.kotlin/
 build/
 */build/
 **/build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android / native build outputs
 local.properties
-.idea/
-.DS_Store
 captures/
 .externalNativeBuild/
 .cxx/
 *.apk
+*.apks
 *.aab
-!gradle/wrapper/gradle-wrapper.jar
-.kotlin/
+*.aar
+*.hprof
+
+# Signing and local secrets
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.env
+*.env.*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Private planning / local work notes
+WORKLOG.md
+RESEARCH.md
+docs/anime4k-media3-port-plan.md
+
+# Python tooling
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local benchmark captures / generated reports
+tools/sakuro-bench/report/
+tools/sakuro-bench/caps/
+index.html
+index+mpv.html

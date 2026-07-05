@@ -17,9 +17,9 @@ internal data class GraphPlan(
 )
 
 /**
- * Statically runs the pass graph (docs/anime4k-media3-port-plan.md §3.2):
- * from the input frame size it computes the size of every intermediate texture from
- * the `//!WIDTH/HEIGHT` RPN formulas, cuts passes with a false `//!WHEN`, and returns
+ * Statically runs the Anime4K pass graph: from the input frame size it computes
+ * the size of every intermediate texture from the `//!WIDTH/HEIGHT` RPN formulas,
+ * cuts passes with a false `//!WHEN`, and returns
  * the final size of the `MAIN` stage (for anime upscaling — usually ×2).
  *
  * Size resolution runs over "stages" (`MAIN`, `PREKERNEL`, `HOOKED`) and

@@ -19,8 +19,8 @@ import kotlin.math.roundToInt
 
 /**
  * Builds a `GlEffect` chain from the abstract [UpscaleProfile] (ARCHITECTURE.md §4):
- * - anime/cartoon → a single [Anime4KGlEffect] with a real multi-pass Anime4K CNN
- *   (docs/anime4k-media3-port-plan.md); depth-to-space already gives ×2, a separate
+ * - anime/cartoon → a single [Anime4KGlEffect] with a real multi-pass Anime4K CNN;
+ *   depth-to-space already gives ×2, so a separate
  *   [Presentation] is not needed;
  * - Upscale → [Presentation] with the target height (a real change of output resolution);
  * - Sharpen → a GLSL ES port of an Anime4K-style "clamp highlights + sharpen" pass;
@@ -80,8 +80,8 @@ class DenoiseGlEffect(private val strength: Float) : GlEffect {
 
 /**
  * Shared scaffolding for a single-texture GLSL ES 1.00 fragment pass
- * (the mpv user-shader format is not ported here — the passes' math
- * is rewritten for a plain fragment shader, see RESEARCH.md §5).
+ * (the mpv user-shader format is not ported here; the passes' math
+ * is rewritten for a plain fragment shader).
  */
 @UnstableApi
 private class SingleTexturePassShaderProgram(

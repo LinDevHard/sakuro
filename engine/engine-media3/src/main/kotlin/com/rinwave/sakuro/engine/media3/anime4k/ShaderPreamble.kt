@@ -2,7 +2,7 @@ package com.rinwave.sakuro.engine.media3.anime4k
 
 /**
  * Generates the GLSL ES 3.00 around an mpv user-shader pass's `hook()` body so that
- * it compiles **unchanged** (docs/anime4k-media3-port-plan.md §3.3).
+ * it compiles unchanged.
  *
  * For each `//!BIND <n>` the mpv body expects a set of symbols:
  * `<n>_tex(vec2)`, `<n>_texOff(vec2)`, `<n>_pos`, `<n>_pt`, `<n>_size`.
