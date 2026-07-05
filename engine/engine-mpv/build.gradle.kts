@@ -9,7 +9,7 @@ android {
 dependencies {
     api(project(":core:core-player"))
     implementation(libs.kotlinx.coroutines.android)
-    // Разбор свойства mpv `track-list` (JSON) без @Serializable-классов.
+    // Parsing the mpv `track-list` property (JSON) without @Serializable classes.
     implementation(libs.kotlinx.serialization.json)
     api(libs.jdtech.libmpv)
 

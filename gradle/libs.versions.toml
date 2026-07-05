@@ -11,13 +11,13 @@ multiplatformSettings = "1.3.0"
 androidxActivity = "1.10.1"
 androidxCore = "1.16.0"
 lucide = "1.1.0"
-# 3.4.0+ собраны Kotlin 2.3/2.4 (stdlib strictly) — метаданные не читаются нашим Kotlin 2.1.21
+# 3.4.0+ are built with Kotlin 2.3/2.4 (stdlib strictly) — the metadata is not readable by our Kotlin 2.1.21
 coil = "3.3.0"
 detekt = "1.23.8"
-# prebuilt libmpv + MPVLib JNI-обёртка (форк libmpv-android от Findroid, Maven Central)
+# prebuilt libmpv + the MPVLib JNI wrapper (Findroid's libmpv-android fork, Maven Central)
 libmpv = "1.0.0"
 
-# 36 — требование libmpv 1.0.0 (minCompileSdk в AAR-метаданных); targetSdk не трогаем
+# 36 — required by libmpv 1.0.0 (minCompileSdk in the AAR metadata); we leave targetSdk alone
 android-compileSdk = "36"
 android-minSdk = "26"
 android-targetSdk = "35"
@@ -55,7 +55,7 @@ detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", 
 
 jdtech-libmpv = { module = "dev.jdtech.mpv:libmpv", version.ref = "libmpv" }
 
-# классы плагинов для build-logic (compileOnly в convention plugins)
+# plugin classes for build-logic (compileOnly in the convention plugins)
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }

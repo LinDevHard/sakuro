@@ -51,8 +51,8 @@ kotlin {
             implementation(project(":engine:engine-media3"))
             implementation(project(":engine:engine-mpv"))
             implementation(libs.media3.ui)
-            // Превью-кадры в библиотеке (ARCHITECTURE.md: Coil 3).
-            // Только androidMain: у desktop нет видео-декодера, там остаётся плейсхолдер.
+            // Preview thumbnails in the library (ARCHITECTURE.md: Coil 3).
+            // androidMain only: desktop has no video decoder, so a placeholder is used there.
             implementation(libs.coil.compose)
             implementation(libs.coil.video)
         }
@@ -80,8 +80,8 @@ android {
         versionName = "0.1.0"
     }
 
-    // Два флейвора (ARCHITECTURE.md §6): foss — F-Droid, full — Play Store.
-    // Проприетарных SDK нет ни в одном; различия появятся с opt-in краш-репортингом.
+    // Two flavors (ARCHITECTURE.md §6): foss — F-Droid, full — Play Store.
+    // Neither has proprietary SDKs; differences will appear with opt-in crash reporting.
     flavorDimensions += "distribution"
     productFlavors {
         create("foss") {

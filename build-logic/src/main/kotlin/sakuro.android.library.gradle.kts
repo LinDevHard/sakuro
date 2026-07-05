@@ -2,8 +2,8 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Android-only библиотека Sakuro (движки, привязанные к платформе): JVM 17, детект.
-// Модулю остаётся объявить namespace в android {} и свои зависимости.
+// Android-only Sakuro library (platform-bound engines): JVM 17, detekt.
+// The module only has to declare its namespace in android {} and its dependencies.
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")

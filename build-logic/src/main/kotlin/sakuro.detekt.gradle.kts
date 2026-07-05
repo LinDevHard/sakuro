@@ -1,8 +1,8 @@
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
-// detekt + ktlint-правила (detekt-formatting) для всех модулей.
-// Без type resolution: анализируются все исходники под src/ (все KMP source set'ы).
+// detekt + ktlint rules (detekt-formatting) for all modules.
+// No type resolution: all sources under src/ are analyzed (all KMP source sets).
 plugins {
     id("io.gitlab.arturbosch.detekt")
 }
@@ -12,7 +12,7 @@ private val libs = the<VersionCatalogsExtension>().named("libs")
 configure<DetektExtension> {
     buildUponDefaultConfig = true
     parallel = true
-    autoCorrect = true // ktlint-правила (formatting) правят файлы сами
+    autoCorrect = true // ktlint (formatting) rules fix files themselves
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
     source.setFrom(files("src"))
 }

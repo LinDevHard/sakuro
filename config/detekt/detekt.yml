@@ -1,16 +1,16 @@
-# Sakuro detekt config — поверх дефолтов (buildUponDefaultConfig = true).
-# Здесь только отклонения от дефолта: послабления под Compose и вкусовые правила,
-# которые в этом проекте не считаем ошибками.
+# Sakuro detekt config — on top of the defaults (buildUponDefaultConfig = true).
+# Only deviations from the default: relaxations for Compose and taste-based rules
+# that we do not treat as errors in this project.
 
 build:
   maxIssues: 0
 
 complexity:
   LongMethod:
-    ignoreAnnotated: ['Composable'] # экраны — это один большой composable, дробить искусственно
+    ignoreAnnotated: ['Composable'] # a screen is one big composable, splitting it is artificial
   LongParameterList:
-    ignoreAnnotated: ['Composable'] # у composable параметры вместо DI — норма
-    constructorThreshold: 9 # DI-компоненты (Decompose) получают зависимости конструктором
+    ignoreAnnotated: ['Composable'] # composables take parameters instead of DI — that is normal
+    constructorThreshold: 9 # DI components (Decompose) receive dependencies via the constructor
   CyclomaticComplexMethod:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
@@ -18,9 +18,9 @@ complexity:
 
 naming:
   FunctionNaming:
-    ignoreAnnotated: ['Composable'] # composable-функции в PascalCase
-    # дефолтные excludes + desktopTest: наш jvm-таргет зовётся desktop,
-    # и backtick-имена тестов в нём тоже легальны
+    ignoreAnnotated: ['Composable'] # composable functions are PascalCase
+    # default excludes + desktopTest: our jvm target is named desktop,
+    # and backtick test names are legal there too
     excludes:
       [
         '**/test/**',
@@ -34,11 +34,11 @@ naming:
         '**/iosTest/**',
       ]
   MatchingDeclarationName:
-    active: false # файл называем по смыслу (главной composable/функции), а не по единственному классу
+    active: false # we name a file by meaning (its main composable/function), not by a single class
 
 style:
   MagicNumber:
-    active: false # пороги/коэффициенты в детекции и жестах читаются лучше на месте
+    active: false # thresholds/coefficients in detection and gestures read better inline
   ReturnCount:
     active: false
   UnusedPrivateMember:
@@ -47,9 +47,9 @@ style:
 formatting:
   android: true
   Filename:
-    active: false # файлы с несколькими объявлениями называем по смыслу
+    active: false # files with several declarations are named by meaning
   FunctionName:
-    active: false # дублирует naming.FunctionNaming, но без ignoreAnnotated
+    active: false # duplicates naming.FunctionNaming, but without ignoreAnnotated
   ArgumentListWrapping:
     active: false
   ParameterListWrapping:
