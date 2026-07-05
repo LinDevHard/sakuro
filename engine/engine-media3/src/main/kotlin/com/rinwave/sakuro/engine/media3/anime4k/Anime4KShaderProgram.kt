@@ -1,5 +1,6 @@
 package com.rinwave.sakuro.engine.media3.anime4k
 
+import android.opengl.GLES20
 import android.opengl.GLES30
 import android.util.Log
 import androidx.media3.common.VideoFrameProcessingException
@@ -106,14 +107,17 @@ internal class Anime4KShaderProgram(
             val target = targets[i]
             GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
             program.use()
+            // Id текущей программы — чтобы ставить uniform'ы напрямую с проверкой
+            // активности: GLSL-компилятор выкидывает неиспользуемые (напр. _size
+            // нужен только depth-to-space), а GlProgram.set*Uniform падает на них NPE.
+            val programId = IntArray(1)
+            GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
             planned.pass.binds.distinct().forEachIndexed { unit, bind ->
                 val ref = current[Anime4KGraphPlanner.canonicalStage(bind, planned.pass.hook)]
                     ?: error("Anime4K: '${planned.pass.desc}' биндит несуществующую '$bind'")
-                program.setSamplerTexIdUniform(ShaderPreamble.samplerUniform(bind), ref.texId, unit)
-                val size = floatArrayOf(ref.width.toFloat(), ref.height.toFloat())
-                val point = floatArrayOf(1f / ref.width, 1f / ref.height)
-                program.setFloatsUniform(ShaderPreamble.sizeUniform(bind), size)
-                program.setFloatsUniform(ShaderPreamble.pointUniform(bind), point)
+                bindSampler(programId[0], ShaderPreamble.samplerUniform(bind), ref.texId, unit)
+                setVec2(programId[0], ShaderPreamble.sizeUniform(bind), ref.width.toFloat(), ref.height.toFloat())
+                setVec2(programId[0], ShaderPreamble.pointUniform(bind), 1f / ref.width, 1f / ref.height)
             }
             program.bindAttributesAndUniforms()
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
@@ -161,6 +165,21 @@ internal class Anime4KShaderProgram(
             GLES30.glDeleteTextures(1, intArrayOf(target.texId), 0)
         }
         targets = emptyList()
+    }
+
+    /** Ставит vec2-uniform, только если он активен (иначе location = -1, без NPE). */
+    private fun setVec2(programId: Int, name: String, x: Float, y: Float) {
+        val location = GLES20.glGetUniformLocation(programId, name)
+        if (location >= 0) GLES20.glUniform2f(location, x, y)
+    }
+
+    /** Биндит текстуру в сэмплер, только если сэмплер активен в программе. */
+    private fun bindSampler(programId: Int, name: String, texId: Int, unit: Int) {
+        val location = GLES20.glGetUniformLocation(programId, name)
+        if (location < 0) return
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + unit)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texId)
+        GLES20.glUniform1i(location, unit)
     }
 
     private fun createFp16Target(width: Int, height: Int): Target {
