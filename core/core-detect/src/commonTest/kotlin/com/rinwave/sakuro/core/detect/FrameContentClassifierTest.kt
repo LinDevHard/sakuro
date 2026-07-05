@@ -12,7 +12,7 @@ class FrameContentClassifierTest {
     private val classifier = FrameContentClassifier(EmptySampler)
 
     @Test
-    fun `плоские заливки с контурами - аниме`() {
+    fun `flat fills with contours - anime`() {
         val frames = List(3) { stripedFrame(mutedPalette) }
         val detection = classifier.classifyFrames(frames)
 
@@ -22,7 +22,7 @@ class FrameContentClassifierTest {
     }
 
     @Test
-    fun `сверхнасыщенные заливки из пары цветов - мультфильм`() {
+    fun `oversaturated fills from a couple of colors - cartoon`() {
         val frames = List(3) { stripedFrame(vividPalette) }
         val detection = classifier.classifyFrames(frames)
 
@@ -30,7 +30,7 @@ class FrameContentClassifierTest {
     }
 
     @Test
-    fun `шумная фактура с богатой палитрой - съёмка`() {
+    fun `noisy texture with a rich palette - live footage`() {
         val frames = List(3) { index -> noisyFrame(seed = index) }
         val detection = classifier.classifyFrames(frames)
 
@@ -39,7 +39,7 @@ class FrameContentClassifierTest {
     }
 
     @Test
-    fun `пустой сэмплер - поток без результатов`() = runTest {
+    fun `empty sampler - stream with no results`() = runTest {
         val results = classifier
             .classify(ClassificationRequest(uri = "file:///video.mp4", title = "video"))
             .toList()
@@ -48,7 +48,7 @@ class FrameContentClassifierTest {
     }
 
     @Test
-    fun `ошибка сэмплера не роняет поток`() = runTest {
+    fun `sampler error does not break the stream`() = runTest {
         val failing = FrameContentClassifier(
             object : FrameSampler {
                 override suspend fun sample(uri: String, maxFrames: Int): List<FrameSample> =
@@ -63,13 +63,13 @@ class FrameContentClassifierTest {
         assertTrue(results.isEmpty())
     }
 
-    // --- Синтетические кадры -------------------------------------------------
+    // --- Synthetic frames ----------------------------------------------------
 
     private object EmptySampler : FrameSampler {
         override suspend fun sample(uri: String, maxFrames: Int): List<FrameSample> = emptyList()
     }
 
-    /** Приглушённые цвета: рисованный кадр, но не «кислотный» мультфильм. */
+    /** Muted colors: a drawn frame, but not an "acid" cartoon. */
     private val mutedPalette = intArrayOf(
         rgb(120, 120, 140),
         rgb(200, 190, 180),
@@ -77,7 +77,7 @@ class FrameContentClassifierTest {
         rgb(150, 140, 120),
     )
 
-    /** Чистые насыщенные цвета западной анимации. */
+    /** Clean saturated colors of Western animation. */
     private val vividPalette = intArrayOf(
         rgb(255, 0, 0),
         rgb(0, 200, 0),
@@ -85,7 +85,7 @@ class FrameContentClassifierTest {
         rgb(255, 220, 0),
     )
 
-    /** Вертикальные полосы сплошного цвета: заливки + жёсткие контуры. */
+    /** Vertical solid-color stripes: fills + hard contours. */
     private fun stripedFrame(palette: IntArray, size: Int = 96): FrameSample {
         val argb = IntArray(size * size)
         val stripe = size / palette.size
@@ -97,7 +97,7 @@ class FrameContentClassifierTest {
         return FrameSample(size, size, argb)
     }
 
-    /** Псевдослучайная фактура: широкая палитра, переходы на каждом пикселе. */
+    /** Pseudo-random texture: wide palette, a transition at every pixel. */
     private fun noisyFrame(seed: Int, size: Int = 96): FrameSample {
         val argb = IntArray(size * size)
         for (y in 0 until size) {

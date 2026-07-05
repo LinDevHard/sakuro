@@ -5,15 +5,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * Второй слой детекции (FEATURES.md §1): статистика по сэмплам кадров.
- * Рисованный контент отличают от съёмки три признака, устойчивые к даунскейлу:
- * плоские заливки (соседние пиксели совпадают), бедная квантованная палитра
- * и «пустая середина» гистограммы градиентов — у аниме есть заливки и жёсткие
- * контуры, но почти нет полутоновых переходов, которыми полна живая съёмка
- * (текстуры, шум сенсора, плёночное зерно).
+ * The second detection layer (FEATURES.md §1): statistics over frame samples.
+ * Three downscale-robust features tell drawn content from live footage:
+ * flat fills (neighboring pixels match), a poor quantized palette,
+ * and an "empty middle" of the gradient histogram — anime has fills and hard
+ * contours but almost no midtone transitions, which live footage is full of
+ * (textures, sensor noise, film grain).
  *
- * Пороги подобраны по синтетике и первым прогонам — это эвристика v1,
- * калибровка на реальной библиотеке ещё предстоит.
+ * Thresholds are tuned on synthetics and first runs — this is a v1 heuristic;
+ * calibration on a real library is still to come.
  */
 class FrameContentClassifier(
     private val sampler: FrameSampler,
@@ -35,7 +35,7 @@ class FrameContentClassifier(
         val midGradient = features.map { it.midGradientRatio }.average().toFloat()
         val saturation = features.map { it.saturation }.average().toFloat()
 
-        // Каждый признак → вклад 0..1, взвешенная сумма = «рисованность».
+        // Each feature → a 0..1 contribution, the weighted sum = "drawn-ness".
         val flatScore = ramp(flat, lo = 0.35f, hi = 0.75f)
         val paletteScore = 1f - ramp(diversity, lo = 0.02f, hi = 0.12f)
         val gradientScore = 1f - ramp(midGradient, lo = 0.08f, hi = 0.30f)
@@ -43,8 +43,8 @@ class FrameContentClassifier(
 
         return when {
             drawnScore >= DRAWN_THRESHOLD -> {
-                // Западная анимация обычно ещё проще и насыщеннее аниме;
-                // граница условная, при сомнении выбираем ANIME (основной кейс).
+                // Western animation is usually even simpler and more saturated than anime;
+                // the boundary is fuzzy; when in doubt we pick ANIME (the main case).
                 val cartoon = saturation > 0.55f && diversity < 0.02f
                 ContentDetection(
                     contentClass = if (cartoon) ContentClass.CARTOON else ContentClass.ANIME,
@@ -59,17 +59,17 @@ class FrameContentClassifier(
                 source = SOURCE,
             )
 
-            // Середина шкалы: сигналы противоречат друг другу, результат не эмитим —
-            // остаётся действовать слой имени файла.
+            // Middle of the scale: signals contradict each other, we do not emit —
+            // the file-name layer is left to act.
             else -> ContentDetection.UNKNOWN
         }
     }
 
-    /** Линейный подъём 0→1 на отрезке [lo, hi]. */
+    /** Linear ramp 0→1 over the interval [lo, hi]. */
     private fun ramp(value: Float, lo: Float, hi: Float): Float =
         ((value - lo) / (hi - lo)).coerceIn(0f, 1f)
 
-    /** Уверенность 0.6..0.85: чем дальше от порога, тем увереннее. */
+    /** Confidence 0.6..0.85: the farther from the threshold, the more confident. */
     private fun confidence(score: Float, from: Float): Float =
         0.6f + 0.25f * ramp(score, lo = from, hi = 1f)
 
@@ -81,15 +81,15 @@ class FrameContentClassifier(
     }
 }
 
-/** Статистика одного кадра; извлечение — один проход по строкам. */
+/** Per-frame statistics; extraction is a single pass over the rows. */
 internal class FrameFeatures(
-    /** Доля горизонтальных пар соседей с почти совпадающим цветом. */
+    /** Fraction of horizontal neighbor pairs with near-identical color. */
     val flatRatio: Float,
-    /** Доля пар с полутоновым переходом (не заливка и не жёсткий контур). */
+    /** Fraction of pairs with a midtone transition (neither a fill nor a hard edge). */
     val midGradientRatio: Float,
-    /** Число различных цветов после квантования до 4 бит/канал, на пиксель. */
+    /** Number of distinct colors after quantization to 4 bits/channel, per pixel. */
     val colorDiversity: Float,
-    /** Средняя насыщенность (max-min по каналам, нормированная). */
+    /** Mean saturation (max-min across channels, normalized). */
     val saturation: Float,
 ) {
     companion object {

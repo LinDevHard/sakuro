@@ -5,10 +5,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 /**
- * Быстрая эвристика по имени файла/релиза — первый, мгновенный слой детекции.
- * Опирается на конвенции релизов: тег фансаб-группы в квадратных скобках,
- * ключевые слова, паттерн «[Группа] Тайтл - 07». Анализ кадров (второй слой)
- * при появлении заместит этот результат более уверенным.
+ * Fast heuristic over the file/release name — the first, instant detection layer.
+ * Relies on release conventions: a fansub group tag in square brackets,
+ * keywords, the "[Group] Title - 07" pattern. Frame analysis (the second layer)
+ * will replace this result with a more confident one when available.
  */
 class FilenameContentClassifier : ContentClassifier {
 
@@ -27,7 +27,7 @@ class FilenameContentClassifier : ContentClassifier {
         if (cartoonKeywords.any { normalized.contains(it) }) {
             return ContentDetection(ContentClass.CARTOON, confidence = 0.6f, source = SOURCE)
         }
-        // «[Группа] Тайтл - 07 …» — типичная схема именования аниме-релизов.
+        // "[Group] Title - 07 …" — the typical naming scheme for anime releases.
         if (fansubPattern.containsMatchIn(name)) {
             return ContentDetection(ContentClass.ANIME, confidence = 0.6f, source = SOURCE)
         }

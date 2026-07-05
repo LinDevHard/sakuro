@@ -15,7 +15,7 @@ class CompositeContentClassifierTest {
     private val request = ClassificationRequest(uri = "file:///video.mp4", title = "video")
 
     @Test
-    fun `медленный слой замещает быстрый при большей уверенности`() = runTest {
+    fun `slow layer replaces the fast one when more confident`() = runTest {
         val composite = CompositeContentClassifier(
             fixed(ContentDetection(ContentClass.ANIME, 0.75f, "filename")),
             delayed(ContentDetection(ContentClass.LIVE_ACTION, 0.85f, "frames")),
@@ -28,7 +28,7 @@ class CompositeContentClassifierTest {
     }
 
     @Test
-    fun `менее уверенное противоречие отбрасывается`() = runTest {
+    fun `less confident contradiction is discarded`() = runTest {
         val composite = CompositeContentClassifier(
             fixed(ContentDetection(ContentClass.ANIME, 0.9f, "filename")),
             delayed(ContentDetection(ContentClass.LIVE_ACTION, 0.7f, "frames")),
@@ -40,7 +40,7 @@ class CompositeContentClassifierTest {
     }
 
     @Test
-    fun `UNKNOWN не эмитится наружу`() = runTest {
+    fun `UNKNOWN is not emitted`() = runTest {
         val composite = CompositeContentClassifier(
             fixed(ContentDetection.UNKNOWN),
             delayed(ContentDetection(ContentClass.ANIME, 0.8f, "frames")),
@@ -52,7 +52,7 @@ class CompositeContentClassifierTest {
     }
 
     @Test
-    fun `молчащие слои - пустой поток`() = runTest {
+    fun `silent layers produce an empty stream`() = runTest {
         val composite = CompositeContentClassifier(silent(), silent())
 
         assertEquals(emptyList(), composite.classify(request).toList())

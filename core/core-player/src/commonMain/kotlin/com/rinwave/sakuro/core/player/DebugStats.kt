@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.player
 
-/** Данные debug-оверлея «stats for nerds» (FEATURES.md §4.1). */
+/** Data for the "stats for nerds" debug overlay (FEATURES.md §4.1). */
 data class DebugStats(
     val engine: String = "",
     val videoCodec: String? = null,
@@ -17,6 +17,6 @@ data class DebugStats(
     val audioSampleRateHz: Int? = null,
     val upscaleProfile: String? = null,
     val upscalePasses: List<String> = emptyList(),
-    /** Свободные пары движка (контейнер, surface и т.п.). */
+    /** Free-form engine pairs (container, surface, etc.). */
     val extras: Map<String, String> = emptyMap(),
 )

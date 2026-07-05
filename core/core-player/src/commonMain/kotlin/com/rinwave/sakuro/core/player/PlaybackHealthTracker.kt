@@ -5,9 +5,9 @@ import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 /**
- * Считает [PlaybackHealth] по снимкам [DebugStats]: доля дропнутых кадров
- * за окно между снимками относительно ожидаемого числа кадров (fps × время).
- * Скармливается адаптивному контроллеру (ARCHITECTURE.md §5).
+ * Computes [PlaybackHealth] from [DebugStats] snapshots: the share of dropped frames
+ * over the window between snapshots relative to the expected frame count (fps × time).
+ * Fed into the adaptive controller (ARCHITECTURE.md §5).
  */
 class PlaybackHealthTracker(
     private val timeSource: TimeSource = TimeSource.Monotonic,

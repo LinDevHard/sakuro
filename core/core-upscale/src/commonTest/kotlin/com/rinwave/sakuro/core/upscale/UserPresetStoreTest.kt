@@ -28,9 +28,9 @@ class UserPresetStoreTest {
     @Test
     fun saveWithExistingIdUpdatesPresetInPlace() {
         val store = UserPresetStore(MapSettings())
-        val created = store.save(profile(name = "Первый"))
+        val created = store.save(profile(name = "First"))
 
-        val updated = store.save(created.copy(name = "Второй"))
+        val updated = store.save(created.copy(name = "Second"))
 
         assertEquals(created.id, updated.id)
         assertEquals(listOf(updated), store.presets.value)
@@ -87,7 +87,7 @@ class UserPresetStoreTest {
     @Test
     fun exportImportRoundtripCreatesNewPresetWithSameChain() {
         val store = UserPresetStore(MapSettings())
-        val original = store.save(profile(name = "Экспортный"))
+        val original = store.save(profile(name = "Exported"))
 
         val imported = store.import(store.export(original)).getOrThrow()
 
@@ -101,7 +101,7 @@ class UserPresetStoreTest {
     fun importOfGarbageFailsWithoutTouchingStore() {
         val store = UserPresetStore(MapSettings())
 
-        val result = store.import("не json")
+        val result = store.import("not json")
 
         assertTrue(result.isFailure)
         assertTrue(store.presets.value.isEmpty())
@@ -118,9 +118,9 @@ class UserPresetStoreTest {
     @Test
     fun presetsAreSortedByName() {
         val store = UserPresetStore(MapSettings())
-        store.save(profile(name = "Яркий"))
-        store.save(profile(name = "Аниме мягкий"))
+        store.save(profile(name = "Bright"))
+        store.save(profile(name = "Anime soft"))
 
-        assertEquals(listOf("Аниме мягкий", "Яркий"), store.presets.value.map { it.name })
+        assertEquals(listOf("Anime soft", "Bright"), store.presets.value.map { it.name })
     }
 }

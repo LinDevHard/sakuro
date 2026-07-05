@@ -1,9 +1,9 @@
 package com.rinwave.sakuro.core.detect
 
 /**
- * Уменьшенный кадр видео для анализа. Пиксели — ARGB-8888 построчно,
- * размер ~100 px по большей стороне: этого хватает статистике по цвету
- * и градиентам, а декодирование остаётся дешёвым.
+ * A downscaled video frame for analysis. Pixels are ARGB-8888 row by row,
+ * ~100 px on the longer side: enough for color and gradient statistics,
+ * while decoding stays cheap.
  */
 class FrameSample(
     val width: Int,
@@ -18,13 +18,13 @@ class FrameSample(
 }
 
 /**
- * Достаёт сэмплы кадров из видео независимо от движка воспроизведения
- * (Android — MediaMetadataRetriever, desktop — пока нет реализации).
- * Кадры берутся равномерно по длительности, минуя первые/последние проценты,
- * где обычно логотипы и титры.
+ * Pulls frame samples from the video independently of the playback engine
+ * (Android — MediaMetadataRetriever, desktop — no implementation yet).
+ * Frames are taken evenly across the duration, skipping the first/last percent,
+ * where logos and credits usually are.
  */
 interface FrameSampler {
 
-    /** Пустой список = сэмплирование недоступно (детекция по кадрам молчит). */
+    /** Empty list = sampling unavailable (frame-based detection stays silent). */
     suspend fun sample(uri: String, maxFrames: Int): List<FrameSample>
 }

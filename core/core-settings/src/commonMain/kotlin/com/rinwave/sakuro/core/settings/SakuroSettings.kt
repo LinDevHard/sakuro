@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Пользовательские настройки: выбор движка, пресет апскейла, debug-оверлей.
- * Хранение — multiplatform-settings (SharedPreferences на Android, Preferences на JVM).
+ * User settings: engine selection, upscale preset, debug overlay.
+ * Storage — multiplatform-settings (SharedPreferences on Android, Preferences on JVM).
  */
 class SakuroSettings(
     private val defaultEngine: EngineType,
@@ -29,18 +29,18 @@ class SakuroSettings(
     val debugOverlay: StateFlow<Boolean> = _debugOverlay.asStateFlow()
 
     /**
-     * Адаптивная деградация пресета (ARCHITECTURE.md §5): термалка/дропы/энергосбережение
-     * упрощают применяемую цепочку. Выключение фиксирует выбранный пресет как есть —
-     * нужно для чистоты замеров качества (sakuro-bench).
+     * Adaptive preset degradation (ARCHITECTURE.md §5): thermals/drops/power-saving
+     * simplify the applied chain. Turning it off pins the selected preset as-is —
+     * needed for clean quality measurements (sakuro-bench).
      */
     private val _adaptiveEnabled = MutableStateFlow(settings.getBoolean(KEY_ADAPTIVE, true))
     val adaptiveEnabled: StateFlow<Boolean> = _adaptiveEnabled.asStateFlow()
 
-    /** Свайпы/пинч в плеере (FEATURES.md §3.2); тапы и long-press работают всегда. */
+    /** Swipes/pinch in the player (FEATURES.md §3.2); taps and long-press always work. */
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
 
-    /** Множитель чувствительности свайпов (FEATURES.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
+    /** Swipe sensitivity multiplier (FEATURES.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
     private val _gestureSensitivity = MutableStateFlow(
         settings.getFloat(KEY_GESTURE_SENSITIVITY, SENSITIVITY_DEFAULT)
             .coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX),

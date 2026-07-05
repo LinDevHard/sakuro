@@ -5,14 +5,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Единая абстракция движка воспроизведения (ARCHITECTURE.md §4).
- * UI работает только с этим интерфейсом и не знает, какой движок под ним.
+ * A single playback-engine abstraction (ARCHITECTURE.md §4).
+ * The UI works only with this interface and does not know the concrete engine.
  */
 interface PlayerEngine {
 
     val state: StateFlow<PlayerState>
 
-    /** «Stats for nerds» — данные для debug-оверлея (FEATURES.md §4). */
+    /** "Stats for nerds" — data for the debug overlay (FEATURES.md §4). */
     val debugStats: Flow<DebugStats>
 
     fun load(media: MediaSource)
@@ -28,8 +28,8 @@ interface PlayerEngine {
     fun selectTrack(track: TrackSelection)
 
     /**
-     * Единая точка применения апскейла: libmpv грузит `.glsl`-цепочку,
-     * Media3 собирает список `GlEffect` и зовёт `setVideoEffects()`.
+     * The single upscale application point: libmpv loads a `.glsl` chain,
+     * Media3 builds a `GlEffect` list and calls `setVideoEffects()`.
      */
     fun applyUpscale(profile: UpscaleProfile)
 
@@ -46,19 +46,19 @@ val EngineType.displayName: String
     get() = when (this) {
         EngineType.MPV -> "libmpv"
         EngineType.MEDIA3 -> "Media3 (ExoPlayer)"
-        EngineType.FAKE -> "Fake (UI-отладка)"
+        EngineType.FAKE -> "Fake (UI debugging)"
     }
 
 /**
- * Каждый engine-модуль предоставляет фабрику своего движка;
- * `composeApp` регистрирует доступные на таргете фабрики через DI.
+ * Each engine module provides a factory for its engine;
+ * `composeApp` registers the target's available factories via DI.
  */
 interface PlayerEngineFactory {
     val type: EngineType
     fun create(): PlayerEngine
 }
 
-/** Реестр движков, доступных на текущем таргете/флейворе. */
+/** Registry of engines available on the current target/flavor. */
 class EngineRegistry(factories: List<PlayerEngineFactory>) {
 
     init {
@@ -71,7 +71,7 @@ class EngineRegistry(factories: List<PlayerEngineFactory>) {
 
     fun isAvailable(type: EngineType): Boolean = type in byType
 
-    /** Выбранный тип, если доступен, иначе первый доступный движок. */
+    /** The selected type if available, otherwise the first available engine. */
     fun resolve(preferred: EngineType): EngineType = if (isAvailable(preferred)) preferred else available.first()
 
     fun create(type: EngineType): PlayerEngine = requireNotNull(byType[resolve(type)]).create()

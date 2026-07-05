@@ -29,7 +29,7 @@ class PlaybackHealthTrackerTest {
     fun dropsAreRelativeToExpectedFrames() {
         tracker.update(DebugStats(droppedFrames = 0, videoFps = 24f))
         timeSource += 1000.milliseconds
-        // 6 дропов из 24 ожидаемых кадров за секунду = 25%.
+        // 6 drops out of 24 expected frames per second = 25%.
         val health = tracker.update(DebugStats(droppedFrames = 6, videoFps = 24f))
         assertEquals(25f, health.droppedFramePercent)
     }
@@ -46,7 +46,7 @@ class PlaybackHealthTrackerTest {
     fun counterResetInEngineDoesNotProduceNegativeDelta() {
         tracker.update(DebugStats(droppedFrames = 50, videoFps = 24f))
         timeSource += 1000.milliseconds
-        // Движок обнулил счётчик (новый load) — не считаем это дропами.
+        // The engine reset the counter (new load) — we do not count these as drops.
         val health = tracker.update(DebugStats(droppedFrames = 0, videoFps = 24f))
         assertEquals(0f, health.droppedFramePercent)
     }

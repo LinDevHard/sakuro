@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Android-источник для адаптивного контроллера (ARCHITECTURE.md §5):
- * тепловой статус (API 29+), режим энергосбережения и уровень заряда.
- * Живёт весь срок процесса — слушатели не снимаются.
+ * Android source for the adaptive controller (ARCHITECTURE.md §5):
+ * thermal status (API 29+), power-save mode and battery level.
+ * Lives for the whole process lifetime — listeners are never unregistered.
  */
 class AndroidDeviceStatusMonitor(context: Context) : DeviceStatusMonitor {
 
@@ -36,7 +36,7 @@ class AndroidDeviceStatusMonitor(context: Context) : DeviceStatusMonitor {
             }
         }
         val filter = IntentFilter().apply {
-            // Оба — защищённые системные броадкасты, флаг exported не требуется.
+            // Both are protected system broadcasts; the exported flag is not required.
             addAction(Intent.ACTION_BATTERY_CHANGED)
             addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
         }

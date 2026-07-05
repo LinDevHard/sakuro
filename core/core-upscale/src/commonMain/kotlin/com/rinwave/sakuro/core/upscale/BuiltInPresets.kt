@@ -1,23 +1,23 @@
 package com.rinwave.sakuro.core.upscale
 
 /**
- * Встроенные пресеты под классы контента (FEATURES.md §2.2).
- * Цепочки вдохновлены режимами Anime4K A/B/C; в Media3 применяются
- * портированными GLSL ES-проходами, в libmpv — нативными `.glsl`.
+ * Built-in presets for content classes (FEATURES.md §2.2).
+ * The chains are inspired by Anime4K modes A/B/C; on Media3 they are applied
+ * as ported GLSL ES passes, on libmpv as native `.glsl`.
  */
 object BuiltInPresets {
 
     val OFF = UpscaleProfile(
         id = "off",
-        name = "Выкл",
-        description = "Оригинальная картинка без обработки",
+        name = "Off",
+        description = "The original picture with no processing",
         builtIn = true,
     )
 
     val ANIME_SD = UpscaleProfile(
         id = "anime-sd",
         name = "Anime SD",
-        description = "2× апскейл, деноиз и агрессивная резкость для SD-аниме и слабых рипов",
+        description = "2× upscale, denoise and aggressive sharpening for SD anime and weak rips",
         contentClass = ContentClass.ANIME,
         passes = listOf(
             UpscalePass.Denoise(0.35f),
@@ -30,7 +30,7 @@ object BuiltInPresets {
     val ANIME_HD = UpscaleProfile(
         id = "anime-hd",
         name = "Anime HD",
-        description = "1.5× апскейл и умеренная резкость для 720p/1080p-аниме",
+        description = "1.5× upscale and moderate sharpening for 720p/1080p anime",
         contentClass = ContentClass.ANIME,
         passes = listOf(
             UpscalePass.Upscale(1.5f),
@@ -42,7 +42,7 @@ object BuiltInPresets {
     val LIVE_ACTION_LIGHT = UpscaleProfile(
         id = "live-light",
         name = "Live-action light",
-        description = "Деликатная резкость без апскейла — для реальной съёмки",
+        description = "Gentle sharpening without upscaling — for live-action footage",
         contentClass = ContentClass.LIVE_ACTION,
         passes = listOf(
             UpscalePass.Sharpen(0.25f),
@@ -54,7 +54,7 @@ object BuiltInPresets {
 
     fun byId(id: String?): UpscaleProfile? = all.firstOrNull { it.id == id }
 
-    /** Авто-выбор пресета по классу контента (для core-detect, Фаза 2). */
+    /** Automatic preset selection by content class (for core-detect, Phase 2). */
     fun forContentClass(contentClass: ContentClass): UpscaleProfile = when (contentClass) {
         ContentClass.ANIME -> ANIME_HD
         ContentClass.CARTOON -> ANIME_HD

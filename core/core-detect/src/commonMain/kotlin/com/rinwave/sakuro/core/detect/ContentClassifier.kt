@@ -4,34 +4,34 @@ import com.rinwave.sakuro.core.upscale.ContentClass
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Авто-детект класса контента (FEATURES.md §1): определяет стиль изображения
- * для авто-выбора пресета. Не зависит от движка воспроизведения — работает
- * над метаданными и (в будущих реализациях) сэмплами кадров.
+ * Automatic content-class detection (FEATURES.md §1): determines the image style
+ * for automatic preset selection. Independent of the playback engine — it works
+ * over metadata and (in future implementations) frame samples.
  */
 interface ContentClassifier {
 
     /**
-     * Поток уточняющихся результатов: быстрые эвристики (имя файла) эмитятся
-     * сразу, тяжёлые (анализ кадров) — по мере готовности. Каждый следующий
-     * результат замещает предыдущий.
+     * A stream of refining results: fast heuristics (file name) are emitted
+     * immediately, heavy ones (frame analysis) as they become ready. Each next
+     * result replaces the previous one.
      */
     fun classify(request: ClassificationRequest): Flow<ContentDetection>
 }
 
-/** Что известно о медиа до начала анализа. */
+/** What is known about the media before analysis begins. */
 data class ClassificationRequest(
     val uri: String,
     val title: String,
 )
 
 /**
- * Результат детекции: класс + уверенность (0..1) — оба показываются
- * в debug-оверлее (FEATURES.md §4.1).
+ * Detection result: class + confidence (0..1) — both are shown
+ * in the debug overlay (FEATURES.md §4.1).
  */
 data class ContentDetection(
     val contentClass: ContentClass,
     val confidence: Float,
-    /** Какой анализатор дал результат: "filename", "frames"… */
+    /** Which analyzer produced the result: "filename", "frames"… */
     val source: String,
 ) {
     companion object {

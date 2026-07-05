@@ -4,10 +4,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Пресет обработки видео (FEATURES.md §2): абстрактная цепочка проходов,
- * которую каждый движок применяет доступными ему средствами
- * (libmpv → `.glsl`-цепочка, Media3 → цепочка `GlEffect`).
- * Несовместимые с движком проходы деградируют (пропускаются).
+ * A video-processing preset (FEATURES.md §2): an abstract chain of passes
+ * that each engine applies with the means available to it
+ * (libmpv → a `.glsl` chain, Media3 → a `GlEffect` chain).
+ * Passes incompatible with an engine degrade (are skipped).
  */
 @Serializable
 data class UpscaleProfile(
@@ -16,7 +16,7 @@ data class UpscaleProfile(
     val description: String = "",
     val contentClass: ContentClass = ContentClass.UNKNOWN,
     val passes: List<UpscalePass> = emptyList(),
-    /** Встроенные пресеты нельзя удалить/перезаписать. */
+    /** Built-in presets cannot be deleted/overwritten. */
     val builtIn: Boolean = false,
 ) {
     val isEnabled: Boolean get() = passes.isNotEmpty()
@@ -25,17 +25,17 @@ data class UpscaleProfile(
 @Serializable
 sealed interface UpscalePass {
 
-    /** Масштабирование к целевому разрешению: множитель к высоте источника. */
+    /** Scaling to the target resolution: a multiplier on the source height. */
     @Serializable
     @SerialName("upscale")
     data class Upscale(val factor: Float) : UpscalePass
 
-    /** Повышение резкости с анти-рингингом, strength 0..1. */
+    /** Sharpening with anti-ringing, strength 0..1. */
     @Serializable
     @SerialName("sharpen")
     data class Sharpen(val strength: Float) : UpscalePass
 
-    /** Лёгкий edge-preserving деноиз, strength 0..1. */
+    /** Light edge-preserving denoise, strength 0..1. */
     @Serializable
     @SerialName("denoise")
     data class Denoise(val strength: Float) : UpscalePass

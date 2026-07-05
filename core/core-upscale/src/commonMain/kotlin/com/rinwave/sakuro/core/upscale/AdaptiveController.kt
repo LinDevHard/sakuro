@@ -1,40 +1,40 @@
 package com.rinwave.sakuro.core.upscale
 
 /**
- * Адаптивный контроллер апскейла (ARCHITECTURE.md §5): деградирует выбранный
- * пользователем пресет при нагреве/просадке FPS/энергосбережении и возвращается
- * к полному при запасе. Выбор пользователя не меняется — только применяемая
- * цепочка (FEATURES.md §2.3).
+ * Adaptive upscale controller (ARCHITECTURE.md §5): degrades the user-selected
+ * preset on heat/FPS drops/power-saving and returns
+ * to full when there is headroom. The user's choice never changes — only the applied
+ * chain does (FEATURES.md §2.3).
  *
- * Чистая детерминированная state-machine: платформенные источники (термал,
- * батарея, статистика кадров) скармливают снимки в [update].
+ * A pure deterministic state machine: platform sources (thermal,
+ * battery, frame statistics) feed snapshots into [update].
  */
 class AdaptiveController(private val config: Config = Config()) {
 
     data class Config(
-        /** % дропнутых кадров, после которого деградируем на шаг. */
+        /** % of dropped frames after which we degrade by one step. */
         val degradeDropPercent: Float = 5f,
-        /** % дропов, после которого деградируем сразу на два шага. */
+        /** % of drops after which we degrade by two steps at once. */
         val severeDropPercent: Float = 12f,
-        /** Сколько подряд здоровых снимков нужно для шага восстановления. */
+        /** How many consecutive healthy snapshots are needed for a recovery step. */
         val recoverySamples: Int = 6,
-        /** Заряд, ниже которого держим минимум один шаг деградации. */
+        /** Battery level below which we keep at least one degradation step. */
         val lowBatteryPercent: Int = 15,
     )
 
     data class Decision(
-        /** Что реально применять к движку. */
+        /** What to actually apply to the engine. */
         val effective: UpscaleProfile,
-        /** 0 — полный пресет … [MAX_LEVEL] — обработка выключена. */
+        /** 0 — full preset … [MAX_LEVEL] — processing off. */
         val level: Int,
-        /** Человекочитаемая причина деградации для debug-оверлея; null при level 0. */
+        /** Human-readable degradation reason for the debug overlay; null at level 0. */
         val reason: String? = null,
     )
 
     private var perfLevel = 0
     private var healthyStreak = 0
 
-    /** Принять свежие снимки состояния и решить, какой пресет применять. */
+    /** Accept fresh state snapshots and decide which preset to apply. */
     fun update(user: UpscaleProfile, device: DeviceStatus, health: PlaybackHealth): Decision {
         val thermalFloor = when (device.thermal) {
             ThermalLevel.CRITICAL -> MAX_LEVEL
@@ -50,9 +50,9 @@ class AdaptiveController(private val config: Config = Config()) {
         val level = maxOf(thermalFloor, powerFloor, perfLevel).coerceAtMost(MAX_LEVEL)
         val reason = when {
             level == 0 -> null
-            thermalFloor >= level -> "термал: ${device.thermal.name.lowercase()}"
-            perfLevel >= level -> "дропы кадров: ${health.droppedFramePercent}%"
-            else -> "энергосбережение"
+            thermalFloor >= level -> "thermal: ${device.thermal.name.lowercase()}"
+            perfLevel >= level -> "frame drops: ${health.droppedFramePercent}%"
+            else -> "power saving"
         }
         return Decision(effective = user.degradedTo(level), level = level, reason = reason)
     }
@@ -84,14 +84,14 @@ class AdaptiveController(private val config: Config = Config()) {
     }
 
     companion object {
-        /** Уровень полного отключения обработки. */
+        /** The level at which processing is fully disabled. */
         const val MAX_LEVEL = 3
     }
 }
 
 /**
- * Облегчённая версия пресета для уровня деградации:
- * 1 — без деноиза; 2 — без деноиза/шарпена, апскейл не выше 1.5×; 3 — всё выключено.
+ * A lightened version of the preset for a degradation level:
+ * 1 — no denoise; 2 — no denoise/sharpen, upscale no higher than 1.5×; 3 — everything off.
  */
 fun UpscaleProfile.degradedTo(level: Int): UpscaleProfile = when {
     level <= 0 || passes.isEmpty() -> this

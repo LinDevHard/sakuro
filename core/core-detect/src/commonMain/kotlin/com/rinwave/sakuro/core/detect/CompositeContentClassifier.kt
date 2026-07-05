@@ -8,10 +8,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Объединяет слои детекции: все запускаются параллельно, наружу уходит
- * только результат не хуже уже показанного. Быстрый слой (имя файла) даёт
- * мгновенный ответ, медленный (кадры) позже замещает его более уверенным;
- * менее уверенное противоречие отбрасывается.
+ * Combines detection layers: all run in parallel, and only a result no worse
+ * than the one already shown is emitted. The fast layer (file name) gives an
+ * instant answer; the slow layer (frames) later replaces it with a more confident one;
+ * a less confident contradiction is discarded.
  */
 class CompositeContentClassifier(
     private val layers: List<ContentClassifier>,

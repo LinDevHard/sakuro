@@ -9,18 +9,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Сэмплер кадров через MediaMetadataRetriever: открывает файл отдельно
- * от играющего движка, поэтому не мешает воспроизведению. Кадры берутся
- * равномерно из середины ролика (10..90% длительности) — по краям чаще
- * логотипы, чёрные врезки и титры.
+ * Frame sampler via MediaMetadataRetriever: opens the file separately
+ * from the playing engine, so it does not disturb playback. Frames are taken
+ * evenly from the middle of the clip (10..90% of duration) — the edges more often
+ * hold logos, black inserts and credits.
  */
 class RetrieverFrameSampler(
     private val context: Context,
     private val targetSize: Int = TARGET_SIZE,
 ) : FrameSampler {
 
-    // Retriever кидает разнотипные RuntimeException на битых файлах — сэмплинг best-effort,
-    // любая ошибка означает «кадров нет», классификация продолжается по другим слоям.
+    // Retriever throws various RuntimeExceptions on broken files — sampling is best-effort,
+    // any error means "no frames", classification continues via the other layers.
     @Suppress("TooGenericExceptionCaught")
     override suspend fun sample(uri: String, maxFrames: Int): List<FrameSample> =
         withContext(Dispatchers.IO) {
@@ -34,7 +34,7 @@ class RetrieverFrameSampler(
                     ?: return@withContext emptyList()
 
                 (1..maxFrames).mapNotNull { index ->
-                    // Равномерная сетка внутри 10..90% длительности.
+                    // Even grid within 10..90% of the duration.
                     val fraction = 0.1f + 0.8f * index / (maxFrames + 1)
                     val timeUs = (durationMs * 1000 * fraction).toLong()
                     grabFrame(retriever, timeUs)?.let(::toSample)

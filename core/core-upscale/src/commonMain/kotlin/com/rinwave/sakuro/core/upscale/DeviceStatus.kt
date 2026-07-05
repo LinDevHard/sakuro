@@ -1,7 +1,7 @@
 package com.rinwave.sakuro.core.upscale
 
 /**
- * Кроссплатформенный тепловой статус.
+ * Cross-platform thermal status.
  * Android: PowerManager.getThermalStatus; iOS: ProcessInfo.thermalState.
  */
 enum class ThermalLevel {
@@ -12,16 +12,16 @@ enum class ThermalLevel {
     CRITICAL,
 }
 
-/** Снимок состояния устройства для адаптивного контроллера (ARCHITECTURE.md §5). */
+/** Device-status snapshot for the adaptive controller (ARCHITECTURE.md §5). */
 data class DeviceStatus(
     val thermal: ThermalLevel = ThermalLevel.NONE,
     val powerSaveMode: Boolean = false,
-    /** null — уровень заряда неизвестен (desktop, нет батареи). */
+    /** null — battery level unknown (desktop, no battery). */
     val batteryPercent: Int? = null,
 )
 
-/** Снимок здоровья воспроизведения — считается поверх PlayerEngine.debugStats. */
+/** Playback-health snapshot — computed on top of PlayerEngine.debugStats. */
 data class PlaybackHealth(
-    /** Доля дропнутых кадров за последнее окно наблюдения, 0..100. */
+    /** Share of dropped frames over the last observation window, 0..100. */
     val droppedFramePercent: Float = 0f,
 )

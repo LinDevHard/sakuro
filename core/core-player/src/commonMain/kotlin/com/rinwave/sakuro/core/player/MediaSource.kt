@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.player
 
-/** Минимальная ссылка на воспроизводимое медиа; богатая модель библиотеки живёт в core-media. */
+/** A minimal reference to playable media; the rich library model lives in core-media. */
 data class MediaSource(
     val uri: String,
     val title: String,

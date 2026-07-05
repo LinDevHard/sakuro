@@ -7,11 +7,11 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 /**
- * Desktop-сэмплер кадров через системные ffmpeg/ffprobe (ARCHITECTURE.md §3.2:
- * desktop — полигон, тащить свой декодер ради детекции незачем). Best-effort:
- * нет бинарей в PATH, файл не читается, вывод не распарсился — пустой список,
- * детекция по кадрам просто молчит. Сетка позиций та же, что у Android-сэмплера:
- * равномерно внутри 10..90% длительности, мимо логотипов и титров по краям.
+ * Desktop frame sampler via system ffmpeg/ffprobe (ARCHITECTURE.md §3.2:
+ * desktop is a sandbox, no need to bundle a decoder just for detection). Best-effort:
+ * no binaries in PATH, unreadable file, unparseable output — an empty list,
+ * frame detection simply stays silent. The position grid matches the Android sampler:
+ * evenly within 10..90% of the duration, past logos and credits at the edges.
  */
 class FfmpegFrameSampler(
     private val ffmpegPath: String = "ffmpeg",
@@ -32,7 +32,7 @@ class FfmpegFrameSampler(
             }
         }
 
-    /** Детекция работает только с локальными файлами: file://-URI или прямой путь. */
+    /** Detection works only with local files: a file:// URI or a direct path. */
     private fun toLocalFile(uri: String): File? {
         val file = when {
             uri.startsWith("file://") -> runCatching { File(URI(uri)) }.getOrNull()
@@ -74,7 +74,7 @@ class FfmpegFrameSampler(
         return argbBytesToSample(bytes, outWidth, outHeight)
     }
 
-    /** stdout процесса или null при любом сбое (нет бинаря, ненулевой код, таймаут). */
+    /** Process stdout, or null on any failure (missing binary, non-zero code, timeout). */
     @Suppress("TooGenericExceptionCaught", "ReturnCount")
     private fun runProcess(vararg command: String): ByteArray? {
         return try {
@@ -100,7 +100,7 @@ class FfmpegFrameSampler(
         private const val BYTES_PER_PIXEL = 4
         private const val BYTE_MASK = 0xFF
 
-        // Locale-независимый формат: ffmpeg ждёт точку в секундах.
+        // Locale-independent format: ffmpeg expects a dot in the seconds.
         fun formatSeconds(seconds: Double): String = "%.3f".format(java.util.Locale.ROOT, seconds)
 
         fun parseDimensions(csv: String): Pair<Int, Int>? {
@@ -110,14 +110,14 @@ class FfmpegFrameSampler(
             return width to height
         }
 
-        /** Вписывает кадр в [target] по большей стороне, никогда не увеличивает. */
+        /** Fits the frame into [target] by the longer side, never upscales. */
         fun scaledSize(width: Int, height: Int, target: Int): Pair<Int, Int> {
             val scale = target.toDouble() / maxOf(width, height)
             if (scale >= 1.0) return width to height
             return maxOf(1, (width * scale).toInt()) to maxOf(1, (height * scale).toInt())
         }
 
-        /** Сырые ARGB-байты ffmpeg (по байту на канал, A первым) → FrameSample. */
+        /** Raw ARGB bytes from ffmpeg (one byte per channel, A first) → FrameSample. */
         fun argbBytesToSample(bytes: ByteArray, width: Int, height: Int): FrameSample? {
             if (bytes.size != width * height * BYTES_PER_PIXEL) return null
             val pixels = IntArray(width * height) { pixel ->

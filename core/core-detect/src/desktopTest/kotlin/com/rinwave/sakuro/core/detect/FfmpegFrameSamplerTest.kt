@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class FfmpegFrameSamplerTest {
 
-    // --- чистые функции разбора/конвертации ---
+    // --- pure parsing/conversion functions ---
 
     @Test
     fun `parseDimensions reads csv pair`() {
@@ -39,7 +39,7 @@ class FfmpegFrameSamplerTest {
 
     @Test
     fun `argbBytesToSample decodes channels`() {
-        // Один пиксель: A=0xFF, R=0x11, G=0x22, B=0x33.
+        // One pixel: A=0xFF, R=0x11, G=0x22, B=0x33.
         val bytes = byteArrayOf(0xFF.toByte(), 0x11, 0x22, 0x33)
         val sample = FfmpegFrameSampler.argbBytesToSample(bytes, 1, 1)
         assertEquals(0xFF112233.toInt(), sample?.argb?.single())
@@ -50,7 +50,7 @@ class FfmpegFrameSamplerTest {
         assertNull(FfmpegFrameSampler.argbBytesToSample(ByteArray(3), 1, 1))
     }
 
-    // --- интеграция с реальным ffmpeg (скипается, если бинарей нет в PATH) ---
+    // --- integration with real ffmpeg (skipped if the binaries are not in PATH) ---
 
     @Test
     fun `samples frames from a real video when ffmpeg is available`() = runTest {
@@ -62,7 +62,7 @@ class FfmpegFrameSamplerTest {
             "-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=10",
             video.absolutePath,
         ).start()
-        assertTrue(generate.waitFor() == 0, "ffmpeg не смог сгенерировать тестовый ролик")
+        assertTrue(generate.waitFor() == 0, "ffmpeg could not generate the test clip")
 
         val samples = FfmpegFrameSampler().sample(video.absolutePath, maxFrames = 3)
 
@@ -70,7 +70,7 @@ class FfmpegFrameSamplerTest {
         samples.forEach { sample ->
             assertEquals(96, sample.width)
             assertEquals(72, sample.height)
-            // testsrc пёстрый: кадр не должен быть монотонным.
+            // testsrc is colorful: the frame must not be monotone.
             assertTrue(sample.argb.distinct().size > 1)
         }
     }
