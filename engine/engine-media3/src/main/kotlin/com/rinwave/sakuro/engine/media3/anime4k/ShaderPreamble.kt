@@ -43,7 +43,8 @@ void main() {
         appendLine("precision highp sampler2D;")
         appendLine("in vec2 v_texcoord;")
         appendLine("out vec4 frag_out;")
-        for (bind in pass.binds.distinct()) {
+        val binds = pass.binds.distinct()
+        for (bind in binds) {
             appendLine("uniform sampler2D ${samplerUniform(bind)};")
             appendLine("uniform vec2 ${sizeUniform(bind)};")
             appendLine("uniform vec2 ${pointUniform(bind)};")
@@ -56,6 +57,11 @@ void main() {
                     "return texture(${samplerUniform(bind)}, v_texcoord + o * ${pointUniform(bind)}); }",
             )
         }
+        // В mpv `HOOKED` и имя хукнутой стадии (`MAIN`/`PREKERNEL`/`NATIVE`) —
+        // псевдонимы ОДНОЙ текстуры: доступны оба набора символов. Проход может
+        // забиндить одно имя, а в теле обращаться к другому (Denoise: BIND HOOKED,
+        // тело зовёт MAIN_texOff). Достраиваем недостающий алиас поверх того же сэмплера.
+        appendStageAlias(binds, MpvUserShaderParser.HOOKED, pass.hook)
         appendLine()
         appendLine(pass.body)
         appendLine()
@@ -66,5 +72,24 @@ void main() {
             appendLine("  frag_out = hook();")
         }
         appendLine("}")
+    }
+
+    /**
+     * Достраивает алиас между `HOOKED` и именем хукнутой стадии поверх сэмплера
+     * реально забинженного из них: символы `<target>_tex/_texOff/_pos/_pt/_size`
+     * ссылаются на уже объявленный `<source>_*`.
+     */
+    private fun StringBuilder.appendStageAlias(binds: List<String>, hooked: String, hookName: String) {
+        val (target, source) = when {
+            hooked in binds && hookName !in binds -> hookName to hooked
+            hookName in binds && hooked !in binds -> hooked to hookName
+            else -> return
+        }
+        appendLine("#define ${target}_pos v_texcoord")
+        appendLine("#define ${target}_pt ${pointUniform(source)}")
+        appendLine("#define ${target}_size ${sizeUniform(source)}")
+        appendLine("#define ${target}_mul 1.0")
+        appendLine("vec4 ${target}_tex(vec2 p) { return ${source}_tex(p); }")
+        appendLine("vec4 ${target}_texOff(vec2 o) { return ${source}_texOff(o); }")
     }
 }

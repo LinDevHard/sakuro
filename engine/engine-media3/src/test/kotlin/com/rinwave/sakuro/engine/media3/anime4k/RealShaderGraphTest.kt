@@ -99,4 +99,41 @@ class RealShaderGraphTest {
             }
         }
     }
+
+    // Каждый `<name>_tex/_texOff/_pos/_pt/_size` из тела должен быть объявлен в
+    // шиме — иначе шейдер не компилится (баг Denoise: BIND HOOKED, тело зовёт
+    // MAIN_texOff). Ловит недостающие алиасы стадий на всех реальных шейдерах.
+    private val symbolRef = Regex("([A-Za-z_][A-Za-z0-9_]*)_(texOff|tex|pos|pt|size|mul)\\b")
+
+    @Test
+    fun `Clamp с BIND HOOKED и телом на MAIN_texOff получает алиас MAIN`() {
+        // Именно этот проход (De-Ring-Compute-Statistics: HOOK MAIN, BIND HOOKED,
+        // тело зовёт MAIN_texOff) ронял компиляцию на устройстве → passthrough.
+        val stats = MpvUserShaderParser.parse(source("Anime4K_Clamp_Highlights.glsl"))
+            .first { it.body.contains("MAIN_texOff") }
+        val fragment = ShaderPreamble.fragmentShader(stats, isFinal = false)
+        assertTrue(fragment.contains("vec4 MAIN_tex("), "нет алиаса MAIN_tex")
+        assertTrue(fragment.contains("vec4 MAIN_texOff("), "нет алиаса MAIN_texOff")
+    }
+
+    @Test
+    fun `все mpv-символы из тел реальных шейдеров объявлены в шиме`() {
+        var checked = 0
+        for (file in allShaders) {
+            for (pass in MpvUserShaderParser.parse(source(file))) {
+                val fragment = ShaderPreamble.fragmentShader(pass, isFinal = false)
+                val referenced = symbolRef.findAll(pass.body).map { it.groupValues[1] }.toSet()
+                for (name in referenced) {
+                    checked++
+                    // Любое объявленное имя (бинд или алиас) всегда получает `<name>_tex(`.
+                    assertTrue(
+                        fragment.contains("vec4 ${name}_tex(") || fragment.contains("#define ${name}_pos"),
+                        "$file / '${pass.desc}': символ '${name}_*' не объявлен в шиме",
+                    )
+                }
+            }
+        }
+        // Защита от вырожденного теста: символы реально извлекались и проверялись.
+        assertTrue(checked > 20, "проверено слишком мало символов ($checked) — регекс не сработал")
+    }
 }
