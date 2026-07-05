@@ -28,6 +28,14 @@ class SakuroSettings(
     private val _debugOverlay = MutableStateFlow(settings.getBoolean(KEY_DEBUG_OVERLAY, false))
     val debugOverlay: StateFlow<Boolean> = _debugOverlay.asStateFlow()
 
+    /**
+     * Адаптивная деградация пресета (ARCHITECTURE.md §5): термалка/дропы/энергосбережение
+     * упрощают применяемую цепочку. Выключение фиксирует выбранный пресет как есть —
+     * нужно для чистоты замеров качества (sakuro-bench).
+     */
+    private val _adaptiveEnabled = MutableStateFlow(settings.getBoolean(KEY_ADAPTIVE, true))
+    val adaptiveEnabled: StateFlow<Boolean> = _adaptiveEnabled.asStateFlow()
+
     /** Свайпы/пинч в плеере (FEATURES.md §3.2); тапы и long-press работают всегда. */
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
@@ -54,6 +62,11 @@ class SakuroSettings(
         _debugOverlay.value = enabled
     }
 
+    fun setAdaptiveEnabled(enabled: Boolean) {
+        settings.putBoolean(KEY_ADAPTIVE, enabled)
+        _adaptiveEnabled.value = enabled
+    }
+
     fun setGesturesEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_GESTURES, enabled)
         _gesturesEnabled.value = enabled
@@ -73,6 +86,7 @@ class SakuroSettings(
         private const val KEY_ENGINE = "engine_type"
         private const val KEY_PRESET = "upscale_preset_id"
         private const val KEY_DEBUG_OVERLAY = "debug_overlay"
+        private const val KEY_ADAPTIVE = "adaptive_enabled"
         private const val KEY_GESTURES = "player_gestures"
         private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
         private const val DEFAULT_PRESET_ID = "off"

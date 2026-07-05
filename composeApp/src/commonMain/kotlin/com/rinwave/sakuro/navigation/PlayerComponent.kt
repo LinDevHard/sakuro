@@ -14,7 +14,9 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.DeviceStatus
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
+import com.rinwave.sakuro.core.upscale.PlaybackHealth
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.ui.isInPipNow
@@ -102,11 +104,17 @@ class PlayerComponent(
                 _detection,
                 userPresets.presets,
             ) { stats, device, selectedId, detection, _ ->
-                adaptiveController.update(
-                    user = resolveUserProfile(selectedId, detection),
-                    device = device,
-                    health = healthTracker.update(stats),
-                )
+                AdaptiveInputs(resolveUserProfile(selectedId, detection), device, healthTracker.update(stats))
+            }.combine(settings.adaptiveEnabled) { inputs, adaptive ->
+                if (adaptive) {
+                    adaptiveController.update(inputs.user, inputs.device, inputs.health)
+                } else {
+                    // Тумблер выключен — применяем выбранный пресет без деградации
+                    // (чистота замеров качества). Контроллер сбрасываем, чтобы при
+                    // повторном включении стрик/уровень стартовали заново.
+                    adaptiveController.reset()
+                    AdaptiveController.Decision(effective = inputs.user, level = 0, reason = null)
+                }
             }.collect { decision ->
                 _adaptiveDecision.value = decision
                 // applyUpscale на подготовленном плеере = re-prepare,
@@ -176,3 +184,10 @@ class PlayerComponent(
         )
     }
 }
+
+/** Снимок входов адаптивного контура — чтобы соединить с тумблером adaptiveEnabled. */
+private data class AdaptiveInputs(
+    val user: UpscaleProfile,
+    val device: DeviceStatus,
+    val health: PlaybackHealth,
+)

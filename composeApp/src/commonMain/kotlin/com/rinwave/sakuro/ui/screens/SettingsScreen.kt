@@ -67,6 +67,7 @@ fun SettingsScreen(component: SettingsComponent) {
     val engineType by component.engineType.collectAsState()
     val presetId by component.presetId.collectAsState()
     val debugOverlay by component.debugOverlay.collectAsState()
+    val adaptiveEnabled by component.adaptiveEnabled.collectAsState()
     val gesturesEnabled by component.gesturesEnabled.collectAsState()
     val gestureSensitivity by component.gestureSensitivity.collectAsState()
     val presets by component.presets.collectAsState()
@@ -249,6 +250,36 @@ fun SettingsScreen(component: SettingsComponent) {
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
         SectionTitle("Отладка")
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { component.setAdaptiveEnabled(!adaptiveEnabled) }
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Адаптивная смена шейдера",
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    "Упрощает цепочку при нагреве/просадке FPS. " +
+                        "Выключите для чистоты тестов — пресет применяется как есть.",
+                    color = SakuroColors.TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Switch(
+                checked = adaptiveEnabled,
+                onCheckedChange = component::setAdaptiveEnabled,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = SakuroColors.AccentSakura,
+                    checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
+                ),
+            )
+        }
+
         Row(
             Modifier
                 .fillMaxWidth()

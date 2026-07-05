@@ -30,6 +30,7 @@ class SettingsComponent(
     val engineType: StateFlow<EngineType> = settings.engineType
     val presetId: StateFlow<String> = settings.presetId
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
+    val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
     val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
@@ -59,6 +60,8 @@ class SettingsComponent(
     fun importUserPreset(raw: String): Result<UpscaleProfile> = userPresets.import(raw)
 
     fun setDebugOverlay(enabled: Boolean) = settings.setDebugOverlay(enabled)
+
+    fun setAdaptiveEnabled(enabled: Boolean) = settings.setAdaptiveEnabled(enabled)
 
     fun setGesturesEnabled(enabled: Boolean) = settings.setGesturesEnabled(enabled)
 
