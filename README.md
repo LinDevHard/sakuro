@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
 [![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)
 
-![Sakuro neon logo banner](assets/branding/sakuro-readme-banner.png)
+![Sakuro neon logo banner](assets/branding/sakuro-readme-banner.webp)
 
 Sakuro is a Kotlin Multiplatform video player focused on local playback and real-time upscaling.
 
