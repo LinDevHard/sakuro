@@ -1,5 +1,12 @@
 # Sakuro
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF.svg)](https://kotlinlang.org/)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Android](https://img.shields.io/badge/Android-minSdk%2026-3DDC84.svg)](composeApp/build.gradle.kts)
+[![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
+[![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)
+
 Sakuro is a Kotlin Multiplatform video player focused on local playback and real-time upscaling.
 
 The Android app is the main product target. The Desktop/JVM target is kept as a fast UI and architecture sandbox, using a fake player engine where native Android playback is unavailable.
@@ -46,6 +53,8 @@ Useful project documents:
 - [FEATURES.md](FEATURES.md) - product feature map and implementation ownership.
 - [DESIGN.md](DESIGN.md) - interface principles, layout direction, and visual tokens.
 - [BRAND.md](BRAND.md) - name, voice, logo, palette, and asset rules.
+- [CHANGELOG.md](CHANGELOG.md) - notable changes by version.
+- [PRIVACY.md](PRIVACY.md) - local data handling and benchmark privacy notes.
 
 ## Build And Run
 
@@ -127,15 +136,19 @@ assets/branding/       Source branding assets
 
 ## Licensing
 
-Sakuro is intended to be distributed as GPLv3-compatible open source because the Android app links against libmpv. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses/).
+Sakuro is distributed under the [GNU General Public License v3.0](LICENSE) because the Android app links against libmpv. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses/).
 
-Before publishing a public release, add the final root `LICENSE` file and third-party notices for every distributed dependency and native artifact.
+Review [ARCHITECTURE.md](ARCHITECTURE.md) for licensing notes around engines, flavors, and third-party dependencies.
 
 ## Contributing
 
-The project is not yet accepting broad external contributions. Small, focused fixes are easiest to review: build issues, documentation corrections, reproducible playback bugs, and test-backed engine improvements.
+Small, focused contributions are welcome: build issues, documentation corrections, reproducible playback bugs, benchmark improvements, and test-backed engine fixes are easiest to review.
 
-Please include:
+Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+For security reports, please follow [SECURITY.md](SECURITY.md) and do not open a public issue.
+
+When reporting playback or quality problems, include:
 
 - Device/OS details for playback and shader issues.
 - Engine selection: Media3 or mpv.

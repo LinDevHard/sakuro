@@ -15,8 +15,8 @@ fun formatTime(ms: Long): String {
 private fun Long.pad(): String = toString().padStart(2, '0')
 
 fun formatSize(bytes: Long): String = when {
-    bytes >= 1L shl 30 -> "${((bytes.toDouble() / (1L shl 30)) * 10).toLong() / 10.0} English"
-    bytes >= 1L shl 20 -> "${bytes / (1L shl 20)} English"
-    bytes > 0 -> "${bytes / (1L shl 10)} English"
+    bytes >= 1L shl 30 -> "${((bytes.toDouble() / (1L shl 30)) * 10).toLong() / 10.0} GB"
+    bytes >= 1L shl 20 -> "${bytes / (1L shl 20)} MB"
+    bytes > 0 -> "${bytes / (1L shl 10)} KB"
     else -> ""
 }

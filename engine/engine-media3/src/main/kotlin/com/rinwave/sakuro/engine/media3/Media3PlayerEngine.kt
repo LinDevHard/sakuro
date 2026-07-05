@@ -42,11 +42,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * English №1 (ARCHITECTURE.md §2): Media3/ExoPlayer.
- * English — English `setVideoEffects()` English English `GlEffect` (English. [UpscaleEffectChain]).
+ * Media3/ExoPlayer implementation of [PlayerEngine].
  *
- * English Media3: English English English, English English English `prepare()`,
- * English English English English English English English re-prepare English English English.
+ * Upscaling is applied through `setVideoEffects()` using the effect list produced
+ * by [UpscaleEffectChain]. Media3 only applies a changed effect chain after
+ * preparation, so live preset changes re-prepare the current item while preserving
+ * playback position and play/pause state.
  */
 @UnstableApi
 class Media3PlayerEngine(context: Context) : PlayerEngine {
@@ -63,7 +64,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     private var currentMedia: MediaSource? = null
     private var currentProfile: UpscaleProfile = BuiltInPresets.OFF
 
-    /** English English, English English English English English English (0 — English English English). */
+    /** Source height used when the current effect chain was built; 0 means unknown. */
     private var effectsBuiltForHeight = -1
 
     private var videoDecoderName: String? = null
@@ -138,8 +139,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
                         bufferedMs = player.bufferedPosition.coerceAtLeast(0),
                     )
                 }
-                // English English English onVideoSizeChanged English English English —
-                // English English English English English English.
+                // With active video effects, Media3 may not always dispatch
+                // onVideoSizeChanged, so poll the current video format as a fallback.
                 val format = player.videoFormat
                 if (format != null && format.width > 0 && format.height > 0) {
                     onSourceSizeKnown(format.width, format.height)
@@ -154,8 +155,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         if (changed) {
             _state.update { it.copy(videoWidth = width, videoHeight = height) }
         }
-        // English English Upscale-passEnglish, English English English, English English English English
-        // English, English English Presentation — English English English English.
+        // If an upscale chain was created before the source size was known,
+        // rebuild it now so Presentation and shader planning use the real height.
         val needsRebuild = effectsBuiltForHeight == 0 &&
             currentProfile.passes.any { it is UpscalePass.Upscale }
         if (needsRebuild) {
@@ -218,7 +219,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             setEffectsInternal()
             return
         }
-        // English English English English English: English re-prepare English English English English.
+        // Media3 applies changed effects on prepare, so rebuild around the current item.
         val media = currentMedia ?: return
         val resumePosition = player.currentPosition
         val wasPlaying = player.playWhenReady

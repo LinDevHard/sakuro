@@ -72,13 +72,13 @@ import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
 import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
-import com.rinwave.sakuro.ui.displayDescription
-import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.components.EclipseLoader
 import com.rinwave.sakuro.ui.components.PlayPauseButton
 import com.rinwave.sakuro.ui.components.SakuroSeekBar
 import com.rinwave.sakuro.ui.components.SkipButton
 import com.rinwave.sakuro.ui.components.YouTubeSeekOverlay
+import com.rinwave.sakuro.ui.displayDescription
+import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.gestures.LevelSwipeSession
 import com.rinwave.sakuro.ui.gestures.PinchZoomSession
 import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks

@@ -1,0 +1,58 @@
+name: Upscale quality or performance
+description: Report shader quality, benchmark, FPS, thermal, or battery behavior.
+title: "[Quality]: "
+labels: ["quality", "performance", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for upscale quality, shader regressions, dropped frames, thermal behavior, or sakuro-bench results.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      placeholder: Anime4K M improves sharpness but adds halos on high-contrast line art.
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Engine
+      options:
+        - Media3
+        - mpv
+        - Offline mpv / sakuro-bench
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: preset
+    attributes:
+      label: Preset Or Mode
+      placeholder: off, mpv_ewa, anime4k_s, anime4k_m, Anime SD, custom profile
+  - type: input
+    id: source
+    attributes:
+      label: Source Details
+      placeholder: 480p anime, H.264, 24 fps, low bitrate, local file
+  - type: input
+    id: target
+    attributes:
+      label: Device / Runtime Details
+      placeholder: Pixel 9a, Android 16, battery saver off, normal thermal state
+  - type: textarea
+    id: benchmark
+    attributes:
+      label: Benchmark Evidence
+      description: Paste metrics, attach report screenshots, or link to a small repro sample if allowed.
+      placeholder: VMAF, VMAF-NEG, SSIM, sharpness, ringing, FPS, dropped frames...
+  - type: textarea
+    id: visual
+    attributes:
+      label: Visual Notes
+      description: Describe artifacts such as halos, ringing, shimmer, blur, noise boost, or color shifts.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Outcome
+      placeholder: Lower ringing without losing line detail; stable 24 fps; no thermal downgrade after 5 minutes.
