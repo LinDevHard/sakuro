@@ -105,6 +105,15 @@ depth-to-space; `_pt` — только где вызывается `_texOff`), �
 per-bind uniform'ов: id программы из `GL_CURRENT_PROGRAM`, `_size/_pt/сэмплер`
 ставим напрямую через `glGetUniformLocation` (location -1 → пропускаем).
 
+### Фикс №3 с устройства: гейт uniform по активности (коммит 65d7ce4)
+
+Обход GlProgram-сеттеров (фикс №2) сломал `bindAttributesAndUniforms`:
+`GlProgram` регистрирует активные uniform'ы и требует значение для каждого
+через СВОИ сеттеры (`No call to setSamplerTexId() before bind`). Итог: ставим
+через GlProgram, но каждый вызов гейтим `glGetUniformLocation>=0` — активные
+(GlProgram их знает) ставятся, неактивные (выкинуты компилятором) пропускаются.
+Так закрыты оба: NPE на неактивных и требование bind на активных.
+
 ### Про фазу 5 (гейтинг M-моделей) — уже частично закрыта
 
 `AdaptiveController.degradedTo` при термалке/просадке FPS убирает Sharpen и
