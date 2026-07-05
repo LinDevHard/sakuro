@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NOTE: Japanese strings are machine-translated and need a native review. -->
+<resources>
+    <!-- Actions / common -->
+    <string name="action_back">戻る</string>
+    <string name="action_settings">設定</string>
+    <string name="action_refresh">更新</string>
+    <string name="action_open_file">ファイルを開く</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_save">保存</string>
+    <string name="action_create">作成</string>
+    <string name="action_delete">削除</string>
+    <string name="action_edit">編集</string>
+    <string name="action_export_clipboard">クリップボードにコピー</string>
+    <string name="action_from_clipboard">クリップボードから</string>
+    <string name="value_off">オフ</string>
+
+    <!-- Library -->
+    <string name="library_empty_title">動画が見つかりません</string>
+    <string name="library_empty_subtitle">メディアライブラリへのアクセスを許可するか、ファイルを手動で開いてください</string>
+    <string name="tab_videos">動画</string>
+    <string name="tab_folders">フォルダ</string>
+    <string name="sort">並べ替え</string>
+    <string name="sort_by">並べ替え基準</string>
+    <string name="sort_ascending">昇順</string>
+    <string name="sort_descending">降順</string>
+    <string name="sort_field_date_added">追加日</string>
+    <string name="sort_field_name">名前</string>
+    <string name="sort_field_size">サイズ</string>
+    <string name="sort_field_duration">再生時間</string>
+    <string name="sort_field_resolution">解像度</string>
+    <string name="section_today">今日</string>
+    <string name="section_yesterday">昨日</string>
+    <string name="section_this_week">今週</string>
+    <string name="section_this_month">今月</string>
+    <string name="section_earlier">それ以前</string>
+    <string name="folder_other">その他</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_engine">再生エンジン</string>
+    <string name="settings_default_preset">既定のアップスケールプリセット</string>
+    <string name="settings_custom_presets">カスタムプリセット</string>
+    <string name="settings_custom_presets_empty">カスタムプリセットはまだありません。新規作成するか、クリップボードから貼り付けてください。</string>
+    <string name="settings_controls">操作</string>
+    <string name="settings_player_gestures">プレーヤーのジェスチャー</string>
+    <string name="settings_player_gestures_desc">スワイプ: 明るさ/音量/シーク、ピンチ: 表示モード</string>
+    <string name="settings_swipe_sensitivity">スワイプ感度</string>
+    <string name="settings_debug">デバッグ</string>
+    <string name="settings_adaptive_title">アダプティブなシェーダー切り替え</string>
+    <string name="settings_adaptive_desc">発熱時やFPS低下時にチェーンを簡略化します。正確な計測のためにはオフにすると、プリセットが選択どおりに適用されます。</string>
+    <string name="settings_debug_overlay">デバッグオーバーレイ</string>
+    <string name="settings_debug_overlay_desc">プレーヤー上の詳細統計 (Stats for nerds)</string>
+    <string name="settings_about">アプリについて</string>
+    <string name="settings_about_text">Sakuro 0.1.0 — リアルタイムアップスケール対応の動画プレーヤー。\nオープンソース (GPLv3)、Rinwave 制作。</string>
+
+    <!-- Engines -->
+    <string name="engine_mpv">libmpv</string>
+    <string name="engine_media3">Media3 (ExoPlayer)</string>
+    <string name="engine_fake">Fake (UIデバッグ)</string>
+    <string name="engine_media3_hint">Android ネイティブエンジン、GlEffect チェーンでアップスケール</string>
+    <string name="engine_mpv_hint">libmpv: 幅広いデコード、再準備なしでプリセットを即時適用</string>
+    <string name="engine_fake_hint">再生なしで UI をデバッグするためのモック</string>
+
+    <!-- Content classes -->
+    <string name="content_anime">アニメ</string>
+    <string name="content_cartoon">カートゥーン</string>
+    <string name="content_live_action">実写</string>
+    <string name="content_any">すべて</string>
+
+    <!-- Preset editor -->
+    <string name="preset_new">新しいプリセット</string>
+    <string name="preset_edit">プリセットを編集</string>
+    <string name="preset_name">名前</string>
+    <string name="preset_content_class">コンテンツの種類</string>
+    <string name="preset_content_class_hint">mpv はアニメとカートゥーンに Anime4K シェーダーを使用します</string>
+    <string name="preset_upscale">アップスケール</string>
+    <string name="preset_sharpness">シャープネス</string>
+    <string name="preset_denoise">ノイズ除去</string>
+
+    <!-- Built-in presets -->
+    <string name="preset_off_name">オフ</string>
+    <string name="preset_off_desc">処理なしの元の映像</string>
+    <string name="preset_anime_sd_name">アニメ SD</string>
+    <string name="preset_anime_sd_desc">SD アニメや低品質リップ向けの2×アップスケール、ノイズ除去、強めのシャープ化</string>
+    <string name="preset_anime_hd_name">アニメ HD</string>
+    <string name="preset_anime_hd_desc">720p/1080p アニメ向けの1.5×アップスケールと中程度のシャープ化</string>
+    <string name="preset_live_light_name">実写ライト</string>
+    <string name="preset_live_light_desc">アップスケールなしの控えめなシャープ化 — 実写映像向け</string>
+    <string name="preset_auto_name">自動</string>
+    <string name="preset_auto_desc">コンテンツの種類に応じてプリセットを選択します</string>
+
+    <!-- Preset chain summary (for user presets) -->
+    <string name="chain_none">処理なし</string>
+    <string name="chain_upscale">アップスケール ×%1$s</string>
+    <string name="chain_sharpness">シャープネス %1$s</string>
+    <string name="chain_denoise">ノイズ除去 %1$s</string>
+
+    <!-- Preset messages -->
+    <string name="msg_imported">%1$s をインポートしました</string>
+    <string name="msg_invalid_preset">クリップボードに有効なプリセットがありません</string>
+    <string name="msg_copied">%1$s をクリップボードにコピーしました</string>
+    <string name="msg_deleted">%1$s を削除しました</string>
+    <string name="msg_saved">%1$s を保存しました</string>
+
+    <!-- Player -->
+    <string name="player_stats_for_nerds">Stats for nerds</string>
+    <string name="player_seek_back">-10 秒</string>
+    <string name="player_seek_forward">+10 秒</string>
+    <string name="player_play">再生</string>
+    <string name="player_pause">一時停止</string>
+    <string name="player_upscale_preset">アップスケールプリセット</string>
+    <string name="player_pin_title">このファイルに固定</string>
+    <string name="player_pin_desc">プリセットはこの動画にのみ適用され、全体の選択は変更されません</string>
+    <string name="scale_fit_to_screen">画面に合わせる</string>
+    <string name="scale_fill_screen">画面いっぱい</string>
+    <string name="seek_seconds">%1$d 秒</string>
+</resources>

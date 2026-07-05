@@ -1,12 +1,12 @@
 package com.rinwave.sakuro.core.media
 
-/** Library sort field (FEATURES: library sorting). */
-enum class LibrarySort(val label: String) {
-    DateAdded("Date added"),
-    Name("Name"),
-    Size("Size"),
-    Duration("Duration"),
-    Resolution("Resolution"),
+/** Library sort field (FEATURES: library sorting). Display labels live in the UI layer. */
+enum class LibrarySort {
+    DateAdded,
+    Name,
+    Size,
+    Duration,
+    Resolution,
     ;
 
     /** Default direction for this field: descending for everything, ascending for name. */
@@ -19,13 +19,17 @@ data class SortOrder(
     val descending: Boolean = true,
 )
 
-/** A section of the video list (a title and its items). */
-data class VideoSection(val title: String, val items: List<VideoItem>)
+/** Relative age bucket used as a section header for date-sorted lists (resolved to text in the UI). */
+enum class DateBucket { TODAY, YESTERDAY, THIS_WEEK, THIS_MONTH, EARLIER }
 
-/** A folder of videos with a cover and count. */
+/** A section of the video list; [bucket] is null for a single, unheadered section. */
+data class VideoSection(val bucket: DateBucket?, val items: List<VideoItem>)
+
+/** A folder of videos with a cover and count; [isOther] marks the "no folder" catch-all. */
 data class VideoFolder(val name: String, val items: List<VideoItem>) {
     val count: Int get() = items.size
     val cover: VideoItem get() = items.first()
+    val isOther: Boolean get() = name == FOLDER_OTHER
 }
 
 private const val DAY_SECONDS = 86_400L
@@ -47,16 +51,16 @@ fun List<VideoItem>.sortedBy(order: SortOrder): List<VideoItem> {
     return sortedWith(cmp)
 }
 
-/** Group by folder; folders are sorted by name, items inside each by [order]. */
+/** Group by folder; named folders come first (alphabetically), the "Other" catch-all last. */
 fun List<VideoItem>.toFolders(order: SortOrder): List<VideoFolder> =
     groupBy { it.folderKey() }
-        .toSortedMap(String.CASE_INSENSITIVE_ORDER)
         .map { (name, items) -> VideoFolder(name, items.sortedBy(order)) }
+        .sortedWith(compareBy({ it.isOther }, { it.name.lowercase() }))
 
 /**
  * Group into sections. When sorting by date added, items are bucketed by age
- * (Today / Yesterday / This week / This month / Older), Google Photos style;
- * for any other field it returns a single unnamed section.
+ * (Today / Yesterday / This week / This month / Earlier), Google Photos style;
+ * for any other field it returns a single unheadered section.
  */
 fun List<VideoItem>.toSections(
     order: SortOrder,
@@ -64,21 +68,21 @@ fun List<VideoItem>.toSections(
 ): List<VideoSection> {
     val sorted = sortedBy(order)
     if (order.field != LibrarySort.DateAdded || sorted.isEmpty()) {
-        return if (sorted.isEmpty()) emptyList() else listOf(VideoSection("", sorted))
+        return if (sorted.isEmpty()) emptyList() else listOf(VideoSection(null, sorted))
     }
     val today = nowEpochSec / DAY_SECONDS
-    val grouped = LinkedHashMap<String, MutableList<VideoItem>>()
+    val grouped = LinkedHashMap<DateBucket, MutableList<VideoItem>>()
     for (item in sorted) {
-        val bucket = dateBucketLabel(today - item.dateAddedEpochSec / DAY_SECONDS)
+        val bucket = dateBucketFor(today - item.dateAddedEpochSec / DAY_SECONDS)
         grouped.getOrPut(bucket) { mutableListOf() }.add(item)
     }
-    return grouped.map { (title, items) -> VideoSection(title, items) }
+    return grouped.map { (bucket, items) -> VideoSection(bucket, items) }
 }
 
-private fun dateBucketLabel(dayDiff: Long): String = when {
-    dayDiff <= 0 -> "Today"
-    dayDiff == 1L -> "Yesterday"
-    dayDiff in 2..6 -> "This week"
-    dayDiff in 7..29 -> "This month"
-    else -> "Earlier"
+private fun dateBucketFor(dayDiff: Long): DateBucket = when {
+    dayDiff <= 0 -> DateBucket.TODAY
+    dayDiff == 1L -> DateBucket.YESTERDAY
+    dayDiff in 2..6 -> DateBucket.THIS_WEEK
+    dayDiff in 7..29 -> DateBucket.THIS_MONTH
+    else -> DateBucket.EARLIER
 }

@@ -28,6 +28,10 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
 import com.rinwave.sakuro.ui.theme.SakuroColors
+import org.jetbrains.compose.resources.stringResource
+import sakuro.composeapp.generated.resources.Res
+import sakuro.composeapp.generated.resources.player_pause
+import sakuro.composeapp.generated.resources.player_play
 
 /** Round play/pause button: springs on press, cross-fades the icon. */
 @Composable
@@ -64,7 +68,11 @@ fun PlayPauseButton(
         ) { playing ->
             Icon(
                 imageVector = if (playing) Lucide.Pause else Lucide.Play,
-                contentDescription = if (playing) "Pause" else "Play",
+                contentDescription = if (playing) {
+                    stringResource(Res.string.player_pause)
+                } else {
+                    stringResource(Res.string.player_play)
+                },
                 modifier = Modifier.padding(18.dp).size(32.dp),
             )
         }

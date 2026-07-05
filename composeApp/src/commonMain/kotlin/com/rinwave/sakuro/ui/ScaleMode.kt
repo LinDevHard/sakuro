@@ -9,10 +9,3 @@ enum class ScaleMode {
     FILL,
     ZOOM,
 }
-
-val ScaleMode.displayName: String
-    get() = when (this) {
-        ScaleMode.FIT -> "Fit"
-        ScaleMode.FILL -> "Fill"
-        ScaleMode.ZOOM -> "Zoom"
-    }

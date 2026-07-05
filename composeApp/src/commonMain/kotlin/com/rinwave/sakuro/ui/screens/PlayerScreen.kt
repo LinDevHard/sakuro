@@ -72,6 +72,8 @@ import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
 import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
+import com.rinwave.sakuro.ui.displayDescription
+import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.components.EclipseLoader
 import com.rinwave.sakuro.ui.components.PlayPauseButton
 import com.rinwave.sakuro.ui.components.SakuroSeekBar
@@ -87,6 +89,17 @@ import com.rinwave.sakuro.ui.rememberPlayerSystemControls
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
+import sakuro.composeapp.generated.resources.Res
+import sakuro.composeapp.generated.resources.action_back
+import sakuro.composeapp.generated.resources.player_pin_desc
+import sakuro.composeapp.generated.resources.player_pin_title
+import sakuro.composeapp.generated.resources.player_seek_back
+import sakuro.composeapp.generated.resources.player_seek_forward
+import sakuro.composeapp.generated.resources.player_stats_for_nerds
+import sakuro.composeapp.generated.resources.player_upscale_preset
+import sakuro.composeapp.generated.resources.scale_fill_screen
+import sakuro.composeapp.generated.resources.scale_fit_to_screen
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -465,7 +478,7 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = component::onBack) {
-                    Icon(Lucide.ChevronLeft, "Back", tint = SakuroColors.TextPrimary)
+                    Icon(Lucide.ChevronLeft, stringResource(Res.string.action_back), tint = SakuroColors.TextPrimary)
                 }
                 Text(
                     text = component.media.title,
@@ -492,13 +505,13 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Icon(Lucide.Sparkles, null, Modifier.size(14.dp))
-                        Text(activePreset.name, fontSize = 12.sp)
+                        Text(activePreset.displayName(), fontSize = 12.sp)
                     }
                 }
                 IconButton(onClick = component::toggleDebugOverlay) {
                     Icon(
                         Lucide.Activity,
-                        "Stats for nerds",
+                        stringResource(Res.string.player_stats_for_nerds),
                         tint = SakuroColors.TextMuted,
                         modifier = Modifier.size(18.dp),
                     )
@@ -515,7 +528,7 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
             ) {
                 SkipButton(
                     icon = Lucide.RotateCcw,
-                    contentDescription = "-10 sec",
+                    contentDescription = stringResource(Res.string.player_seek_back),
                     onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
                 )
                 Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
@@ -530,7 +543,7 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                 }
                 SkipButton(
                     icon = Lucide.RotateCw,
-                    contentDescription = "+10 sec",
+                    contentDescription = stringResource(Res.string.player_seek_forward),
                     onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
                 )
             }
@@ -607,8 +620,8 @@ private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifie
                     )
                     Text(
                         text = when {
-                            isFit -> "Fit to screen"
-                            isFill -> "Fill screen"
+                            isFit -> stringResource(Res.string.scale_fit_to_screen)
+                            isFill -> stringResource(Res.string.scale_fill_screen)
                             else -> formatZoom(indicator.totalFactor)
                         },
                         fontSize = 14.sp,
@@ -671,7 +684,7 @@ private fun PresetSheet(
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                "Upscale preset",
+                stringResource(Res.string.player_upscale_preset),
                 style = MaterialTheme.typography.titleMedium,
                 color = SakuroColors.TextPrimary,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -688,9 +701,13 @@ private fun PresetSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(preset.name, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            preset.description,
+                            preset.displayName(),
+                            color = SakuroColors.TextPrimary,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Text(
+                            preset.displayDescription(),
                             color = SakuroColors.TextMuted,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -725,12 +742,12 @@ private fun PinRow(component: PlayerComponent) {
         )
         Column(Modifier.weight(1f)) {
             Text(
-                "Pin to this file",
+                stringResource(Res.string.player_pin_title),
                 color = SakuroColors.TextPrimary,
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                "The preset applies only to this video and does not change the global selection",
+                stringResource(Res.string.player_pin_desc),
                 color = SakuroColors.TextMuted,
                 style = MaterialTheme.typography.bodySmall,
             )

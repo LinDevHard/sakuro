@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Actions / common -->
+    <string name="action_back">Back</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_open_file">Open file</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_create">Create</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_export_clipboard">Export to clipboard</string>
+    <string name="action_from_clipboard">From clipboard</string>
+    <string name="value_off">off</string>
+
+    <!-- Library -->
+    <string name="library_empty_title">No videos found</string>
+    <string name="library_empty_subtitle">Allow media-library access or open a file manually</string>
+    <string name="tab_videos">Videos</string>
+    <string name="tab_folders">Folders</string>
+    <string name="sort">Sort</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_ascending">Ascending</string>
+    <string name="sort_descending">Descending</string>
+    <string name="sort_field_date_added">Date added</string>
+    <string name="sort_field_name">Name</string>
+    <string name="sort_field_size">Size</string>
+    <string name="sort_field_duration">Duration</string>
+    <string name="sort_field_resolution">Resolution</string>
+    <string name="section_today">Today</string>
+    <string name="section_yesterday">Yesterday</string>
+    <string name="section_this_week">This week</string>
+    <string name="section_this_month">This month</string>
+    <string name="section_earlier">Earlier</string>
+    <string name="folder_other">Other</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_engine">Playback engine</string>
+    <string name="settings_default_preset">Default upscale preset</string>
+    <string name="settings_custom_presets">Custom presets</string>
+    <string name="settings_custom_presets_empty">No custom presets yet — create one or paste one from the clipboard.</string>
+    <string name="settings_controls">Controls</string>
+    <string name="settings_player_gestures">Player gestures</string>
+    <string name="settings_player_gestures_desc">Swipes: brightness/volume/seek; pinch: frame mode</string>
+    <string name="settings_swipe_sensitivity">Swipe sensitivity</string>
+    <string name="settings_debug">Debug</string>
+    <string name="settings_adaptive_title">Adaptive shader switching</string>
+    <string name="settings_adaptive_desc">Simplifies the chain under heat or FPS drops. Turn off for clean tests — the preset is applied as selected.</string>
+    <string name="settings_debug_overlay">Debug overlay</string>
+    <string name="settings_debug_overlay_desc">Stats for nerds over the player</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_text">Sakuro 0.1.0 — video player with real-time upscaling.\nOpen source (GPLv3), by Rinwave.</string>
+
+    <!-- Engines -->
+    <string name="engine_mpv">libmpv</string>
+    <string name="engine_media3">Media3 (ExoPlayer)</string>
+    <string name="engine_fake">Fake (UI debugging)</string>
+    <string name="engine_media3_hint">Native Android engine, upscale through a GlEffect chain</string>
+    <string name="engine_mpv_hint">libmpv: broad decoding, live presets without re-prepare</string>
+    <string name="engine_fake_hint">Mock for UI debugging without playback</string>
+
+    <!-- Content classes -->
+    <string name="content_anime">Anime</string>
+    <string name="content_cartoon">Cartoon</string>
+    <string name="content_live_action">Live-action</string>
+    <string name="content_any">Any</string>
+
+    <!-- Preset editor -->
+    <string name="preset_new">New preset</string>
+    <string name="preset_edit">Edit preset</string>
+    <string name="preset_name">Name</string>
+    <string name="preset_content_class">Content class</string>
+    <string name="preset_content_class_hint">mpv uses Anime4K shaders for Anime and Cartoon</string>
+    <string name="preset_upscale">Upscale</string>
+    <string name="preset_sharpness">Sharpness</string>
+    <string name="preset_denoise">Denoise</string>
+
+    <!-- Built-in presets -->
+    <string name="preset_off_name">Off</string>
+    <string name="preset_off_desc">The original picture with no processing</string>
+    <string name="preset_anime_sd_name">Anime SD</string>
+    <string name="preset_anime_sd_desc">2× upscale, denoise and aggressive sharpening for SD anime and weak rips</string>
+    <string name="preset_anime_hd_name">Anime HD</string>
+    <string name="preset_anime_hd_desc">1.5× upscale and moderate sharpening for 720p/1080p anime</string>
+    <string name="preset_live_light_name">Live-action light</string>
+    <string name="preset_live_light_desc">Gentle sharpening without upscaling — for live-action footage</string>
+    <string name="preset_auto_name">Auto</string>
+    <string name="preset_auto_desc">The preset is chosen by content class</string>
+
+    <!-- Preset chain summary (for user presets) -->
+    <string name="chain_none">No processing</string>
+    <string name="chain_upscale">upscale ×%1$s</string>
+    <string name="chain_sharpness">sharpness %1$s</string>
+    <string name="chain_denoise">denoise %1$s</string>
+
+    <!-- Preset messages -->
+    <string name="msg_imported">Imported %1$s</string>
+    <string name="msg_invalid_preset">Clipboard does not contain a valid preset</string>
+    <string name="msg_copied">%1$s copied to clipboard</string>
+    <string name="msg_deleted">%1$s deleted</string>
+    <string name="msg_saved">Saved %1$s</string>
+
+    <!-- Player -->
+    <string name="player_stats_for_nerds">Stats for nerds</string>
+    <string name="player_seek_back">-10 sec</string>
+    <string name="player_seek_forward">+10 sec</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_upscale_preset">Upscale preset</string>
+    <string name="player_pin_title">Pin to this file</string>
+    <string name="player_pin_desc">The preset applies only to this video and does not change the global selection</string>
+    <string name="scale_fit_to_screen">Fit to screen</string>
+    <string name="scale_fill_screen">Fill screen</string>
+    <string name="seek_seconds">%1$d s</string>
+</resources>

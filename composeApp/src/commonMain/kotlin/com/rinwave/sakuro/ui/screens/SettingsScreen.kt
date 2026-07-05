@@ -53,14 +53,77 @@ import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Trash2
 import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.displayName
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.navigation.SettingsComponent
+import com.rinwave.sakuro.ui.displayDescription
+import com.rinwave.sakuro.ui.displayName
+import com.rinwave.sakuro.ui.formatMultiplier
+import com.rinwave.sakuro.ui.formatPercent
+import com.rinwave.sakuro.ui.hint
+import com.rinwave.sakuro.ui.label
 import com.rinwave.sakuro.ui.theme.SakuroColors
+import org.jetbrains.compose.resources.stringResource
+import sakuro.composeapp.generated.resources.Res
+import sakuro.composeapp.generated.resources.action_back
+import sakuro.composeapp.generated.resources.action_cancel
+import sakuro.composeapp.generated.resources.action_create
+import sakuro.composeapp.generated.resources.action_delete
+import sakuro.composeapp.generated.resources.action_edit
+import sakuro.composeapp.generated.resources.action_export_clipboard
+import sakuro.composeapp.generated.resources.action_from_clipboard
+import sakuro.composeapp.generated.resources.action_save
+import sakuro.composeapp.generated.resources.msg_copied
+import sakuro.composeapp.generated.resources.msg_deleted
+import sakuro.composeapp.generated.resources.msg_imported
+import sakuro.composeapp.generated.resources.msg_invalid_preset
+import sakuro.composeapp.generated.resources.msg_saved
+import sakuro.composeapp.generated.resources.preset_content_class
+import sakuro.composeapp.generated.resources.preset_content_class_hint
+import sakuro.composeapp.generated.resources.preset_denoise
+import sakuro.composeapp.generated.resources.preset_edit
+import sakuro.composeapp.generated.resources.preset_name
+import sakuro.composeapp.generated.resources.preset_new
+import sakuro.composeapp.generated.resources.preset_sharpness
+import sakuro.composeapp.generated.resources.preset_upscale
+import sakuro.composeapp.generated.resources.settings_about
+import sakuro.composeapp.generated.resources.settings_about_text
+import sakuro.composeapp.generated.resources.settings_adaptive_desc
+import sakuro.composeapp.generated.resources.settings_adaptive_title
+import sakuro.composeapp.generated.resources.settings_controls
+import sakuro.composeapp.generated.resources.settings_custom_presets
+import sakuro.composeapp.generated.resources.settings_custom_presets_empty
+import sakuro.composeapp.generated.resources.settings_debug
+import sakuro.composeapp.generated.resources.settings_debug_overlay
+import sakuro.composeapp.generated.resources.settings_debug_overlay_desc
+import sakuro.composeapp.generated.resources.settings_default_preset
+import sakuro.composeapp.generated.resources.settings_engine
+import sakuro.composeapp.generated.resources.settings_player_gestures
+import sakuro.composeapp.generated.resources.settings_player_gestures_desc
+import sakuro.composeapp.generated.resources.settings_swipe_sensitivity
+import sakuro.composeapp.generated.resources.settings_title
+import sakuro.composeapp.generated.resources.value_off
+
+/** A pending status message shown under the custom-presets section, resolved to text in composition. */
+private sealed interface PresetMessage {
+    data class Imported(val name: String) : PresetMessage
+    data class Copied(val name: String) : PresetMessage
+    data class Deleted(val name: String) : PresetMessage
+    data class Saved(val name: String) : PresetMessage
+    data object Invalid : PresetMessage
+}
+
+@Composable
+private fun PresetMessage.text(): String = when (this) {
+    is PresetMessage.Imported -> stringResource(Res.string.msg_imported, name)
+    is PresetMessage.Copied -> stringResource(Res.string.msg_copied, name)
+    is PresetMessage.Deleted -> stringResource(Res.string.msg_deleted, name)
+    is PresetMessage.Saved -> stringResource(Res.string.msg_saved, name)
+    PresetMessage.Invalid -> stringResource(Res.string.msg_invalid_preset)
+}
 
 @Composable
 fun SettingsScreen(component: SettingsComponent) {
@@ -76,7 +139,7 @@ fun SettingsScreen(component: SettingsComponent) {
     val clipboard = LocalClipboardManager.current
     var editorInitial by remember { mutableStateOf<UpscaleProfile?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
-    var presetMessage by remember { mutableStateOf<String?>(null) }
+    var presetMessage by remember { mutableStateOf<PresetMessage?>(null) }
 
     Column(
         Modifier
@@ -89,12 +152,16 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = component.onBack) {
-                Icon(Lucide.ChevronLeft, "Back", tint = SakuroColors.TextPrimary)
+                Icon(Lucide.ChevronLeft, stringResource(Res.string.action_back), tint = SakuroColors.TextPrimary)
             }
-            Text("Settings", style = MaterialTheme.typography.titleLarge, color = SakuroColors.TextPrimary)
+            Text(
+                stringResource(Res.string.settings_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = SakuroColors.TextPrimary,
+            )
         }
 
-        SectionTitle("Playback engine")
+        SectionTitle(stringResource(Res.string.settings_engine))
         component.availableEngines.forEach { type ->
             EngineRow(
                 type = type,
@@ -109,7 +176,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Default upscale preset")
+        SectionTitle(stringResource(Res.string.settings_default_preset))
         presets.forEach { preset ->
             Row(
                 Modifier
@@ -124,18 +191,26 @@ fun SettingsScreen(component: SettingsComponent) {
                     colors = RadioButtonDefaults.colors(selectedColor = SakuroColors.AccentSakura),
                 )
                 Column(Modifier.padding(start = 4.dp)) {
-                    Text(preset.name, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                    Text(preset.description, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        preset.displayName(),
+                        color = SakuroColors.TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        preset.displayDescription(),
+                        color = SakuroColors.TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
             }
         }
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Custom presets")
+        SectionTitle(stringResource(Res.string.settings_custom_presets))
         if (userPresets.isEmpty()) {
             Text(
-                "No custom presets yet - create one or paste one from the clipboard.",
+                stringResource(Res.string.settings_custom_presets_empty),
                 color = SakuroColors.TextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -150,11 +225,11 @@ fun SettingsScreen(component: SettingsComponent) {
                 },
                 onExport = {
                     clipboard.setText(AnnotatedString(component.exportUserPreset(preset)))
-                    presetMessage = "${preset.name} copied to clipboard"
+                    presetMessage = PresetMessage.Copied(preset.name)
                 },
                 onDelete = {
                     component.deleteUserPreset(preset.id)
-                    presetMessage = "${preset.name} deleted"
+                    presetMessage = PresetMessage.Deleted(preset.name)
                 },
             )
         }
@@ -167,25 +242,25 @@ fun SettingsScreen(component: SettingsComponent) {
             ) {
                 Icon(Lucide.Plus, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
                 Spacer(Modifier.size(6.dp))
-                Text("Create", color = SakuroColors.AccentSakura)
+                Text(stringResource(Res.string.action_create), color = SakuroColors.AccentSakura)
             }
             TextButton(
                 onClick = {
                     val raw = clipboard.getText()?.text.orEmpty()
                     presetMessage = component.importUserPreset(raw).fold(
-                        onSuccess = { "Imported ${it.name}" },
-                        onFailure = { "Clipboard does not contain a valid preset" },
+                        onSuccess = { PresetMessage.Imported(it.name) },
+                        onFailure = { PresetMessage.Invalid },
                     )
                 },
             ) {
                 Icon(Lucide.ClipboardPaste, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
                 Spacer(Modifier.size(6.dp))
-                Text("From clipboard", color = SakuroColors.AccentSakura)
+                Text(stringResource(Res.string.action_from_clipboard), color = SakuroColors.AccentSakura)
             }
         }
         presetMessage?.let { message ->
             Text(
-                message,
+                message.text(),
                 color = SakuroColors.AccentLavender,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -194,7 +269,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Controls")
+        SectionTitle(stringResource(Res.string.settings_controls))
         Row(
             Modifier
                 .fillMaxWidth()
@@ -203,9 +278,13 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Player gestures", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Swipes: brightness/volume/seek; pinch: frame mode",
+                    stringResource(Res.string.settings_player_gestures),
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    stringResource(Res.string.settings_player_gestures_desc),
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -222,7 +301,7 @@ fun SettingsScreen(component: SettingsComponent) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Swipe sensitivity",
+                    stringResource(Res.string.settings_swipe_sensitivity),
                     color = if (gesturesEnabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f),
@@ -249,7 +328,7 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("Debug")
+        SectionTitle(stringResource(Res.string.settings_debug))
         Row(
             Modifier
                 .fillMaxWidth()
@@ -259,13 +338,12 @@ fun SettingsScreen(component: SettingsComponent) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Adaptive shader switching",
+                    stringResource(Res.string.settings_adaptive_title),
                     color = SakuroColors.TextPrimary,
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    "Simplifies the chain under heat or FPS drops. " +
-                        "Turn off for clean tests - the preset is applied as selected.",
+                    stringResource(Res.string.settings_adaptive_desc),
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -288,9 +366,13 @@ fun SettingsScreen(component: SettingsComponent) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Debug overlay", color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Stats for nerds over the player",
+                    stringResource(Res.string.settings_debug_overlay),
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    stringResource(Res.string.settings_debug_overlay_desc),
                     color = SakuroColors.TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -307,9 +389,9 @@ fun SettingsScreen(component: SettingsComponent) {
 
         HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
 
-        SectionTitle("About")
+        SectionTitle(stringResource(Res.string.settings_about))
         Text(
-            "Sakuro 0.1.0 — video player with real-time upscaling.\nOpen source (GPLv3), by Rinwave.",
+            stringResource(Res.string.settings_about_text),
             color = SakuroColors.TextMuted,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -322,7 +404,7 @@ fun SettingsScreen(component: SettingsComponent) {
             initial = editorInitial,
             onSave = { profile ->
                 val saved = component.saveUserPreset(profile)
-                presetMessage = "Saved ${saved.name}"
+                presetMessage = PresetMessage.Saved(saved.name)
                 editorVisible = false
             },
             onDismiss = { editorVisible = false },
@@ -342,17 +424,26 @@ private fun UserPresetRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(preset.name, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
-            Text(preset.description, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+            Text(preset.displayName(), color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                preset.displayDescription(),
+                color = SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
         IconButton(onClick = onEdit) {
-            Icon(Lucide.Pencil, "Edit", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(Lucide.Pencil, stringResource(Res.string.action_edit), Modifier.size(18.dp), tint = SakuroColors.TextMuted)
         }
         IconButton(onClick = onExport) {
-            Icon(Lucide.Copy, "Export to clipboard", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(
+                Lucide.Copy,
+                stringResource(Res.string.action_export_clipboard),
+                Modifier.size(18.dp),
+                tint = SakuroColors.TextMuted,
+            )
         }
         IconButton(onClick = onDelete) {
-            Icon(Lucide.Trash2, "Delete", Modifier.size(18.dp), tint = SakuroColors.TextMuted)
+            Icon(Lucide.Trash2, stringResource(Res.string.action_delete), Modifier.size(18.dp), tint = SakuroColors.TextMuted)
         }
     }
 }
@@ -378,6 +469,7 @@ private fun PresetEditorDialog(
     var denoise by remember {
         mutableStateOf(initial?.passes?.filterIsInstance<UpscalePass.Denoise>()?.firstOrNull()?.strength ?: 0f)
     }
+    val offLabel = stringResource(Res.string.value_off)
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -387,14 +479,18 @@ private fun PresetEditorDialog(
         ) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    if (initial == null) "New preset" else "Edit preset",
+                    if (initial == null) {
+                        stringResource(Res.string.preset_new)
+                    } else {
+                        stringResource(Res.string.preset_edit)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = SakuroColors.TextPrimary,
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(Res.string.preset_name)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SakuroColors.AccentSakura,
@@ -405,7 +501,7 @@ private fun PresetEditorDialog(
                 )
 
                 Text(
-                    "Content class",
+                    stringResource(Res.string.preset_content_class),
                     style = MaterialTheme.typography.labelLarge,
                     color = SakuroColors.AccentLavender,
                     modifier = Modifier.padding(top = 16.dp),
@@ -418,7 +514,7 @@ private fun PresetEditorDialog(
                         FilterChip(
                             selected = candidate == contentClass,
                             onClick = { contentClass = candidate },
-                            label = { Text(candidate.label) },
+                            label = { Text(candidate.label()) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
                                 selectedLabelColor = SakuroColors.TextPrimary,
@@ -428,36 +524,38 @@ private fun PresetEditorDialog(
                     }
                 }
                 Text(
-                    "mpv uses Anime4K shaders for Anime and Cartoon",
+                    stringResource(Res.string.preset_content_class_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = SakuroColors.TextMuted,
                 )
 
                 EditorSlider(
-                    title = "Upscale",
-                    valueText = if (upscale > UserPresetStore.UPSCALE_MIN) "×${formatMultiplier(upscale)}" else "off",
+                    title = stringResource(Res.string.preset_upscale),
+                    valueText = if (upscale > UserPresetStore.UPSCALE_MIN) "×${formatMultiplier(upscale)}" else offLabel,
                     value = upscale,
                     range = UserPresetStore.UPSCALE_MIN..UserPresetStore.UPSCALE_MAX,
                     steps = UPSCALE_SLIDER_STEPS,
                     onChange = { upscale = it },
                 )
                 EditorSlider(
-                    title = "Sharpness",
-                    valueText = if (sharpen > 0f) formatPercent(sharpen) else "off",
+                    title = stringResource(Res.string.preset_sharpness),
+                    valueText = if (sharpen > 0f) formatPercent(sharpen) else offLabel,
                     value = sharpen,
                     range = 0f..1f,
                     onChange = { sharpen = it },
                 )
                 EditorSlider(
-                    title = "Denoise",
-                    valueText = if (denoise > 0f) formatPercent(denoise) else "off",
+                    title = stringResource(Res.string.preset_denoise),
+                    valueText = if (denoise > 0f) formatPercent(denoise) else offLabel,
                     value = denoise,
                     range = 0f..1f,
                     onChange = { denoise = it },
                 )
 
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Cancel", color = SakuroColors.TextMuted) }
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(Res.string.action_cancel), color = SakuroColors.TextMuted)
+                    }
                     TextButton(
                         onClick = {
                             val passes = buildList {
@@ -476,7 +574,7 @@ private fun PresetEditorDialog(
                             )
                         },
                     ) {
-                        Text("Save", color = SakuroColors.AccentSakura)
+                        Text(stringResource(Res.string.action_save), color = SakuroColors.AccentSakura)
                     }
                 }
             }
@@ -517,18 +615,10 @@ private fun EditorSlider(
     }
 }
 
-private val ContentClass.label: String
-    get() = when (this) {
-        ContentClass.ANIME -> "Anime"
-        ContentClass.CARTOON -> "Cartoon"
-        ContentClass.LIVE_ACTION -> "Live-action"
-        ContentClass.UNKNOWN -> "Any"
-    }
-
-/** Human-readable chain description for preset lists. */
+/** Stored (non-localized) technical summary used for export; the UI shows [displayDescription]. */
 private fun chainSummary(passes: List<UpscalePass>): String =
     if (passes.isEmpty()) {
-        "No processing"
+        "none"
     } else {
         passes.joinToString(" · ") { pass ->
             when (pass) {
@@ -539,21 +629,11 @@ private fun chainSummary(passes: List<UpscalePass>): String =
         }
     }
 
-private fun formatPercent(value: Float): String = "${(value * PERCENT).toInt()}%"
-
-private const val PERCENT = 100
-
 // 1x..4x with a 0.25 step gives 11 intermediate slider ticks.
 private const val UPSCALE_SLIDER_STEPS = 11
 
 // 0.5x..2x with a 0.25 step gives 5 intermediate slider ticks.
 private const val SENSITIVITY_STEPS = 5
-
-/** "1", "1.25" - multiplier without trailing zeroes for sensitivity and upscale factor. */
-private fun formatMultiplier(value: Float): String {
-    val rounded = (value * PERCENT).toInt()
-    return if (rounded % PERCENT == 0) "${rounded / PERCENT}" else (rounded / PERCENT.toFloat()).toString()
-}
 
 @Composable
 private fun SectionTitle(text: String) {
@@ -582,16 +662,11 @@ private fun EngineRow(type: EngineType, selected: Boolean, enabled: Boolean, onC
         )
         Column(Modifier.padding(start = 4.dp)) {
             Text(
-                type.displayName,
+                type.label(),
                 color = if (enabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
                 style = MaterialTheme.typography.bodyLarge,
             )
-            val hint = when (type) {
-                EngineType.MEDIA3 -> "Native Android engine, upscale through a GlEffect chain"
-                EngineType.MPV -> "libmpv: broad decoding, live presets without re-prepare"
-                EngineType.FAKE -> "Mock for UI debugging without playback"
-            }
-            Text(hint, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+            Text(type.hint(), color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

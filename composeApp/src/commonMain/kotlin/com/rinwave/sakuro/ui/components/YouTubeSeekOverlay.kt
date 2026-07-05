@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.ui.theme.SakuroColors
+import org.jetbrains.compose.resources.stringResource
+import sakuro.composeapp.generated.resources.Res
+import sakuro.composeapp.generated.resources.seek_seconds
 
 /**
  * A ripple overlay for double-tap seek, YouTube-style: a circle radiates from
@@ -102,7 +105,11 @@ fun YouTubeSeekOverlay(
                     )
                 }
             }
-            Text("$seconds s", color = SakuroColors.TextPrimary, fontSize = 15.sp)
+            Text(
+                stringResource(Res.string.seek_seconds, seconds),
+                color = SakuroColors.TextPrimary,
+                fontSize = 15.sp,
+            )
         }
     }
 }

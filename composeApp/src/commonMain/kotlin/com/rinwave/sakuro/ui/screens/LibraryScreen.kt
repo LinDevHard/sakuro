@@ -64,6 +64,7 @@ import com.composables.icons.lucide.FolderOpen
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
+import com.rinwave.sakuro.core.media.FOLDER_OTHER
 import com.rinwave.sakuro.core.media.LibrarySort
 import com.rinwave.sakuro.core.media.SortOrder
 import com.rinwave.sakuro.core.media.VideoFolder
@@ -72,10 +73,26 @@ import com.rinwave.sakuro.core.media.VideoSection
 import com.rinwave.sakuro.navigation.LibraryComponent
 import com.rinwave.sakuro.navigation.LibraryComponent.Tab
 import com.rinwave.sakuro.ui.VideoThumbnail
+import com.rinwave.sakuro.ui.label
 import com.rinwave.sakuro.ui.rememberVideoFilePicker
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatSize
 import com.rinwave.sakuro.ui.util.formatTime
+import org.jetbrains.compose.resources.stringResource
+import sakuro.composeapp.generated.resources.Res
+import sakuro.composeapp.generated.resources.action_back
+import sakuro.composeapp.generated.resources.action_open_file
+import sakuro.composeapp.generated.resources.action_refresh
+import sakuro.composeapp.generated.resources.action_settings
+import sakuro.composeapp.generated.resources.folder_other
+import sakuro.composeapp.generated.resources.library_empty_subtitle
+import sakuro.composeapp.generated.resources.library_empty_title
+import sakuro.composeapp.generated.resources.sort
+import sakuro.composeapp.generated.resources.sort_ascending
+import sakuro.composeapp.generated.resources.sort_by
+import sakuro.composeapp.generated.resources.sort_descending
+import sakuro.composeapp.generated.resources.tab_folders
+import sakuro.composeapp.generated.resources.tab_videos
 
 @Composable
 fun LibraryScreen(component: LibraryComponent) {
@@ -91,7 +108,7 @@ fun LibraryScreen(component: LibraryComponent) {
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Lucide.FolderOpen, contentDescription = null, Modifier.size(20.dp)) },
-                text = { Text("Open file") },
+                text = { Text(stringResource(Res.string.action_open_file)) },
             )
         },
     ) { padding ->
@@ -169,10 +186,20 @@ private fun LibraryHeader(onRefresh: () -> Unit, onSettings: () -> Unit) {
         }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onRefresh) {
-            Icon(Lucide.RefreshCw, "Refresh", tint = SakuroColors.TextMuted, modifier = Modifier.size(20.dp))
+            Icon(
+                Lucide.RefreshCw,
+                stringResource(Res.string.action_refresh),
+                tint = SakuroColors.TextMuted,
+                modifier = Modifier.size(20.dp),
+            )
         }
         IconButton(onClick = onSettings) {
-            Icon(Lucide.Settings, "Settings", tint = SakuroColors.TextMuted, modifier = Modifier.size(22.dp))
+            Icon(
+                Lucide.Settings,
+                stringResource(Res.string.action_settings),
+                tint = SakuroColors.TextMuted,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -191,10 +218,15 @@ private fun CatalogControls(
         val folder = state.openFolder
         if (folder != null) {
             IconButton(onClick = onBack) {
-                Icon(Lucide.ArrowLeft, "Back", tint = SakuroColors.TextPrimary, modifier = Modifier.size(22.dp))
+                Icon(
+                    Lucide.ArrowLeft,
+                    stringResource(Res.string.action_back),
+                    tint = SakuroColors.TextPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
             }
             Text(
-                text = folder,
+                text = folderLabel(folder),
                 style = MaterialTheme.typography.titleMedium,
                 color = SakuroColors.TextPrimary,
                 maxLines = 1,
@@ -215,8 +247,8 @@ private fun SegmentedTabs(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modi
             .background(SakuroColors.Surface, CircleShape)
             .padding(3.dp),
     ) {
-        SegmentChip("Videos", selected == Tab.Videos) { onSelect(Tab.Videos) }
-        SegmentChip("Folders", selected == Tab.Folders) { onSelect(Tab.Folders) }
+        SegmentChip(stringResource(Res.string.tab_videos), selected == Tab.Videos) { onSelect(Tab.Videos) }
+        SegmentChip(stringResource(Res.string.tab_folders), selected == Tab.Folders) { onSelect(Tab.Folders) }
     }
 }
 
@@ -250,8 +282,13 @@ private fun SortButton(order: SortOrder, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(Lucide.ArrowDownUp, "Sort", tint = SakuroColors.AccentSakura, modifier = Modifier.size(16.dp))
-        Text(order.field.label, style = MaterialTheme.typography.labelMedium, color = SakuroColors.TextPrimary)
+        Icon(
+            Lucide.ArrowDownUp,
+            stringResource(Res.string.sort),
+            tint = SakuroColors.AccentSakura,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(order.field.label(), style = MaterialTheme.typography.labelMedium, color = SakuroColors.TextPrimary)
     }
 }
 
@@ -265,8 +302,8 @@ private fun VideoGrid(sections: List<VideoSection>, onClick: (VideoItem) -> Unit
         modifier = Modifier.fillMaxSize(),
     ) {
         sections.forEach { section ->
-            if (section.title.isNotEmpty()) {
-                item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(section.title) }
+            section.bucket?.let { bucket ->
+                item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(bucket.label()) }
             }
             items(section.items, key = { it.id }) { item ->
                 VideoCard(item = item, onClick = { onClick(item) })
@@ -306,9 +343,13 @@ private fun EmptyLibrary() {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Lucide.Film, contentDescription = null, tint = SakuroColors.Twilight, modifier = Modifier.size(56.dp))
-            Text("No videos found", style = MaterialTheme.typography.titleMedium, color = SakuroColors.TextPrimary)
             Text(
-                "Allow media-library access or open a file manually",
+                stringResource(Res.string.library_empty_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = SakuroColors.TextPrimary,
+            )
+            Text(
+                stringResource(Res.string.library_empty_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SakuroColors.TextMuted,
             )
@@ -412,7 +453,7 @@ private fun FolderCard(folder: VideoFolder, onClick: () -> Unit) {
                 modifier = Modifier.size(15.dp),
             )
             Text(
-                text = folder.name,
+                text = folderLabel(folder.name),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SakuroColors.TextPrimary,
                 maxLines = 1,
@@ -421,6 +462,11 @@ private fun FolderCard(folder: VideoFolder, onClick: () -> Unit) {
         }
     }
 }
+
+/** The catch-all "Other" folder shows a localized label; real folders keep their name. */
+@Composable
+private fun folderLabel(name: String): String =
+    if (name == FOLDER_OTHER) stringResource(Res.string.folder_other) else name
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -441,7 +487,7 @@ private fun SortSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Sort by",
+                    stringResource(Res.string.sort_by),
                     style = MaterialTheme.typography.titleMedium,
                     color = SakuroColors.TextPrimary,
                     modifier = Modifier.weight(1f),
@@ -473,7 +519,11 @@ private fun DirectionToggle(descending: Boolean, onClick: () -> Unit) {
             modifier = Modifier.size(15.dp),
         )
         Text(
-            text = if (descending) "Descending" else "Ascending",
+            text = if (descending) {
+                stringResource(Res.string.sort_descending)
+            } else {
+                stringResource(Res.string.sort_ascending)
+            },
             style = MaterialTheme.typography.labelMedium,
             color = SakuroColors.TextPrimary,
         )
@@ -491,7 +541,7 @@ private fun SortRow(field: LibrarySort, selected: Boolean, onClick: () -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = field.label,
+            text = field.label(),
             style = MaterialTheme.typography.bodyLarge,
             color = if (selected) SakuroColors.AccentSakura else SakuroColors.TextPrimary,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

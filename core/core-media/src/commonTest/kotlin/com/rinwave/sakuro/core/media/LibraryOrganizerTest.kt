@@ -78,8 +78,14 @@ class LibraryOrganizerTest {
         )
         val sections = items.toSections(SortOrder(LibrarySort.DateAdded, descending = true), nowEpochSec = now)
         assertEquals(
-            listOf("Today", "Yesterday", "This week", "This month", "Earlier"),
-            sections.map { it.title },
+            listOf(
+                DateBucket.TODAY,
+                DateBucket.YESTERDAY,
+                DateBucket.THIS_WEEK,
+                DateBucket.THIS_MONTH,
+                DateBucket.EARLIER,
+            ),
+            sections.map { it.bucket },
         )
     }
 
@@ -88,7 +94,7 @@ class LibraryOrganizerTest {
         val items = listOf(item("b", "b"), item("a", "a"))
         val sections = items.toSections(SortOrder(LibrarySort.Name, descending = false), nowEpochSec = now)
         assertEquals(1, sections.size)
-        assertTrue(sections.single().title.isEmpty())
+        assertTrue(sections.single().bucket == null)
         assertEquals(listOf("a", "b"), sections.single().items.map { it.id })
     }
 

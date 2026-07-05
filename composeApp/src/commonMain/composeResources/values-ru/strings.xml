@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Actions / common -->
+    <string name="action_back">Назад</string>
+    <string name="action_settings">Настройки</string>
+    <string name="action_refresh">Обновить</string>
+    <string name="action_open_file">Открыть файл</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_create">Создать</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_edit">Изменить</string>
+    <string name="action_export_clipboard">Скопировать в буфер</string>
+    <string name="action_from_clipboard">Из буфера</string>
+    <string name="value_off">выкл</string>
+
+    <!-- Library -->
+    <string name="library_empty_title">Видео не найдены</string>
+    <string name="library_empty_subtitle">Разрешите доступ к медиатеке или откройте файл вручную</string>
+    <string name="tab_videos">Видео</string>
+    <string name="tab_folders">Папки</string>
+    <string name="sort">Сортировка</string>
+    <string name="sort_by">Сортировать по</string>
+    <string name="sort_ascending">По возрастанию</string>
+    <string name="sort_descending">По убыванию</string>
+    <string name="sort_field_date_added">Дате добавления</string>
+    <string name="sort_field_name">Имени</string>
+    <string name="sort_field_size">Размеру</string>
+    <string name="sort_field_duration">Длительности</string>
+    <string name="sort_field_resolution">Разрешению</string>
+    <string name="section_today">Сегодня</string>
+    <string name="section_yesterday">Вчера</string>
+    <string name="section_this_week">На этой неделе</string>
+    <string name="section_this_month">В этом месяце</string>
+    <string name="section_earlier">Ранее</string>
+    <string name="folder_other">Другое</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_engine">Движок воспроизведения</string>
+    <string name="settings_default_preset">Пресет апскейла по умолчанию</string>
+    <string name="settings_custom_presets">Свои пресеты</string>
+    <string name="settings_custom_presets_empty">Пока нет своих пресетов — создайте новый или вставьте из буфера обмена.</string>
+    <string name="settings_controls">Управление</string>
+    <string name="settings_player_gestures">Жесты в плеере</string>
+    <string name="settings_player_gestures_desc">Свайпы: яркость/громкость/перемотка; пинч: режим кадра</string>
+    <string name="settings_swipe_sensitivity">Чувствительность свайпов</string>
+    <string name="settings_debug">Отладка</string>
+    <string name="settings_adaptive_title">Адаптивная смена шейдеров</string>
+    <string name="settings_adaptive_desc">Упрощает цепочку при нагреве или просадке FPS. Отключите для чистых замеров — пресет применяется как выбран.</string>
+    <string name="settings_debug_overlay">Оверлей отладки</string>
+    <string name="settings_debug_overlay_desc">Stats for nerds поверх плеера</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_about_text">Sakuro 0.1.0 — видеоплеер с реалтайм-апскейлом.\nOpen source (GPLv3), от Rinwave.</string>
+
+    <!-- Engines -->
+    <string name="engine_mpv">libmpv</string>
+    <string name="engine_media3">Media3 (ExoPlayer)</string>
+    <string name="engine_fake">Fake (отладка UI)</string>
+    <string name="engine_media3_hint">Родной движок Android, апскейл через цепочку GlEffect</string>
+    <string name="engine_mpv_hint">libmpv: широкое декодирование, пресеты на лету без re-prepare</string>
+    <string name="engine_fake_hint">Заглушка для отладки UI без воспроизведения</string>
+
+    <!-- Content classes -->
+    <string name="content_anime">Аниме</string>
+    <string name="content_cartoon">Мультфильм</string>
+    <string name="content_live_action">Съёмка</string>
+    <string name="content_any">Любой</string>
+
+    <!-- Preset editor -->
+    <string name="preset_new">Новый пресет</string>
+    <string name="preset_edit">Изменить пресет</string>
+    <string name="preset_name">Имя</string>
+    <string name="preset_content_class">Класс контента</string>
+    <string name="preset_content_class_hint">mpv использует шейдеры Anime4K для аниме и мультфильмов</string>
+    <string name="preset_upscale">Апскейл</string>
+    <string name="preset_sharpness">Резкость</string>
+    <string name="preset_denoise">Шумоподавление</string>
+
+    <!-- Built-in presets -->
+    <string name="preset_off_name">Выкл</string>
+    <string name="preset_off_desc">Оригинальная картинка без обработки</string>
+    <string name="preset_anime_sd_name">Аниме SD</string>
+    <string name="preset_anime_sd_desc">2× апскейл, шумоподавление и агрессивная резкость для SD-аниме и слабых рипов</string>
+    <string name="preset_anime_hd_name">Аниме HD</string>
+    <string name="preset_anime_hd_desc">1.5× апскейл и умеренная резкость для 720p/1080p-аниме</string>
+    <string name="preset_live_light_name">Съёмка, лёгкий</string>
+    <string name="preset_live_light_desc">Деликатная резкость без апскейла — для реальной съёмки</string>
+    <string name="preset_auto_name">Авто</string>
+    <string name="preset_auto_desc">Пресет подбирается по классу контента</string>
+
+    <!-- Preset chain summary (for user presets) -->
+    <string name="chain_none">Без обработки</string>
+    <string name="chain_upscale">апскейл ×%1$s</string>
+    <string name="chain_sharpness">резкость %1$s</string>
+    <string name="chain_denoise">шумоподавление %1$s</string>
+
+    <!-- Preset messages -->
+    <string name="msg_imported">Импортирован %1$s</string>
+    <string name="msg_invalid_preset">В буфере обмена нет корректного пресета</string>
+    <string name="msg_copied">%1$s скопирован в буфер</string>
+    <string name="msg_deleted">%1$s удалён</string>
+    <string name="msg_saved">Сохранён %1$s</string>
+
+    <!-- Player -->
+    <string name="player_stats_for_nerds">Stats for nerds</string>
+    <string name="player_seek_back">-10 сек</string>
+    <string name="player_seek_forward">+10 сек</string>
+    <string name="player_play">Воспроизвести</string>
+    <string name="player_pause">Пауза</string>
+    <string name="player_upscale_preset">Пресет апскейла</string>
+    <string name="player_pin_title">Закрепить за файлом</string>
+    <string name="player_pin_desc">Пресет применяется только к этому видео и не меняет общий выбор</string>
+    <string name="scale_fit_to_screen">Вписать в экран</string>
+    <string name="scale_fill_screen">Заполнить экран</string>
+    <string name="seek_seconds">%1$d сек</string>
+</resources>

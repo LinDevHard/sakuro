@@ -41,13 +41,7 @@ enum class EngineType {
     MEDIA3,
     FAKE,
 }
-
-val EngineType.displayName: String
-    get() = when (this) {
-        EngineType.MPV -> "libmpv"
-        EngineType.MEDIA3 -> "Media3 (ExoPlayer)"
-        EngineType.FAKE -> "Fake (UI debugging)"
-    }
+// Display names for engines live in the UI layer (localized).
 
 /**
  * Each engine module provides a factory for its engine;
