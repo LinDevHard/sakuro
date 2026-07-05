@@ -23,6 +23,7 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
     val state by component.engine.state.collectAsState()
     val detection by component.detection.collectAsState()
     val adaptive by component.adaptiveDecision.collectAsState()
+    val adaptiveEnabled by component.adaptiveEnabled.collectAsState()
 
     val lines = buildList {
         add("engine    ${stats.engine}")
@@ -42,7 +43,11 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
         stats.upscalePasses.forEach { add("  pass    $it") }
         val confidencePercent = (detection.confidence * 100).toInt()
         add("detect    ${detection.contentClass.name.lowercase()} $confidencePercent% (${detection.source})")
-        adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
+        when {
+            // Тумблер выключен — пресет применяется как есть (чистота тестов).
+            !adaptiveEnabled -> add("adaptive  off (пресет как есть)")
+            else -> adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
+        }
         stats.extras.forEach { (k, v) -> add("$k  $v") }
         add("status    ${state.status} speed=${state.speed}x")
     }

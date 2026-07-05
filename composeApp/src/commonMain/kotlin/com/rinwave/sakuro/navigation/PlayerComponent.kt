@@ -57,6 +57,9 @@ class PlayerComponent(
 
     val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
 
+    /** Включена ли адаптивная деградация пресета (для индикации в debug-оверлее). */
+    val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
+
     /** Свайпы/пинч в плеере (FEATURES.md §3.2). */
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
 
