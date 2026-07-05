@@ -83,6 +83,19 @@ Anime4K-шейдеры в engine-mpv берут VMAF 88–91. Ключевое: 
 Debug-оверлей при выключенном тумблере показывает `adaptive off (пресет как
 есть)` — видно, что деградации нет (коммит e7e3f72).
 
+### Фикс по логам с устройства: алиас HOOKED↔стадия (коммит ccfcf4f)
+
+Runtime на устройстве дал `Anime4K граф не собран, passthrough:
+No matching function for call to 'MAIN_texOff'`. Причина — проход
+`De-Ring-Compute-Statistics` в `Clamp_Highlights`: `HOOK MAIN`, `BIND HOOKED`,
+а тело зовёт `MAIN_texOff`. Шим объявлял только `HOOKED_*` → `MAIN_*`
+undeclared → шейдер не собрался → весь Anime4K свалился в passthrough (без
+апскейла). В mpv `HOOKED` и имя хукнутой стадии (`MAIN/PREKERNEL/NATIVE`) —
+псевдонимы одной текстуры; `ShaderPreamble` теперь достраивает недостающий
+алиас поверх того же сэмплера. Добавлена структурная проверка: каждый
+`<name>_tex/_texOff/_pos/_pt/_size` из тел всех 6 реальных шейдеров объявлен в
+шиме (ловит такие дыры впредь). 25 тестов.
+
 ### Про фазу 5 (гейтинг M-моделей) — уже частично закрыта
 
 `AdaptiveController.degradedTo` при термалке/просадке FPS убирает Sharpen и
