@@ -96,11 +96,10 @@ internal class Anime4KShaderProgram(
         val outputFbo = IntArray(1)
         GLES30.glGetIntegerv(GLES30.GL_FRAMEBUFFER_BINDING, outputFbo, 0)
 
+        // Стадии-кадры PREKERNEL/NATIVE канонизируются в MAIN (см. планировщик),
+        // поэтому в карте живёт единственный слот кадра.
         val current = HashMap<String, TexRef>()
-        val input = TexRef(inputTexId, inputWidth, inputHeight)
-        current[MAIN] = input
-        current[PREKERNEL] = input
-        current[NATIVE] = input
+        current[MAIN] = TexRef(inputTexId, inputWidth, inputHeight)
 
         plan.passes.forEachIndexed { i, planned ->
             val program = passPrograms[i]
@@ -108,7 +107,7 @@ internal class Anime4KShaderProgram(
             GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
             program.use()
             planned.pass.binds.distinct().forEachIndexed { unit, bind ->
-                val ref = current[resolveStage(bind, planned.pass.hook)]
+                val ref = current[Anime4KGraphPlanner.canonicalStage(bind, planned.pass.hook)]
                     ?: error("Anime4K: '${planned.pass.desc}' биндит несуществующую '$bind'")
                 program.setSamplerTexIdUniform(ShaderPreamble.samplerUniform(bind), ref.texId, unit)
                 val size = floatArrayOf(ref.width.toFloat(), ref.height.toFloat())
@@ -118,7 +117,7 @@ internal class Anime4KShaderProgram(
             }
             program.bindAttributesAndUniforms()
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
-            val saved = resolveStage(planned.pass.save, planned.pass.hook)
+            val saved = Anime4KGraphPlanner.canonicalStage(planned.pass.save, planned.pass.hook)
             current[saved] = TexRef(target.texId, target.width, target.height)
         }
 
@@ -192,16 +191,11 @@ internal class Anime4KShaderProgram(
         return Target(texture[0], fbo[0], width, height)
     }
 
-    private fun resolveStage(name: String, hook: String): String =
-        if (name == MpvUserShaderParser.HOOKED) hook else name
-
     private companion object {
         const val TAG = "Anime4K"
         const val HIGH_PRECISION = true
         const val TEXTURE_POOL_CAPACITY = 1
         const val MAIN = "MAIN"
-        const val PREKERNEL = "PREKERNEL"
-        const val NATIVE = "NATIVE"
         const val POSITION_ATTR = "a_position"
         const val PRESENT_SAMPLER = "uTex"
         const val COORD_SIZE = 4

@@ -68,6 +68,26 @@ class Anime4KGraphPlannerTest {
     }
 
     @Test
+    fun `запись в стадию PREKERNEL канонизируется в MAIN (Clamp влияет на дальнейшие MAIN-проходы)`() {
+        val clampThenUpscaleReads = listOf(
+            // Clamp: HOOK PREKERNEL, SAVE HOOKED(=PREKERNEL→MAIN), меняет размер вдвое.
+            pass(
+                "clamp", hook = "PREKERNEL", binds = listOf("HOOKED"),
+                save = MpvUserShaderParser.HOOKED, width = "HOOKED.w 2 *", height = "HOOKED.h",
+            ),
+            // Следующий проход читает MAIN и должен увидеть удвоенную ширину от Clamp.
+            pass(
+                "read-main", hook = "MAIN", binds = listOf("MAIN"),
+                save = "MAIN", width = "MAIN.w", height = "MAIN.h",
+            ),
+        )
+        val plan = Anime4KGraphPlanner.plan(clampThenUpscaleReads, 640, 360, 1920, 1080)
+        assertEquals(2, plan.passes.size)
+        // read-main унаследовал ширину, записанную Clamp через PREKERNEL → MAIN.
+        assertEquals(1280 to 360, plan.passes[1].outWidth to plan.passes[1].outHeight)
+    }
+
+    @Test
     fun `HOOKED в SAVE и WIDTH резолвится в хукнутую стадию`() {
         val clamp = listOf(
             pass(
