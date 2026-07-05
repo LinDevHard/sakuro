@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive launcher background adapted from the Sakuro aura logo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M0,0h108v108h-108z"
+        android:fillColor="#050611" />
+
+    <path
+        android:pathData="M85.43,54m-27,0a27,27 0,1 1,54 0a27,27 0,1 1,-54 0"
+        android:fillColor="#FFD8F3"
+        android:fillAlpha="0.18" />
+
+    <path
+        android:pathData="M85.43,54m-18.5,0a18.5,18.5 0,1 1,37 0a18.5,18.5 0,1 1,-37 0"
+        android:fillColor="#FF8BDF"
+        android:fillAlpha="0.16" />
+
+    <path
+        android:pathData="M85.43,54m-10.5,0a10.5,10.5 0,1 1,21 0a10.5,10.5 0,1 1,-21 0"
+        android:fillColor="#A75CFF"
+        android:fillAlpha="0.14" />
+
+    <path
+        android:pathData="M56,51.26C67.43,49.37 85.85,49.05 104,52.74L104,57.26C85.85,60.95 67.43,60.63 56,58.74Z"
+        android:fillColor="#FF9FE5"
+        android:fillAlpha="0.14" />
+
+    <path
+        android:pathData="M66,53.94C75.07,53.08 90.15,53.02 104,54.74L104,56.2C90.15,57.92 75.07,57.86 66,57Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.14" />
+</vector>

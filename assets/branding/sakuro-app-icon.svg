@@ -1,0 +1,105 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD8F3" stop-opacity="0.72"/>
+      <stop offset="22%" stop-color="#FF8BDF" stop-opacity="0.38"/>
+      <stop offset="48%" stop-color="#A75CFF" stop-opacity="0.22"/>
+      <stop offset="78%" stop-color="#5130B8" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#050611" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="ringGradient" x1="96" y1="84" x2="420" y2="420">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="20%" stop-color="#FFD2F0"/>
+      <stop offset="48%" stop-color="#E482E6"/>
+      <stop offset="74%" stop-color="#7F4BE0"/>
+      <stop offset="100%" stop-color="#FFF1FA"/>
+    </linearGradient>
+
+    <radialGradient id="playGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="42%" stop-color="#FF9FE5" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#A64CFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="playFill" x1="216" y1="196" x2="326" y2="316">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#FFE0F4"/>
+      <stop offset="100%" stop-color="#FF9FE5"/>
+    </linearGradient>
+
+    <filter id="ringGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="4.5" result="blur"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="blur18"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="blur9"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#050611"/>
+
+  <circle cx="405" cy="256" r="128" fill="url(#bgAura)" filter="url(#blur18)" opacity="0.92"/>
+
+  <circle cx="256" cy="256" r="188" fill="none" stroke="#A85CFF" stroke-width="2" opacity="0.12"/>
+
+  <ellipse cx="405" cy="256" rx="138" ry="13" fill="#FF9FE5" filter="url(#blur9)" opacity="0.18"/>
+  <ellipse cx="405" cy="255.4" rx="92" ry="5" fill="#FFFFFF" filter="url(#blur4)" opacity="0.18"/>
+
+  <circle
+    cx="256"
+    cy="256"
+    r="154"
+    fill="none"
+    stroke="url(#ringGradient)"
+    stroke-width="15"
+    stroke-linecap="round"
+    stroke-dasharray="924 44"
+    stroke-dashoffset="118"
+    transform="rotate(-18 256 256)"
+    filter="url(#ringGlow)"
+  />
+
+  <circle
+    cx="256"
+    cy="256"
+    r="136"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-dasharray="360 608"
+    stroke-dashoffset="70"
+    transform="rotate(-18 256 256)"
+    opacity="0.36"
+  />
+
+  <path
+    d="M222 196 L222 316 L324 256 Z"
+    fill="url(#playGlow)"
+    filter="url(#blur9)"
+    opacity="0.75"
+  />
+
+  <path
+    d="M224 202
+       C224 194 233 189 240 193
+       L325 243
+       C334 248 334 264 325 269
+       L240 319
+       C233 323 224 318 224 310
+       Z"
+    fill="url(#playFill)"
+    opacity="0.96"
+  />
+
+  <path
+    d="M235 211 L313 256 L235 301 Z"
+    fill="#FFFFFF"
+    opacity="0.16"
+  />
+</svg>

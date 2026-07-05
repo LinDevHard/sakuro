@@ -10,6 +10,7 @@
         android:name=".SakuroApplication"
         android:label="Sakuro"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Sakuro"
         android:supportsRtl="true">
 

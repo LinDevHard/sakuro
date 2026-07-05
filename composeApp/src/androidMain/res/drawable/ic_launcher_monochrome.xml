@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13 themed icon mask. The launcher supplies the final color. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M54,54m-32.48,0a32.48,32.48 0,1 1,64.96 0a32.48,32.48 0,1 1,-64.96 0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5.3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0.048"
+        android:trimPathEnd="0.952"
+        android:trimPathOffset="0.18" />
+
+    <path
+        android:pathData="M54,54m-29.54,0a29.54,29.54 0,1 1,59.08 0a29.54,29.54 0,1 1,-59.08 0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0.073"
+        android:trimPathEnd="0.444"
+        android:trimPathOffset="0.11" />
+
+    <path
+        android:pathData="M47.46,42.82C47.46,41.13 49.35,40.08 50.83,40.93L68.76,51.49C70.66,52.55 70.66,55.94 68.76,57L50.83,67.55C49.35,68.4 47.46,67.34 47.46,65.66Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

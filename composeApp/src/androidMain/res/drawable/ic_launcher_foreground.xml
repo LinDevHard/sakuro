@@ -1,16 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Eclipse-ring foreground icon based on the brand motif. -->
+<!-- Adaptive launcher foreground adapted from the Sakuro play-ring logo. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
     <path
-        android:pathData="M54,54m-23,0a23,23 0,1,1 46,0a23,23 0,1,1 -46,0"
-        android:strokeColor="#EC8FC0"
-        android:strokeWidth="5"
+        android:pathData="M54,54m-39.66,0a39.66,39.66 0,1 1,79.32 0a39.66,39.66 0,1 1,-79.32 0"
+        android:strokeColor="#A85CFF"
+        android:strokeWidth="0.42"
         android:fillColor="#00000000" />
+
     <path
-        android:pathData="M70.5,36.5m-4.5,0a4.5,4.5 0,1,1 9,0a4.5,4.5 0,1,1 -9,0"
-        android:fillColor="#F6D9E6" />
+        android:pathData="M54,54m-32.48,0a32.48,32.48 0,1 1,64.96 0a32.48,32.48 0,1 1,-64.96 0"
+        android:strokeColor="#A85CFF"
+        android:strokeWidth="4.3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0.048"
+        android:trimPathEnd="0.952"
+        android:trimPathOffset="0.18" />
+
+    <path
+        android:pathData="M54,54m-32.48,0a32.48,32.48 0,1 1,64.96 0a32.48,32.48 0,1 1,-64.96 0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.15"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0.048"
+        android:trimPathEnd="0.26"
+        android:trimPathOffset="0.18" />
+
+    <path
+        android:pathData="M54,54m-29.54,0a29.54,29.54 0,1 1,59.08 0a29.54,29.54 0,1 1,-59.08 0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.42"
+        android:strokeAlpha="0.36"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0.073"
+        android:trimPathEnd="0.444"
+        android:trimPathOffset="0.11" />
+
+    <path
+        android:pathData="M47.25,42.61L47.25,65.39L66.82,54Z"
+        android:fillColor="#FF9FE5"
+        android:fillAlpha="0.32" />
+
+    <path
+        android:pathData="M47.46,42.82C47.46,41.13 49.35,40.08 50.83,40.93L68.76,51.49C70.66,52.55 70.66,55.94 68.76,57L50.83,67.55C49.35,68.4 47.46,67.34 47.46,65.66Z"
+        android:fillColor="#FFE0F4" />
+
+    <path
+        android:pathData="M49.78,44.51L66.02,54L49.78,63.49Z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.16" />
 </vector>
