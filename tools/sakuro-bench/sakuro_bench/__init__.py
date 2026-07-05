@@ -1,17 +1,17 @@
-"""sakuro-bench — независимый инструмент бенчмаркинга качества апскейл-режимов.
+"""sakuro-bench — a standalone benchmarking tool for upscale-mode quality.
 
-Меряет качество кадров, полученных разными режимами апскейла Sakuro
-(bilinear / mpv-скейлеры / Anime4K / Media3-эффекты), по скриншотам.
+Measures the quality of frames produced by Sakuro's different upscale modes
+(bilinear / mpv scalers / Anime4K / Media3 effects), based on screenshots.
 
-Два источника метрик:
-  * FR (full-reference) — через ffmpeg libvmaf: VMAF, VMAF-NEG, SSIM, MS-SSIM, PSNR.
-    Нужен эталон (ground-truth). Основной сценарий — «downscale от 1080p-мастера
-    → апскейл режимом → сравнить с мастером».
-  * NR (no-reference) — numpy-прокси: резкость, ВЧ-энергия, шум, ringing.
-    Эталон не нужен, работает на любом скриншоте. Относительные дескрипторы,
-    НЕ калиброванный MOS — сверять с глазами.
+Two metric sources:
+  * FR (full-reference) — via ffmpeg libvmaf: VMAF, VMAF-NEG, SSIM, MS-SSIM, PSNR.
+    Requires a ground-truth reference. The main scenario is "downscale a 1080p
+    master → upscale with a mode → compare against the master".
+  * NR (no-reference) — numpy proxies: sharpness, HF energy, noise, ringing.
+    No reference needed, works on any screenshot. Relative descriptors,
+    NOT a calibrated MOS — cross-check with your eyes.
 
-См. README.md за методологией.
+See README.md for the methodology.
 """
 
 __version__ = "0.1.0"

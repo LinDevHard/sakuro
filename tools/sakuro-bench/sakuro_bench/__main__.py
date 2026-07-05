@@ -1,7 +1,7 @@
-"""CLI: sakuro-bench <команда>.
+"""CLI: sakuro-bench <command>.
 
-  capture-compare  — сравнить скриншоты режимов с устройства (главный сценарий).
-  synth            — синтетический downscale->upscale тест (self-test + baseline-скейлеры).
+  capture-compare  — compare device screenshots of the modes (the main scenario).
+  synth            — synthetic downscale->upscale test (self-test + baseline scalers).
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def _parse_crop(s: str | None) -> tuple[int, int, int, int] | None:
         return None
     parts = [int(x) for x in s.split(",")]
     if len(parts) != 4:
-        raise SystemExit("--crop ожидает x,y,w,h")
+        raise SystemExit("--crop expects x,y,w,h")
     return tuple(parts)  # type: ignore[return-value]
 
 
@@ -51,7 +51,7 @@ def _collect(rows_fr, rows_nr, thumbs, heatmaps, originals, modes, frames, ref_f
             originals[m] = orig_b64
         else:
             heatmaps[m] = report._b64_png(report.diff_heatmap(fdata.luma(), anchor_luma))
-            if m != modes[0]:  # baseline сам себе не «оригинал»
+            if m != modes[0]:  # the baseline is not its own "original"
                 originals[m] = orig_b64
 
 
@@ -60,7 +60,7 @@ def cmd_capture_compare(args) -> int:
     files = sorted(p for p in cap_dir.iterdir() if p.suffix.lower() in _IMG_EXT)
     mode_files = [p for p in files if p.stem.lower() not in _REF_NAMES]
     if not mode_files:
-        raise SystemExit(f"в {cap_dir} нет скриншотов режимов")
+        raise SystemExit(f"no mode screenshots in {cap_dir}")
 
     crop = _parse_crop(args.crop)
     frames: dict[str, images.Frame] = {}
@@ -69,9 +69,9 @@ def cmd_capture_compare(args) -> int:
 
     baseline = args.baseline or sorted(frames)[0]
     if baseline not in frames:
-        raise SystemExit(f"--baseline '{baseline}' нет среди режимов: {sorted(frames)}")
+        raise SystemExit(f"--baseline '{baseline}' is not among the modes: {sorted(frames)}")
     base = frames[baseline]
-    # все режимы на общую сетку baseline
+    # bring all modes onto the common baseline grid
     aligned = {baseline: base}
     for m, f in frames.items():
         if m == baseline:
@@ -80,7 +80,7 @@ def cmd_capture_compare(args) -> int:
         aligned[m] = af
     modes = [baseline] + sorted(m for m in aligned if m != baseline)
 
-    # эталон
+    # reference
     ref_frame = None
     ref_path = args.ref
     if not ref_path:
@@ -99,23 +99,23 @@ def cmd_capture_compare(args) -> int:
     _collect(rows_fr, rows_nr, thumbs, heatmaps, originals, modes, aligned, ref_frame)
 
     meta = {
-        "scenario": "capture-compare" + ("  (FR+NR)" if ref_frame else "  (только NR)"),
+        "scenario": "capture-compare" + ("  (FR+NR)" if ref_frame else "  (NR only)"),
         "generated": report.now_iso(),
         "captures": str(cap_dir),
-        "эталон": ref_path or "нет — только no-reference",
-        "baseline/сетка": baseline,
-        "геометрия": f"{base.size[0]}×{base.size[1]}",
-        "режимов": len(modes),
+        "reference": ref_path or "none — no-reference only",
+        "baseline/grid": baseline,
+        "geometry": f"{base.size[0]}×{base.size[1]}",
+        "modes": len(modes),
         "sakuro-bench": __version__,
     }
-    zoom_series = ([("эталон", report.rgb_b64(ref_frame.rgb, 1500))] if ref_frame else []) + \
+    zoom_series = ([("reference", report.rgb_b64(ref_frame.rgb, 1500))] if ref_frame else []) + \
         [(m, report.rgb_b64(aligned[m].rgb, 1500)) for m in modes]
     aspect = base.size[0] / base.size[1]
 
     out = Path(args.out)
     index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
                                  zoom_series=zoom_series, zoom_aspect=aspect)
-    print(f"OK · отчёт: {index}")
+    print(f"OK · report: {index}")
     print(f"     CSV:   {out / 'metrics.csv'}")
     return 0
 
@@ -140,13 +140,13 @@ def cmd_synth(args) -> int:
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
     for m in modes:
         if m not in _SWS:
-            raise SystemExit(f"неизвестный режим '{m}'. Доступно: {', '.join(_SWS)}")
+            raise SystemExit(f"unknown mode '{m}'. Available: {', '.join(_SWS)}")
 
     with tempfile.TemporaryDirectory() as td:
         tdp = Path(td)
         master_png = str(tdp / "master.png")
         images.save(master, master_png)
-        # деградация -> вход
+        # degradation -> input
         low = str(tdp / "low.png")
         pre = "gblur=sigma=0.7,noise=alls=8:allf=t," if args.degrade == "realistic" else ""
         _ff_scale(master_png, low, dw, dh, "lanczos", pre)
@@ -171,21 +171,21 @@ def cmd_synth(args) -> int:
     meta = {
         "scenario": f"synth downscale→upscale ×{args.scale} ({args.degrade})",
         "generated": report.now_iso(),
-        "мастер": f"{args.master} ({W}×{H})",
-        "вход": f"{dw}×{dh}",
-        "деградация": args.degrade,
-        "эталон": "мастер (ground-truth)",
+        "master": f"{args.master} ({W}×{H})",
+        "input": f"{dw}×{dh}",
+        "degradation": args.degrade,
+        "reference": "master (ground-truth)",
         "sakuro-bench": __version__,
     }
-    zoom_series = [("эталон", report.rgb_b64(master.rgb, 1500))] + \
+    zoom_series = [("reference", report.rgb_b64(master.rgb, 1500))] + \
         [(m, report.rgb_b64(frames[m].rgb, 1500)) for m in modes]
 
     out = Path(args.out)
     index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
                                  zoom_series=zoom_series, zoom_aspect=W / H)
-    print(f"OK · отчёт: {index}")
-    print("     Прим.: synth гоняет только ffmpeg-скейлеры (baseline). Реальные")
-    print("     engine-mpv-режимы — команда `synth-mpv` (offline mpv + Anime4K).")
+    print(f"OK · report: {index}")
+    print("     Note: synth runs only ffmpeg scalers (baseline). The real")
+    print("     engine-mpv modes are the `synth-mpv` command (offline mpv + Anime4K).")
     return 0
 
 
@@ -198,7 +198,7 @@ def cmd_synth_mpv(args) -> int:
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
     for m in modes:
         if m not in mpv_backend.PRESETS:
-            raise SystemExit(f"неизвестный пресет '{m}'. Доступно: {', '.join(mpv_backend.PRESETS)}")
+            raise SystemExit(f"unknown preset '{m}'. Available: {', '.join(mpv_backend.PRESETS)}")
 
     with tempfile.TemporaryDirectory() as td:
         tdp = Path(td)
@@ -221,24 +221,24 @@ def cmd_synth_mpv(args) -> int:
             heatmaps[m] = report._b64_png(report.diff_heatmap(f.luma(), ref_luma))
             originals[m] = master_b64
             zoom[m] = report.rgb_b64(f.rgb, 1500)
-            print(f"  · {m}: отрисован")
-        zoom_series = [("эталон", report.rgb_b64(master.rgb, 1500))] + [(m, zoom[m]) for m in modes]
+            print(f"  · {m}: rendered")
+        zoom_series = [("reference", report.rgb_b64(master.rgb, 1500))] + [(m, zoom[m]) for m in modes]
 
     meta = {
         "scenario": f"synth-mpv (offline headless mpv + Anime4K) ×{args.scale} ({args.degrade})",
         "generated": report.now_iso(),
-        "мастер": f"{args.master} ({W}×{H})",
-        "вход": f"{dw}×{dh}",
-        "движок": "mpv " + _mpv_ver(),
-        "эталон": "мастер (ground-truth)",
+        "master": f"{args.master} ({W}×{H})",
+        "input": f"{dw}×{dh}",
+        "engine": "mpv " + _mpv_ver(),
+        "reference": "master (ground-truth)",
         "sakuro-bench": __version__,
     }
     out = Path(args.out)
     index = report.write_reports(out, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
                                  zoom_series=zoom_series, zoom_aspect=W / H)
-    print(f"OK · отчёт: {index}")
-    print("     Прим.: offline-mpv ≈ engine-mpv (FP32 vs возможный FP16-CNN на мобилке).")
-    print("     Абсолютные числа сверять с device-capture; ранжир достоверен.")
+    print(f"OK · report: {index}")
+    print("     Note: offline-mpv ≈ engine-mpv (FP32 vs a possible FP16 CNN on mobile).")
+    print("     Cross-check absolute numbers with a device capture; the ranking is reliable.")
     return 0
 
 
@@ -256,30 +256,30 @@ def main(argv=None) -> int:
     ap.add_argument("--version", action="version", version=f"sakuro-bench {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    cc = sub.add_parser("capture-compare", help="сравнить скриншоты режимов с устройства")
-    cc.add_argument("--captures", required=True, help="папка со скриншотами (имя файла = режим)")
-    cc.add_argument("--ref", help="эталон-мастер для FR (иначе только NR; ищется и файл ref.*)")
-    cc.add_argument("--baseline", help="режим-якорь для выравнивания (по умолч. первый)")
-    cc.add_argument("--crop", help="ручной кроп UI: x,y,w,h")
-    cc.add_argument("--no-letterbox", action="store_true", help="не резать чёрные поля")
-    cc.add_argument("--expand-range", action="store_true", help="раскрыть limited(16..235)→full")
-    cc.add_argument("--out", default="report", help="папка отчёта (по умолч. ./report)")
+    cc = sub.add_parser("capture-compare", help="compare device screenshots of the modes")
+    cc.add_argument("--captures", required=True, help="folder with screenshots (file name = mode)")
+    cc.add_argument("--ref", help="reference master for FR (otherwise NR only; a ref.* file is also searched)")
+    cc.add_argument("--baseline", help="anchor mode for alignment (default: first)")
+    cc.add_argument("--crop", help="manual UI crop: x,y,w,h")
+    cc.add_argument("--no-letterbox", action="store_true", help="do not trim black bars")
+    cc.add_argument("--expand-range", action="store_true", help="expand limited(16..235)→full")
+    cc.add_argument("--out", default="report", help="report folder (default ./report)")
     cc.set_defaults(func=cmd_capture_compare)
 
-    sy = sub.add_parser("synth", help="синтетический downscale→upscale тест")
-    sy.add_argument("--master", required=True, help="эталонный кадр высокого разрешения")
-    sy.add_argument("--scale", type=int, default=2, help="коэффициент (по умолч. 2)")
+    sy = sub.add_parser("synth", help="synthetic downscale→upscale test")
+    sy.add_argument("--master", required=True, help="high-resolution reference frame")
+    sy.add_argument("--scale", type=int, default=2, help="factor (default 2)")
     sy.add_argument("--degrade", choices=["clean", "realistic"], default="clean")
-    sy.add_argument("--modes", default="bilinear,bicubic,lanczos", help="ffmpeg-скейлеры через запятую")
-    sy.add_argument("--out", default="report", help="папка отчёта")
+    sy.add_argument("--modes", default="bilinear,bicubic,lanczos", help="ffmpeg scalers, comma-separated")
+    sy.add_argument("--out", default="report", help="report folder")
     sy.set_defaults(func=cmd_synth)
 
-    sm = sub.add_parser("synth-mpv", help="offline mpv + Anime4K downscale→upscale тест")
-    sm.add_argument("--master", required=True, help="эталонный кадр высокого разрешения")
+    sm = sub.add_parser("synth-mpv", help="offline mpv + Anime4K downscale→upscale test")
+    sm.add_argument("--master", required=True, help="high-resolution reference frame")
     sm.add_argument("--scale", type=int, default=2)
     sm.add_argument("--degrade", choices=["clean", "realistic"], default="clean")
     sm.add_argument("--modes", default="off,mpv_ewa,anime4k_s,anime4k_m",
-                    help="пресеты mpv: " + ",".join(mpv_backend.PRESETS))
+                    help="mpv presets: " + ",".join(mpv_backend.PRESETS))
     sm.add_argument("--out", default="report")
     sm.set_defaults(func=cmd_synth_mpv)
 
@@ -287,7 +287,7 @@ def main(argv=None) -> int:
     try:
         return args.func(args)
     except (fr.FfmpegError, mpv_backend.MpvError, subprocess.CalledProcessError) as exc:
-        print(f"ОШИБКА: {exc}", file=sys.stderr)
+        print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
 

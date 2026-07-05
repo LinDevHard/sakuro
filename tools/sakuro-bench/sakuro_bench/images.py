@@ -1,12 +1,12 @@
-"""Загрузка, кадрирование, выравнивание и нормализация кадров.
+"""Loading, cropping, aligning and normalizing frames.
 
-Скриншоты с устройства могут различаться леттербоксом, UI-оверлеями и лёгким
-субпиксельным сдвигом. Перед метрикой все кадры приводятся к общей геометрии:
-  1. (опц.) ручной кроп UI       -> crop_rect
-  2. авто-обрезка чёрных полей   -> autocrop_letterbox
-  3. приведение к размеру опорного кадра
-  4. трансляционное выравнивание фазовой корреляцией (align_translation)
-  5. (опц.) расширение limited->full range
+Device screenshots may differ in letterboxing, UI overlays and a slight
+subpixel shift. Before metrics, every frame is brought to a common geometry:
+  1. (opt.) manual UI crop        -> crop_rect
+  2. auto-crop of black bars      -> autocrop_letterbox
+  3. resize to the reference frame size
+  4. translational alignment via phase correlation (align_translation)
+  5. (opt.) limited->full range expansion
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from PIL import Image
 
 @dataclass
 class Frame:
-    """RGB-кадр в uint8 [H, W, 3] плюс имя (метка режима)."""
+    """RGB frame as uint8 [H, W, 3] plus a name (mode label)."""
 
     name: str
     rgb: np.ndarray  # uint8, HxWx3
@@ -29,7 +29,7 @@ class Frame:
         return w, h
 
     def luma(self) -> np.ndarray:
-        """BT.601 luma в float64 [0..255]."""
+        """BT.601 luma as float64 [0..255]."""
         r, g, b = (self.rgb[..., i].astype(np.float64) for i in range(3))
         return 0.299 * r + 0.587 * g + 0.114 * b
 
@@ -49,7 +49,7 @@ def crop_rect(frame: Frame, rect: tuple[int, int, int, int]) -> Frame:
 
 
 def autocrop_letterbox(frame: Frame, thresh: int = 16) -> Frame:
-    """Отрезает почти-чёрные рамки (леттербокс/пиллербокс) по краям."""
+    """Trims near-black borders (letterbox/pillarbox) from the edges."""
     luma = frame.luma()
     rows = np.where(luma.max(axis=1) > thresh)[0]
     cols = np.where(luma.max(axis=0) > thresh)[0]
@@ -61,7 +61,7 @@ def autocrop_letterbox(frame: Frame, thresh: int = 16) -> Frame:
 
 
 def resize_to(frame: Frame, size: tuple[int, int]) -> Frame:
-    """Lanczos-ресайз к (w, h)."""
+    """Lanczos resize to (w, h)."""
     if frame.size == size:
         return frame
     img = Image.fromarray(frame.rgb, "RGB").resize(size, Image.Resampling.LANCZOS)
@@ -69,10 +69,10 @@ def resize_to(frame: Frame, size: tuple[int, int]) -> Frame:
 
 
 def align_translation(ref: Frame, mov: Frame) -> tuple[Frame, tuple[int, int]]:
-    """Целочисленное выравнивание `mov` к `ref` фазовой корреляцией.
+    """Integer alignment of `mov` to `ref` via phase correlation.
 
-    Оба кадра должны быть одного размера. Возвращает выровненный кадр и
-    сдвиг (dy, dx), применённый к `mov`.
+    Both frames must be the same size. Returns the aligned frame and the
+    shift (dy, dx) applied to `mov`.
     """
     if ref.size != mov.size:
         mov = resize_to(mov, ref.size)
@@ -96,7 +96,7 @@ def align_translation(ref: Frame, mov: Frame) -> tuple[Frame, tuple[int, int]]:
 
 
 def expand_range(frame: Frame) -> Frame:
-    """Расширяет limited (16..235) в full (0..255). Применять, если скриншот в TV-range."""
+    """Expands limited (16..235) to full (0..255). Use when the screenshot is TV-range."""
     x = frame.rgb.astype(np.float64)
     x = (x - 16.0) * (255.0 / (235.0 - 16.0))
     return Frame(frame.name, np.clip(x, 0, 255).astype(np.uint8))

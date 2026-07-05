@@ -1,4 +1,4 @@
-"""Генерация отчёта: diff-хитмапы, before/after слайдеры, SVG-инфографика, HTML+CSV+JSON."""
+"""Report generation: diff heatmaps, before/after sliders, SVG infographics, HTML+CSV+JSON."""
 from __future__ import annotations
 
 import base64
@@ -14,10 +14,10 @@ from PIL import Image
 
 from . import fr, nr
 
-# палитра режимов (единая для графиков и легенды)
+# mode palette (shared by charts and legend)
 PALETTE = ["#e0559b", "#5bc8f5", "#8bd450", "#f5a623", "#b06be0", "#f2545b", "#38d9a9", "#ffd93d"]
 
-# --- цветовая карта для хитмапов (turbo-подобная, без matplotlib) ---
+# --- colormap for heatmaps (turbo-like, no matplotlib) ---
 _CMAP = np.array(
     [(48, 18, 59), (50, 100, 200), (30, 180, 160),
      (150, 200, 40), (240, 180, 30), (220, 60, 20), (140, 10, 10)],
@@ -72,9 +72,9 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
 
 
-# ============================ SVG-инфографика ============================
+# ============================ SVG infographics ============================
 def _norm(vals: list[float], invert: bool = False, lo: float = 0.12) -> list[float]:
-    """Мин-макс нормализация в [lo,1] по валидным значениям; nan→0."""
+    """Min-max normalization into [lo,1] over the valid values; nan→0."""
     v = [x for x in vals if not math.isnan(x)]
     if not v:
         return [0.0] * len(vals)
@@ -93,7 +93,7 @@ def _norm(vals: list[float], invert: bool = False, lo: float = 0.12) -> list[flo
 
 
 def svg_vmaf_gap(modes, fr_rows) -> str:
-    """Сгруппированные бары VMAF vs VMAF-NEG; зазор = «прирост от улучшения» (шарпен-читерство)."""
+    """Grouped VMAF vs VMAF-NEG bars; the gap = "gain from enhancement" (sharpening cheat)."""
     order = sorted(modes, key=lambda m: fr_rows.get(m, {}).get("vmaf", float("nan")), reverse=True)
     order = [m for m in order if not math.isnan(fr_rows.get(m, {}).get("vmaf", float("nan")))]
     if not order:
@@ -123,11 +123,11 @@ def svg_vmaf_gap(modes, fr_rows) -> str:
         f"<text x='{pad-8}' y='{y0-(g/ymax)*(y0-top)+4:.1f}' class='ax'>{g}</text>"
         for g in (0, 25, 50, 75, 100))
     return (f"<svg viewBox='0 0 {W} {H}' class='chart'>{grid}{bars}"
-            f"<text x='{W-pad}' y='16' class='cap'>█ VMAF   ▢ VMAF-NEG   Δ=прирост от улучшения</text></svg>")
+            f"<text x='{W-pad}' y='16' class='cap'>█ VMAF   ▢ VMAF-NEG   Δ=gain from enhancement</text></svg>")
 
 
 def svg_scatter(modes, nr_rows) -> str:
-    """Sharpness × Ringing: правый-верх = перешарп (плохо), лево-низ = мягко/чисто."""
+    """Sharpness × Ringing: top-right = oversharpened (bad), bottom-left = soft/clean."""
     sh = [nr_rows.get(m, {}).get("sharpness", float("nan")) for m in modes]
     ri = [nr_rows.get(m, {}).get("ringing", float("nan")) for m in modes]
     if all(math.isnan(x) for x in sh):
@@ -145,20 +145,20 @@ def svg_scatter(modes, nr_rows) -> str:
     return (f"<svg viewBox='0 0 {W} {H}' class='chart'>"
             f"<line x1='{x0}' y1='{y0}' x2='{x1}' y2='{y0}' class='axl'/>"
             f"<line x1='{x0}' y1='{y0}' x2='{x0}' y2='{y1}' class='axl'/>"
-            f"<text x='{(x0+x1)/2:.0f}' y='{H-12}' class='ax'>резкость →</text>"
+            f"<text x='{(x0+x1)/2:.0f}' y='{H-12}' class='ax'>sharpness →</text>"
             f"<text x='16' y='{(y0+y1)/2:.0f}' class='ax' transform='rotate(-90 16 {(y0+y1)/2:.0f})'>ringing →</text>"
-            f"<text x='{x1}' y='{y1+2}' class='cap' style='text-anchor:end'>перешарп</text>{pts}</svg>")
+            f"<text x='{x1}' y='{y1+2}' class='cap' style='text-anchor:end'>oversharp</text>{pts}</svg>")
 
 
 def svg_radar(modes, fr_rows, nr_rows, has_fr) -> str:
-    """Профиль качества: оси нормализованы по режимам; больше площадь = лучше."""
+    """Quality profile: axes normalized across modes; larger area = better."""
     axes: list[tuple[str, list[float], bool]] = []
     if has_fr:
         for k, lab in (("vmaf", "VMAF"), ("float_ssim", "SSIM"),
                        ("float_ms_ssim", "MS-SSIM"), ("psnr_y", "PSNR")):
             axes.append((lab, [fr_rows.get(m, {}).get(k, float("nan")) for m in modes], False))
-    axes.append(("чистота", [nr_rows.get(m, {}).get("noise", float("nan")) for m in modes], True))
-    axes.append(("без ringing", [nr_rows.get(m, {}).get("ringing", float("nan")) for m in modes], True))
+    axes.append(("cleanliness", [nr_rows.get(m, {}).get("noise", float("nan")) for m in modes], True))
+    axes.append(("low ringing", [nr_rows.get(m, {}).get("ringing", float("nan")) for m in modes], True))
     if len(axes) < 3:
         return ""
     normed = [_norm(vals, invert=inv) for _, vals, inv in axes]
@@ -191,7 +191,7 @@ def _legend(modes) -> str:
     return f"<div class='legend'>{items}</div>"
 
 
-# ============================ таблицы ============================
+# ============================ tables ============================
 def _table(modes, rows, keys, labels, higher_better, note) -> str:
     best = {}
     for k in keys:
@@ -205,13 +205,13 @@ def _table(modes, rows, keys, labels, higher_better, note) -> str:
             f"<td{' class=best' if best.get(k) == i else ''}>{_fmt(rows.get(m, {}).get(k, float('nan')))}</td>"
             for k in keys)
         body += (f"<tr><th class='mode'><i class='dot' style='background:{_color(i)}'></i>{m}</th>{cells}</tr>")
-    return (f"<table><thead><tr><th>Режим</th>{head}</tr></thead><tbody>{body}</tbody></table>"
+    return (f"<table><thead><tr><th>Mode</th>{head}</tr></thead><tbody>{body}</tbody></table>"
             f"<p class='note'>{note}</p>")
 
 
-# ============================ синхронный зум 1:1 ============================
+# ============================ synchronized 1:1 zoom ============================
 def zoom_panel(series: list[tuple[str, str]], aspect: float) -> str:
-    """series = [(метка, b64-hires), …]; наведение на навигатор двигает лупу во всех."""
+    """series = [(label, b64-hires), …]; hovering the navigator moves the loupe in all of them."""
     if not series:
         return ""
     nav_b64 = series[0][1]
@@ -221,11 +221,11 @@ def zoom_panel(series: list[tuple[str, str]], aspect: float) -> str:
         for lab, b64 in series)
     return (f"<div class='zoom' style='--asp:{aspect:.4f}'>"
             f"<div class='znav'><img src='{nav_b64}'><div class='zbox'></div>"
-            f"<span class='zhint'>навигатор ({series[0][0]}) — веди курсор</span></div>"
+            f"<span class='zhint'>navigator ({series[0][0]}) — move the cursor</span></div>"
             f"<div class='zrow'>{cells}</div></div>")
 
 
-# ============================ before/after слайдер ============================
+# ============================ before/after slider ============================
 def _slider(mode, original_b64, enhanced_b64) -> str:
     return (f"<div class='ba'>"
             f"<img class='ba-base' src='{enhanced_b64}'>"
@@ -235,7 +235,7 @@ def _slider(mode, original_b64, enhanced_b64) -> str:
             f"<span class='ba-tag l'>Original</span><span class='ba-tag r'>Enhanced</span></div>")
 
 
-# ============================ вывод ============================
+# ============================ output ============================
 def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta,
                   zoom_series=None, zoom_aspect=1.777) -> Path:
     out_dir = Path(out_dir)
@@ -264,40 +264,40 @@ def _render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has
                  zoom_series, zoom_aspect) -> str:
     fr_html = ""
     if has_fr:
-        fr_html = "<h2>Full-reference (эталон известен)</h2>" + _table(
+        fr_html = "<h2>Full-reference (reference known)</h2>" + _table(
             modes, fr_rows, fr.FR_KEYS, fr.FR_LABELS, fr.FR_HIGHER_BETTER,
-            "Выше = лучше. VMAF-NEG штрафует «читерский» шарпен: если режим высок по VMAF, "
-            "но проседает по NEG — прирост во многом за счёт контраста/резкости, а не деталей.")
-    nr_html = "<h2>No-reference (эталон не нужен)</h2>" + _table(
+            "Higher = better. VMAF-NEG penalizes \"cheating\" sharpening: if a mode is high on VMAF "
+            "but drops on NEG, the gain comes mostly from contrast/sharpness, not detail.")
+    nr_html = "<h2>No-reference (no reference needed)</h2>" + _table(
         modes, nr_rows, nr.NR_KEYS, nr.NR_LABELS, nr.NR_HIGHER_BETTER,
-        "Относительные дескрипторы, НЕ MOS. Резкость/ВЧ не подсвечиваются — их нельзя "
-        "максимизировать в одиночку. Шум и ringing: ниже лучше.")
+        "Relative descriptors, NOT a MOS. Sharpness/HF are not highlighted — they cannot be "
+        "maximized in isolation. Noise and ringing: lower is better.")
 
     charts = "<div class='charts'>"
     gap = svg_vmaf_gap(modes, fr_rows) if has_fr else ""
     if gap:
-        charts += f"<div class='cbox'><h3>VMAF vs NEG — прирост от улучшения</h3>{gap}</div>"
-    charts += f"<div class='cbox'><h3>Профиль качества</h3>{svg_radar(modes, fr_rows, nr_rows, has_fr)}</div>"
-    charts += f"<div class='cbox'><h3>Резкость × Ringing (перешарп)</h3>{svg_scatter(modes, nr_rows)}</div>"
+        charts += f"<div class='cbox'><h3>VMAF vs NEG — gain from enhancement</h3>{gap}</div>"
+    charts += f"<div class='cbox'><h3>Quality profile</h3>{svg_radar(modes, fr_rows, nr_rows, has_fr)}</div>"
+    charts += f"<div class='cbox'><h3>Sharpness × Ringing (oversharp)</h3>{svg_scatter(modes, nr_rows)}</div>"
     charts += "</div>"
 
     cards = ""
     for i, m in enumerate(modes):
         slider = _slider(m, originals[m], thumbs[m]) if m in originals else \
             f"<img src='{thumbs[m]}' class='single'>"
-        hm = (f"<figure><img src='{heatmaps[m]}'><figcaption>diff vs эталон</figcaption></figure>"
+        hm = (f"<figure><img src='{heatmaps[m]}'><figcaption>diff vs reference</figcaption></figure>"
               if m in heatmaps else "")
         cards += (f"<div class='card'><h3><i class='dot' style='background:{_color(i)}'></i>{m}</h3>"
                   f"{slider}{hm}</div>")
 
     zoom_html = ""
     if zoom_series:
-        zoom_html = ("<h2>Зум 1:1 — веди курсор по навигатору (синхронно во всех)</h2>"
+        zoom_html = ("<h2>1:1 zoom — move the cursor over the navigator (synced across all)</h2>"
                      + zoom_panel(zoom_series, zoom_aspect))
 
     meta_html = "".join(f"<li><b>{k}:</b> {v}</li>" for k, v in meta.items())
-    return f"""<!doctype html><html lang=ru><head><meta charset=utf-8>
-<title>sakuro-bench — {meta.get('scenario','отчёт')}</title>
+    return f"""<!doctype html><html lang=en><head><meta charset=utf-8>
+<title>sakuro-bench — {meta.get('scenario','report')}</title>
 <style>
 :root{{--bg:#0e0b14;--fg:#ece7f2;--mut:#9a8fb0;--acc:#e0559b;--card:#181125;--line:#2a2038}}
 *{{box-sizing:border-box}}body{{margin:0;padding:32px;background:var(--bg);color:var(--fg);
@@ -358,11 +358,11 @@ image-rendering:pixelated}}
 <ul class=meta>{meta_html}</ul>
 {_legend(modes)}
 {zoom_html}
-<h2>Инфографика</h2>
+<h2>Infographics</h2>
 {charts}
 {fr_html}
 {nr_html}
-<h2>Кадры — потяни слайдер (Original ⟷ Enhanced)</h2>
+<h2>Frames — drag the slider (Original ⟷ Enhanced)</h2>
 <div class=gallery>{cards}</div>
 <script>
 document.querySelectorAll('.ba').forEach(function(ba){{

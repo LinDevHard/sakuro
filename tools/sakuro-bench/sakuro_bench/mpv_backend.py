@@ -1,16 +1,17 @@
-"""Offline-рендер апскейл-режимов через headless mpv (VO gpu-next).
+"""Offline rendering of upscale modes via headless mpv (VO gpu-next).
 
-Гоняет ТЕ ЖЕ Anime4K user-shaders (v4.0.1), что и engine-mpv в приложении, и в том
-же каноническом порядке Clamp→Denoise→Restore→Upscale (см. MpvUpscaleProperties.kt).
-Даёт быструю итерацию по mpv-режимам без устройства.
+Runs the SAME Anime4K user shaders (v4.0.1) as engine-mpv in the app, in the same
+canonical order Clamp→Denoise→Restore→Upscale (see MpvUpscaleProperties.kt).
+Enables fast iteration over mpv modes without a device.
 
-ВАЖНО: это ПРИБЛИЖЕНИЕ engine-mpv, не тождество. Десктопный GPU считает шейдеры в
-FP32, мобильный может в FP16 — для CNN это видимая разница. Для ранжирования годится,
-абсолютные числа сверять с device-capture. Media3-эффекты здесь не воспроизводятся.
+IMPORTANT: this is an APPROXIMATION of engine-mpv, not an identity. A desktop GPU
+computes shaders in FP32, a mobile one may use FP16 — for a CNN that is a visible
+difference. Good enough for ranking; cross-check absolute numbers with a device
+capture. Media3 effects are not reproduced here.
 
-Механика: mpv --vo=gpu-next --force-window рендерит кадр в окно нужного размера
-(autofit), lua-скрипт делает screenshot-to-file window и выходит. Требуется дисплей
-(на headless-CI без window-сервера работать не будет).
+Mechanics: mpv --vo=gpu-next --force-window renders the frame into a window of the
+needed size (autofit), a lua script does screenshot-to-file window and quits. A
+display is required (it will not work on headless CI without a window server).
 """
 from __future__ import annotations
 
@@ -19,12 +20,12 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-# Каталог вендоренных шейдеров приложения.
+# Directory of the app's vendored shaders.
 SHADER_DIR = (Path(__file__).resolve().parents[2].parent
               / "engine/engine-mpv/src/main/assets/anime4k")
 
-# Пресеты: (список шейдеров в каноническом порядке, значение mpv --scale).
-# Повторяет ветки buildShaderChain()/ewa_lanczossharp из MpvUpscaleProperties.kt.
+# Presets: (list of shaders in canonical order, mpv --scale value).
+# Mirrors the buildShaderChain()/ewa_lanczossharp branches from MpvUpscaleProperties.kt.
 PRESETS: dict[str, tuple[list[str], str | None]] = {
     "off": ([], "bilinear"),
     "mpv_ewa": ([], "ewa_lanczossharp"),
@@ -59,17 +60,17 @@ class MpvError(RuntimeError):
 
 def ensure_mpv() -> None:
     if shutil.which("mpv") is None:
-        raise MpvError("mpv не найден в PATH — offline-mpv бэкенд недоступен "
+        raise MpvError("mpv not found in PATH — offline-mpv backend unavailable "
                        "(`brew install mpv`)")
     for name, (shaders, _) in PRESETS.items():
         for sh in shaders:
             if not (SHADER_DIR / sh).exists():
-                raise MpvError(f"шейдер {sh} не найден в {SHADER_DIR}")
+                raise MpvError(f"shader {sh} not found in {SHADER_DIR}")
 
 
 def render(low_png: str, out_png: str, target_wh: tuple[int, int], preset: str) -> None:
     if preset not in PRESETS:
-        raise MpvError(f"неизвестный пресет '{preset}'. Доступно: {', '.join(PRESETS)}")
+        raise MpvError(f"unknown preset '{preset}'. Available: {', '.join(PRESETS)}")
     shaders, scale = PRESETS[preset]
     w, h = target_wh
     cmd = ["mpv", "--no-config", "--really-quiet", "--idle=once",
@@ -88,11 +89,11 @@ def render(low_png: str, out_png: str, target_wh: tuple[int, int], preset: str) 
     try:
         subprocess.run(cmd, env={**_env(out_png)}, capture_output=True, text=True, timeout=60)
     except subprocess.TimeoutExpired as exc:
-        raise MpvError(f"mpv-рендер '{preset}' завис (>60с)") from exc
+        raise MpvError(f"mpv render '{preset}' hung (>60s)") from exc
     finally:
         Path(lua).unlink(missing_ok=True)
     if not Path(out_png).exists() or Path(out_png).stat().st_size == 0:
-        raise MpvError(f"mpv не отрисовал '{preset}' (нет дисплея / window-сервера?)")
+        raise MpvError(f"mpv did not render '{preset}' (no display / window server?)")
 
 
 def _env(out_png: str) -> dict:

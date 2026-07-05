@@ -1,14 +1,14 @@
-"""No-reference прокси качества (numpy, без ML).
+"""No-reference quality proxies (numpy, no ML).
 
-Работают на одиночном кадре без эталона — единственный вариант, когда ground-truth
-нет (нативный контент). Это ОТНОСИТЕЛЬНЫЕ дескрипторы, а НЕ калиброванный MOS:
-  * sharpness  — дисперсия лапласиана. Выше = резче, но перешарп её раздувает.
-  * hf_ratio   — доля ВЧ-энергии в спектре. Рост детализации И ringing поднимают её.
-  * noise      — оценка шума по Immerkaer. Ниже обычно лучше (меньше зерна/грязи).
-  * ringing    — прокси гало/овершута у краёв. Ниже лучше.
+They work on a single frame without a reference — the only option when there is no
+ground truth (native content). These are RELATIVE descriptors, NOT a calibrated MOS:
+  * sharpness  — variance of the Laplacian. Higher = sharper, but oversharpening inflates it.
+  * hf_ratio   — fraction of HF energy in the spectrum. Both added detail AND ringing raise it.
+  * noise      — Immerkaer noise estimate. Lower is usually better (less grain/dirt).
+  * ringing    — halo/overshoot proxy near edges. Lower is better.
 
-Ни одну нельзя оптимизировать в одиночку: перешарп даёт высокий sharpness/hf_ratio,
-но высокий ringing. Смотреть в связке и сверять с FR и глазами.
+None can be optimized in isolation: oversharpening gives high sharpness/hf_ratio
+but high ringing. Read them together and cross-check with FR and your eyes.
 """
 from __future__ import annotations
 
@@ -16,13 +16,13 @@ import numpy as np
 
 NR_KEYS = ["sharpness", "hf_ratio", "noise", "ringing"]
 NR_LABELS = {
-    "sharpness": "Резкость (Lap.var)",
-    "hf_ratio": "ВЧ-энергия",
-    "noise": "Шум (σ)",
+    "sharpness": "Sharpness (Lap.var)",
+    "hf_ratio": "HF energy",
+    "noise": "Noise (σ)",
     "ringing": "Ringing",
 }
-# Для NR «лучше» не однозначно — направление задаём только там, где оно осмысленно.
-# None = не ранжируем (просто дескриптор).
+# For NR, "better" is not clear-cut — set a direction only where it is meaningful.
+# None = not ranked (descriptor only).
 NR_HIGHER_BETTER: dict[str, bool | None] = {
     "sharpness": None,
     "hf_ratio": None,
@@ -56,7 +56,7 @@ def _hf_ratio(luma: np.ndarray, cutoff: float = 0.25) -> float:
 
 
 def _noise(luma: np.ndarray) -> float:
-    """Оценка σ шума по Immerkaer (свёртка с лаплас-маской 3x3)."""
+    """Immerkaer noise σ estimate (convolution with a 3x3 Laplacian mask)."""
     m = (
         luma[:-2, :-2] - 2 * luma[:-2, 1:-1] + luma[:-2, 2:]
         - 2 * luma[1:-1, :-2] + 4 * luma[1:-1, 1:-1] - 2 * luma[1:-1, 2:]
@@ -67,7 +67,7 @@ def _noise(luma: np.ndarray) -> float:
 
 
 def _ringing(luma: np.ndarray) -> float:
-    """Прокси овершута: доля пикселей, «выстреливающих» за локальный диапазон 3x3."""
+    """Overshoot proxy: fraction of pixels that "shoot" past the local 3x3 range."""
     a = luma
     stack = np.stack(
         [a[:-2, :-2], a[:-2, 1:-1], a[:-2, 2:],
