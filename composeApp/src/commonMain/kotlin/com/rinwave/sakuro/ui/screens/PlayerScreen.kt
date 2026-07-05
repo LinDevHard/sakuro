@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,11 +24,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -45,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -109,11 +109,18 @@ private const val DOUBLE_TAP_SEEK_SEC = 10
 private const val INDICATOR_LINGER_MS = 600L
 private const val DOUBLE_TAP_LINGER_MS = 650L
 
-/** What the center indicator shows during a gesture. */
+private enum class LevelControl {
+    BRIGHTNESS,
+    VOLUME,
+}
+
+/** Gesture feedback currently shown over the player. */
 private sealed interface GestureIndicator {
-    data class Seek(val targetMs: Long, val deltaMs: Long) : GestureIndicator
-    data class Level(val isVolume: Boolean, val value: Float) : GestureIndicator
-    data class Zoom(val mode: ScaleMode, val manual: Float, val totalFactor: Float) : GestureIndicator
+    sealed interface Top : GestureIndicator
+
+    data class Seek(val targetMs: Long, val deltaMs: Long) : Top
+    data class Level(val control: LevelControl, val value: Float) : GestureIndicator
+    data class Zoom(val mode: ScaleMode, val manual: Float, val totalFactor: Float) : Top
 }
 
 /**
@@ -277,7 +284,7 @@ fun PlayerScreen(component: PlayerComponent) {
                         var seekStartMs = 0L
                         var seekTargetMs = 0L
                         var levelSession: LevelSwipeSession? = null
-                        var levelIsVolume = false
+                        var levelControl = LevelControl.BRIGHTNESS
                         var pinchSession: PinchZoomSession? = null
 
                         detectPlayerGestures(object : PlayerGestureCallbacks {
@@ -309,20 +316,22 @@ fun PlayerScreen(component: PlayerComponent) {
 
                             override fun onLevelStart(leftSide: Boolean) {
                                 gestureActive = true
-                                levelIsVolume = !leftSide
-                                val start = if (levelIsVolume) systemControls.volume else systemControls.brightness
+                                levelControl = if (leftSide) LevelControl.BRIGHTNESS else LevelControl.VOLUME
+                                val start = when (levelControl) {
+                                    LevelControl.BRIGHTNESS -> systemControls.brightness
+                                    LevelControl.VOLUME -> systemControls.volume
+                                }
                                 levelSession = LevelSwipeSession(start, size.height.toFloat(), gestureSensitivity)
                             }
 
                             override fun onLevelDrag(totalDyPx: Float) {
                                 val session = levelSession ?: return
                                 val level = session.levelFor(totalDyPx)
-                                if (levelIsVolume) {
-                                    systemControls.setVolume(level)
-                                } else {
-                                    systemControls.setBrightness(level)
+                                when (levelControl) {
+                                    LevelControl.BRIGHTNESS -> systemControls.setBrightness(level)
+                                    LevelControl.VOLUME -> systemControls.setVolume(level)
                                 }
-                                indicator = GestureIndicator.Level(levelIsVolume, level)
+                                indicator = GestureIndicator.Level(levelControl, level)
                             }
 
                             override fun onLevelEnd() {
@@ -385,10 +394,31 @@ fun PlayerScreen(component: PlayerComponent) {
             )
         }
 
-        // Above controls: the center play/pause button should not cover the badge.
+        // Compact feedback sits top-center; level swipes use side rails near the gesture.
         if (!inPip) {
             indicator?.let { current ->
-                GestureIndicatorBadge(current, Modifier.align(Alignment.Center))
+                when (current) {
+                    is GestureIndicator.Level -> LevelIndicatorRail(
+                        indicator = current,
+                        modifier = Modifier
+                            .align(
+                                when (current.control) {
+                                    LevelControl.BRIGHTNESS -> Alignment.CenterStart
+                                    LevelControl.VOLUME -> Alignment.CenterEnd
+                                },
+                            )
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .padding(horizontal = 18.dp),
+                    )
+
+                    is GestureIndicator.Top -> TopGestureIndicatorBadge(
+                        current,
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .padding(top = 48.dp),
+                    )
+                }
             }
         }
 
@@ -579,7 +609,7 @@ private fun TimeText(text: String) {
 }
 
 @Composable
-private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifier = Modifier) {
+private fun TopGestureIndicatorBadge(indicator: GestureIndicator.Top, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = SakuroColors.Background.copy(alpha = 0.75f),
@@ -598,11 +628,6 @@ private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifie
                     color = SakuroColors.AccentSakura,
                 )
             }
-
-            is GestureIndicator.Level -> LevelIndicatorContent(
-                icon = if (indicator.isVolume) Lucide.Volume2 else Lucide.Sun,
-                value = indicator.value,
-            )
 
             is GestureIndicator.Zoom -> {
                 val isFit = indicator.mode == ScaleMode.FIT
@@ -633,24 +658,47 @@ private fun GestureIndicatorBadge(indicator: GestureIndicator, modifier: Modifie
 }
 
 @Composable
-private fun LevelIndicatorContent(icon: ImageVector, value: Float) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+private fun LevelIndicatorRail(indicator: GestureIndicator.Level, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = SakuroColors.Background.copy(alpha = 0.72f),
+        contentColor = SakuroColors.TextPrimary,
+        modifier = modifier,
     ) {
-        Icon(icon, null, Modifier.size(18.dp), tint = SakuroColors.AccentSakura)
-        LinearProgressIndicator(
-            progress = { value },
-            color = SakuroColors.AccentSakura,
-            trackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
-            modifier = Modifier.width(120.dp),
-        )
-        Text(
-            text = "${(value * 100).toInt()}%",
-            fontFamily = FontFamily.Monospace,
-            fontSize = 13.sp,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
+        ) {
+            Icon(
+                when (indicator.control) {
+                    LevelControl.BRIGHTNESS -> Lucide.Sun
+                    LevelControl.VOLUME -> Lucide.Volume2
+                },
+                null,
+                Modifier.size(18.dp),
+                tint = SakuroColors.AccentSakura,
+            )
+            Box(
+                modifier = Modifier
+                    .height(150.dp)
+                    .width(8.dp)
+                    .background(SakuroColors.Twilight.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(indicator.value)
+                        .background(SakuroColors.AccentSakura, CircleShape),
+                )
+            }
+            Text(
+                text = "${(indicator.value * 100).toInt()}%",
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 
