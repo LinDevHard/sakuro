@@ -110,6 +110,10 @@
     <string name="player_play">再生</string>
     <string name="player_pause">一時停止</string>
     <string name="player_playback_speed">再生速度</string>
+    <string name="player_tracks">音声と字幕</string>
+    <string name="player_audio_tracks">音声トラック</string>
+    <string name="player_subtitle_tracks">字幕</string>
+    <string name="player_subtitles_off">オフ</string>
     <string name="player_upscale_preset">アップスケールプリセット</string>
     <string name="player_pin_title">このファイルに固定</string>
     <string name="player_pin_desc">プリセットはこの動画にのみ適用され、全体の選択は変更されません</string>

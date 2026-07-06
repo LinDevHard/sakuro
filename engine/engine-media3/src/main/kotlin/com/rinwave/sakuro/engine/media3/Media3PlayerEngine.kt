@@ -201,13 +201,24 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     }
 
     override fun selectTrack(track: TrackSelection) {
-        val parts = track.trackId.split(":")
+        val trackType = track.toMedia3TrackType()
+        val trackId = track.trackId
+        if (trackId == null) {
+            player.trackSelectionParameters = player.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(trackType)
+                .setTrackTypeDisabled(trackType, true)
+                .build()
+            return
+        }
+        val parts = trackId.split(":")
         if (parts.size != 2) return
         val groupIndex = parts[0].toIntOrNull() ?: return
         val trackIndex = parts[1].toIntOrNull() ?: return
         val group = player.currentTracks.groups.getOrNull(groupIndex) ?: return
         player.trackSelectionParameters = player.trackSelectionParameters
             .buildUpon()
+            .setTrackTypeDisabled(trackType, false)
             .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
             .build()
     }
@@ -288,6 +299,12 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         Player.STATE_READY -> PlaybackStatus.READY
         Player.STATE_ENDED -> PlaybackStatus.ENDED
         else -> PlaybackStatus.IDLE
+    }
+
+    private fun TrackSelection.toMedia3TrackType(): Int = when (type) {
+        TrackType.VIDEO -> C.TRACK_TYPE_VIDEO
+        TrackType.AUDIO -> C.TRACK_TYPE_AUDIO
+        TrackType.SUBTITLE -> C.TRACK_TYPE_TEXT
     }
 
     private fun mapTracks(tracks: Tracks): List<TrackInfo> =

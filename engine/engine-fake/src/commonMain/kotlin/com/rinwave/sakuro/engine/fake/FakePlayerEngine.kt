@@ -138,6 +138,7 @@ class FakePlayerEngine : PlayerEngine {
                 tracks = s.tracks.map {
                     when {
                         it.type != track.type -> it
+                        track.trackId == null -> it.copy(selected = false)
                         else -> it.copy(selected = it.id == track.trackId)
                     }
                 },

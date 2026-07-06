@@ -212,13 +212,17 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
 
     override fun selectTrack(track: TrackSelection) {
         if (released.get()) return
-        val id = track.trackId.toIntOrNull() ?: return
         val property = when (track.type) {
             TrackType.VIDEO -> "vid"
             TrackType.AUDIO -> "aid"
             TrackType.SUBTITLE -> "sid"
         }
-        mpv.setPropertyInt(property, id)
+        val id = track.trackId?.toIntOrNull()
+        if (id == null) {
+            mpv.setPropertyString(property, "no")
+        } else {
+            mpv.setPropertyInt(property, id)
+        }
     }
 
     override fun applyUpscale(profile: UpscaleProfile) {

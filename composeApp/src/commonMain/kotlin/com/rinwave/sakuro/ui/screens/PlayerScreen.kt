@@ -67,6 +67,9 @@ import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
 import com.rinwave.sakuro.core.player.PlaybackStatus
+import com.rinwave.sakuro.core.player.TrackInfo
+import com.rinwave.sakuro.core.player.TrackSelection
+import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode
@@ -99,6 +102,10 @@ import sakuro.composeapp.generated.resources.player_pin_title
 import sakuro.composeapp.generated.resources.player_seek_back
 import sakuro.composeapp.generated.resources.player_seek_forward
 import sakuro.composeapp.generated.resources.player_stats_for_nerds
+import sakuro.composeapp.generated.resources.player_audio_tracks
+import sakuro.composeapp.generated.resources.player_subtitle_tracks
+import sakuro.composeapp.generated.resources.player_subtitles_off
+import sakuro.composeapp.generated.resources.player_tracks
 import sakuro.composeapp.generated.resources.player_upscale_preset
 import sakuro.composeapp.generated.resources.scale_fill_screen
 import sakuro.composeapp.generated.resources.scale_fit_to_screen
@@ -194,6 +201,7 @@ fun PlayerScreen(component: PlayerComponent) {
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
     var speedSheetVisible by remember { mutableStateOf(false) }
+    var tracksSheetVisible by remember { mutableStateOf(false) }
     var speedBoost by remember { mutableStateOf(false) }
     var speedBeforeBoost by remember { mutableStateOf(1f) }
     // YouTube-like frame scaling: the engine applies discrete crop first,
@@ -418,11 +426,18 @@ fun PlayerScreen(component: PlayerComponent) {
                 component = component,
                 onPresetClick = {
                     speedSheetVisible = false
+                    tracksSheetVisible = false
                     presetSheetVisible = true
                 },
                 onSpeedClick = {
                     presetSheetVisible = false
+                    tracksSheetVisible = false
                     speedSheetVisible = true
+                },
+                onTracksClick = {
+                    presetSheetVisible = false
+                    speedSheetVisible = false
+                    tracksSheetVisible = true
                 },
             )
         }
@@ -512,6 +527,21 @@ fun PlayerScreen(component: PlayerComponent) {
                 },
             )
         }
+
+        AnimatedVisibility(
+            visible = tracksSheetVisible && !inPip,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            TracksSheet(
+                tracks = state.tracks,
+                onTrackSelected = {
+                    component.engine.selectTrack(it)
+                    tracksSheetVisible = false
+                },
+            )
+        }
     }
 }
 
@@ -520,10 +550,12 @@ private fun PlayerControls(
     component: PlayerComponent,
     onPresetClick: () -> Unit,
     onSpeedClick: () -> Unit,
+    onTracksClick: () -> Unit,
 ) {
     val state by component.engine.state.collectAsState()
     val activePreset = BuiltInPresets.byId(state.activeUpscaleProfileId) ?: BuiltInPresets.OFF
     val upscaleActive = activePreset.isEnabled
+    val tracksAvailable = state.tracks.hasSelectableAudioOrSubtitles()
 
     Box(Modifier.fillMaxSize()) {
         // Gradient scrims keep the frame center bright.
@@ -570,6 +602,16 @@ private fun PlayerControls(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                if (tracksAvailable) {
+                    IconButton(onClick = onTracksClick) {
+                        Icon(
+                            Lucide.Volume2,
+                            stringResource(Res.string.player_tracks),
+                            tint = SakuroColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
                 Surface(
                     onClick = onSpeedClick,
                     shape = RoundedCornerShape(50),
@@ -781,6 +823,120 @@ private fun Badge(text: String) {
         Text(text, Modifier.padding(horizontal = 14.dp, vertical = 6.dp), fontSize = 14.sp)
     }
 }
+
+private fun List<TrackInfo>.hasSelectableAudioOrSubtitles(): Boolean {
+    val audioCount = count { it.type == TrackType.AUDIO }
+    val subtitleCount = count { it.type == TrackType.SUBTITLE }
+    return audioCount > 1 || subtitleCount > 0
+}
+
+@Composable
+private fun TracksSheet(
+    tracks: List<TrackInfo>,
+    onTrackSelected: (TrackSelection) -> Unit,
+) {
+    val audioTracks = tracks.filter { it.type == TrackType.AUDIO }
+    val subtitleTracks = tracks.filter { it.type == TrackType.SUBTITLE }
+
+    Surface(
+        color = SakuroColors.SurfaceElevated,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(vertical = 12.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(
+                stringResource(Res.string.player_tracks),
+                style = MaterialTheme.typography.titleMedium,
+                color = SakuroColors.TextPrimary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            if (audioTracks.size > 1) {
+                TrackSectionTitle(stringResource(Res.string.player_audio_tracks))
+                audioTracks.forEachIndexed { index, track ->
+                    TrackOptionRow(
+                        label = track.displayTrackLabel(index),
+                        secondary = track.language,
+                        selected = track.selected,
+                        onClick = { onTrackSelected(TrackSelection(track.id, TrackType.AUDIO)) },
+                    )
+                }
+            }
+            if (subtitleTracks.isNotEmpty()) {
+                TrackSectionTitle(stringResource(Res.string.player_subtitle_tracks))
+                TrackOptionRow(
+                    label = stringResource(Res.string.player_subtitles_off),
+                    secondary = null,
+                    selected = subtitleTracks.none { it.selected },
+                    onClick = { onTrackSelected(TrackSelection(null, TrackType.SUBTITLE)) },
+                )
+                subtitleTracks.forEachIndexed { index, track ->
+                    TrackOptionRow(
+                        label = track.displayTrackLabel(index),
+                        secondary = track.language,
+                        selected = track.selected,
+                        onClick = { onTrackSelected(TrackSelection(track.id, TrackType.SUBTITLE)) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackSectionTitle(text: String) {
+    Text(
+        text = text,
+        color = SakuroColors.TextMuted,
+        style = MaterialTheme.typography.labelMedium,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun TrackOptionRow(
+    label: String,
+    secondary: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                label,
+                color = SakuroColors.TextPrimary,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!secondary.isNullOrBlank()) {
+                Text(
+                    secondary,
+                    color = SakuroColors.TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (selected) {
+            Icon(Lucide.Check, null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+private fun TrackInfo.displayTrackLabel(index: Int): String =
+    label.takeIf { it.isNotBlank() } ?: "#${index + 1}"
 
 @Composable
 private fun SpeedSheet(

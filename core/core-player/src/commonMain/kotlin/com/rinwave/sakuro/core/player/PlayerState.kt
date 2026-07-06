@@ -37,6 +37,6 @@ data class TrackInfo(
 )
 
 data class TrackSelection(
-    val trackId: String,
+    val trackId: String?,
     val type: TrackType,
 )
