@@ -53,6 +53,13 @@
     <string name="settings_debug_overlay_desc">プレーヤー上の詳細統計 (Stats for nerds)</string>
     <string name="settings_about">アプリについて</string>
     <string name="settings_about_text">Sakuro 0.1.0 — リアルタイムアップスケール対応の動画プレーヤー。\nオープンソース (GPLv3)、Rinwave 制作。</string>
+    <string name="settings_tab_overview">概要</string>
+    <string name="settings_tab_playback">再生</string>
+    <string name="settings_tab_upscale">アップスケール</string>
+    <string name="settings_tab_advanced">詳細</string>
+    <string name="settings_quality_mode">アダプティブ品質</string>
+    <string name="settings_fixed_quality">固定品質</string>
+    <string name="settings_custom_count">カスタム %1$d 件</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>

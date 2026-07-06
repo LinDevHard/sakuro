@@ -1,24 +1,30 @@
 package com.rinwave.sakuro.ui.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,16 +47,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.composables.icons.lucide.Activity
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ClipboardPaste
 import com.composables.icons.lucide.Copy
+import com.composables.icons.lucide.Film
+import com.composables.icons.lucide.Folder
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Plus
+import com.composables.icons.lucide.Settings
+import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Trash2
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
@@ -94,16 +110,22 @@ import sakuro.composeapp.generated.resources.settings_about_text
 import sakuro.composeapp.generated.resources.settings_adaptive_desc
 import sakuro.composeapp.generated.resources.settings_adaptive_title
 import sakuro.composeapp.generated.resources.settings_controls
+import sakuro.composeapp.generated.resources.settings_custom_count
 import sakuro.composeapp.generated.resources.settings_custom_presets
 import sakuro.composeapp.generated.resources.settings_custom_presets_empty
-import sakuro.composeapp.generated.resources.settings_debug
 import sakuro.composeapp.generated.resources.settings_debug_overlay
 import sakuro.composeapp.generated.resources.settings_debug_overlay_desc
 import sakuro.composeapp.generated.resources.settings_default_preset
 import sakuro.composeapp.generated.resources.settings_engine
+import sakuro.composeapp.generated.resources.settings_fixed_quality
 import sakuro.composeapp.generated.resources.settings_player_gestures
 import sakuro.composeapp.generated.resources.settings_player_gestures_desc
+import sakuro.composeapp.generated.resources.settings_quality_mode
 import sakuro.composeapp.generated.resources.settings_swipe_sensitivity
+import sakuro.composeapp.generated.resources.settings_tab_advanced
+import sakuro.composeapp.generated.resources.settings_tab_overview
+import sakuro.composeapp.generated.resources.settings_tab_playback
+import sakuro.composeapp.generated.resources.settings_tab_upscale
 import sakuro.composeapp.generated.resources.settings_title
 import sakuro.composeapp.generated.resources.value_off
 
@@ -115,6 +137,8 @@ private sealed interface PresetMessage {
     data class Saved(val name: String) : PresetMessage
     data object Invalid : PresetMessage
 }
+
+private val SakuraTeal = Color(0xFF63D7D2)
 
 @Composable
 private fun PresetMessage.text(): String = when (this) {
@@ -140,262 +164,142 @@ fun SettingsScreen(component: SettingsComponent) {
     var editorInitial by remember { mutableStateOf<UpscaleProfile?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var presetMessage by remember { mutableStateOf<PresetMessage?>(null) }
+    var selectedTab by remember { mutableStateOf(SettingsTab.Overview) }
+    val selectedPreset = presets.firstOrNull { it.id == presetId } ?: presets.firstOrNull()
 
     Column(
         Modifier
             .fillMaxSize()
+            .background(SakuroColors.Background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState()),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = component.onBack) {
-                Icon(Lucide.ChevronLeft, stringResource(Res.string.action_back), tint = SakuroColors.TextPrimary)
-            }
-            Text(
-                stringResource(Res.string.settings_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = SakuroColors.TextPrimary,
-            )
-        }
+        SettingsTopBar(onBack = component.onBack)
+        SettingsStatusPanel(
+            engineType = engineType,
+            preset = selectedPreset,
+            adaptiveEnabled = adaptiveEnabled,
+            gesturesEnabled = gesturesEnabled,
+            customPresetCount = userPresets.size,
+        )
+        SettingsTabBar(selected = selectedTab, onSelect = { selectedTab = it })
 
-        SectionTitle(stringResource(Res.string.settings_engine))
-        component.availableEngines.forEach { type ->
-            EngineRow(
-                type = type,
-                selected = type == engineType,
-                enabled = true,
-                onClick = { component.selectEngine(type) },
-            )
-        }
-        if (EngineType.MPV !in component.availableEngines) {
-            EngineRow(type = EngineType.MPV, selected = false, enabled = false, onClick = {})
-        }
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
-
-        SectionTitle(stringResource(Res.string.settings_default_preset))
-        presets.forEach { preset ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { component.selectPreset(preset.id) }
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = preset.id == presetId,
-                    onClick = { component.selectPreset(preset.id) },
-                    colors = RadioButtonDefaults.colors(selectedColor = SakuroColors.AccentSakura),
+        when (selectedTab) {
+            SettingsTab.Overview -> {
+                OverviewContent(
+                    engineType = engineType,
+                    preset = selectedPreset,
+                    adaptiveEnabled = adaptiveEnabled,
+                    gesturesEnabled = gesturesEnabled,
+                    gestureSensitivity = gestureSensitivity,
+                    customPresetCount = userPresets.size,
+                    onOpenPlayback = { selectedTab = SettingsTab.Playback },
+                    onOpenUpscale = { selectedTab = SettingsTab.Upscale },
+                    onOpenControls = { selectedTab = SettingsTab.Controls },
+                    onOpenAdvanced = { selectedTab = SettingsTab.Advanced },
                 )
-                Column(Modifier.padding(start = 4.dp)) {
-                    Text(
-                        preset.displayName(),
-                        color = SakuroColors.TextPrimary,
-                        style = MaterialTheme.typography.bodyLarge,
+            }
+
+            SettingsTab.Playback -> {
+                SettingsPanel(title = stringResource(Res.string.settings_engine), icon = Lucide.Film) {
+                    component.availableEngines.forEach { type ->
+                        EngineRow(
+                            type = type,
+                            selected = type == engineType,
+                            enabled = true,
+                            onClick = { component.selectEngine(type) },
+                        )
+                    }
+                    if (EngineType.MPV !in component.availableEngines) {
+                        EngineRow(type = EngineType.MPV, selected = false, enabled = false, onClick = {})
+                    }
+                }
+            }
+
+            SettingsTab.Upscale -> {
+                SettingsPanel(title = stringResource(Res.string.settings_default_preset), icon = Lucide.Sparkles) {
+                    presets.forEach { preset ->
+                        PresetChoiceRow(
+                            preset = preset,
+                            selected = preset.id == presetId,
+                            onClick = { component.selectPreset(preset.id) },
+                        )
+                    }
+                }
+                CustomPresetsPanel(
+                    userPresets = userPresets,
+                    presetMessage = presetMessage,
+                    onCreate = {
+                        editorInitial = null
+                        editorVisible = true
+                    },
+                    onImport = {
+                        val raw = clipboard.getText()?.text.orEmpty()
+                        presetMessage = component.importUserPreset(raw).fold(
+                            onSuccess = { PresetMessage.Imported(it.name) },
+                            onFailure = { PresetMessage.Invalid },
+                        )
+                    },
+                    onEdit = { preset ->
+                        editorInitial = preset
+                        editorVisible = true
+                    },
+                    onExport = { preset ->
+                        clipboard.setText(AnnotatedString(component.exportUserPreset(preset)))
+                        presetMessage = PresetMessage.Copied(preset.name)
+                    },
+                    onDelete = { preset ->
+                        component.deleteUserPreset(preset.id)
+                        presetMessage = PresetMessage.Deleted(preset.name)
+                    },
+                )
+            }
+
+            SettingsTab.Controls -> {
+                SettingsPanel(title = stringResource(Res.string.settings_controls), icon = Lucide.Activity) {
+                    SettingSwitchRow(
+                        title = stringResource(Res.string.settings_player_gestures),
+                        subtitle = stringResource(Res.string.settings_player_gestures_desc),
+                        checked = gesturesEnabled,
+                        onCheckedChange = component::setGesturesEnabled,
                     )
+                    SettingSliderRow(
+                        title = stringResource(Res.string.settings_swipe_sensitivity),
+                        valueText = "${formatMultiplier(gestureSensitivity)}×",
+                        value = gestureSensitivity,
+                        valueRange = SakuroSettings.SENSITIVITY_MIN..SakuroSettings.SENSITIVITY_MAX,
+                        steps = SENSITIVITY_STEPS,
+                        enabled = gesturesEnabled,
+                        onValueChange = component::setGestureSensitivity,
+                    )
+                }
+            }
+
+            SettingsTab.Advanced -> {
+                SettingsPanel(title = stringResource(Res.string.settings_quality_mode), icon = Lucide.Settings) {
+                    SettingSwitchRow(
+                        title = stringResource(Res.string.settings_adaptive_title),
+                        subtitle = stringResource(Res.string.settings_adaptive_desc),
+                        checked = adaptiveEnabled,
+                        onCheckedChange = component::setAdaptiveEnabled,
+                    )
+                    SettingSwitchRow(
+                        title = stringResource(Res.string.settings_debug_overlay),
+                        subtitle = stringResource(Res.string.settings_debug_overlay_desc),
+                        checked = debugOverlay,
+                        onCheckedChange = component::setDebugOverlay,
+                    )
+                }
+                SettingsPanel(title = stringResource(Res.string.settings_about), icon = Lucide.Activity) {
                     Text(
-                        preset.displayDescription(),
+                        stringResource(Res.string.settings_about_text),
                         color = SakuroColors.TextMuted,
                         style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                     )
                 }
             }
         }
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
-
-        SectionTitle(stringResource(Res.string.settings_custom_presets))
-        if (userPresets.isEmpty()) {
-            Text(
-                stringResource(Res.string.settings_custom_presets_empty),
-                color = SakuroColors.TextMuted,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
-        }
-        userPresets.forEach { preset ->
-            UserPresetRow(
-                preset = preset,
-                onEdit = {
-                    editorInitial = preset
-                    editorVisible = true
-                },
-                onExport = {
-                    clipboard.setText(AnnotatedString(component.exportUserPreset(preset)))
-                    presetMessage = PresetMessage.Copied(preset.name)
-                },
-                onDelete = {
-                    component.deleteUserPreset(preset.id)
-                    presetMessage = PresetMessage.Deleted(preset.name)
-                },
-            )
-        }
-        Row(Modifier.padding(horizontal = 12.dp)) {
-            TextButton(
-                onClick = {
-                    editorInitial = null
-                    editorVisible = true
-                },
-            ) {
-                Icon(Lucide.Plus, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
-                Spacer(Modifier.size(6.dp))
-                Text(stringResource(Res.string.action_create), color = SakuroColors.AccentSakura)
-            }
-            TextButton(
-                onClick = {
-                    val raw = clipboard.getText()?.text.orEmpty()
-                    presetMessage = component.importUserPreset(raw).fold(
-                        onSuccess = { PresetMessage.Imported(it.name) },
-                        onFailure = { PresetMessage.Invalid },
-                    )
-                },
-            ) {
-                Icon(Lucide.ClipboardPaste, null, Modifier.size(16.dp), tint = SakuroColors.AccentSakura)
-                Spacer(Modifier.size(6.dp))
-                Text(stringResource(Res.string.action_from_clipboard), color = SakuroColors.AccentSakura)
-            }
-        }
-        presetMessage?.let { message ->
-            Text(
-                message.text(),
-                color = SakuroColors.AccentLavender,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
-        }
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
-
-        SectionTitle(stringResource(Res.string.settings_controls))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { component.setGesturesEnabled(!gesturesEnabled) }
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(Res.string.settings_player_gestures),
-                    color = SakuroColors.TextPrimary,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    stringResource(Res.string.settings_player_gestures_desc),
-                    color = SakuroColors.TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Switch(
-                checked = gesturesEnabled,
-                onCheckedChange = component::setGesturesEnabled,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = SakuroColors.AccentSakura,
-                    checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
-                ),
-            )
-        }
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(Res.string.settings_swipe_sensitivity),
-                    color = if (gesturesEnabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${formatMultiplier(gestureSensitivity)}×",
-                    color = SakuroColors.AccentSakura,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Slider(
-                value = gestureSensitivity,
-                onValueChange = component::setGestureSensitivity,
-                valueRange = SakuroSettings.SENSITIVITY_MIN..SakuroSettings.SENSITIVITY_MAX,
-                steps = SENSITIVITY_STEPS,
-                enabled = gesturesEnabled,
-                colors = SliderDefaults.colors(
-                    thumbColor = SakuroColors.AccentSakura,
-                    activeTrackColor = SakuroColors.GlowMagenta,
-                    inactiveTrackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
-                ),
-            )
-        }
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
-
-        SectionTitle(stringResource(Res.string.settings_debug))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { component.setAdaptiveEnabled(!adaptiveEnabled) }
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(Res.string.settings_adaptive_title),
-                    color = SakuroColors.TextPrimary,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    stringResource(Res.string.settings_adaptive_desc),
-                    color = SakuroColors.TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Switch(
-                checked = adaptiveEnabled,
-                onCheckedChange = component::setAdaptiveEnabled,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = SakuroColors.AccentSakura,
-                    checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
-                ),
-            )
-        }
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { component.setDebugOverlay(!debugOverlay) }
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(Res.string.settings_debug_overlay),
-                    color = SakuroColors.TextPrimary,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    stringResource(Res.string.settings_debug_overlay_desc),
-                    color = SakuroColors.TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Switch(
-                checked = debugOverlay,
-                onCheckedChange = component::setDebugOverlay,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = SakuroColors.AccentSakura,
-                    checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
-                ),
-            )
-        }
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = SakuroColors.Twilight.copy(alpha = 0.4f))
-
-        SectionTitle(stringResource(Res.string.settings_about))
-        Text(
-            stringResource(Res.string.settings_about_text),
-            color = SakuroColors.TextMuted,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-        )
         Spacer(Modifier.size(24.dp))
     }
 
@@ -409,6 +313,404 @@ fun SettingsScreen(component: SettingsComponent) {
             },
             onDismiss = { editorVisible = false },
         )
+    }
+}
+
+private enum class SettingsTab {
+    Overview,
+    Playback,
+    Upscale,
+    Controls,
+    Advanced,
+}
+
+@Composable
+private fun SettingsTab.label(): String = when (this) {
+    SettingsTab.Overview -> stringResource(Res.string.settings_tab_overview)
+    SettingsTab.Playback -> stringResource(Res.string.settings_tab_playback)
+    SettingsTab.Upscale -> stringResource(Res.string.settings_tab_upscale)
+    SettingsTab.Controls -> stringResource(Res.string.settings_controls)
+    SettingsTab.Advanced -> stringResource(Res.string.settings_tab_advanced)
+}
+
+@Composable
+private fun SettingsTopBar(onBack: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Lucide.ChevronLeft, stringResource(Res.string.action_back), tint = SakuroColors.TextPrimary)
+        }
+        Text(
+            stringResource(Res.string.settings_title),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = SakuroColors.TextPrimary,
+        )
+    }
+}
+
+@Composable
+private fun SettingsStatusPanel(
+    engineType: EngineType,
+    preset: UpscaleProfile?,
+    adaptiveEnabled: Boolean,
+    gesturesEnabled: Boolean,
+    customPresetCount: Int,
+) {
+    Surface(
+        color = SakuroColors.Surface,
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, SakuroColors.Twilight.copy(alpha = 0.65f)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = SakuraTeal.copy(alpha = 0.18f), shape = CircleShape) {
+                    Icon(
+                        Lucide.Sparkles,
+                        contentDescription = null,
+                        tint = SakuraTeal,
+                        modifier = Modifier.padding(10.dp).size(20.dp),
+                    )
+                }
+                Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                    Text(
+                        preset?.displayName() ?: stringResource(Res.string.value_off),
+                        color = SakuroColors.TextPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        preset?.displayDescription().orEmpty(),
+                        color = SakuroColors.TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatusPill(text = engineType.label(), accent = SakuroColors.AccentSakura, modifier = Modifier.weight(1f))
+                StatusPill(
+                    text = if (adaptiveEnabled) {
+                        stringResource(Res.string.settings_quality_mode)
+                    } else {
+                        stringResource(Res.string.settings_fixed_quality)
+                    },
+                    accent = SakuraTeal,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatusPill(
+                    text = stringResource(Res.string.settings_custom_count, customPresetCount),
+                    accent = SakuroColors.AccentLavender,
+                    modifier = Modifier.weight(1f),
+                )
+                StatusPill(
+                    text = stringResource(Res.string.settings_player_gestures),
+                    accent = if (gesturesEnabled) SakuroColors.GlowMagenta else SakuroColors.TextMuted,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusPill(text: String, accent: Color, modifier: Modifier = Modifier) {
+    Surface(
+        color = accent.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.28f)),
+        modifier = modifier.height(38.dp),
+    ) {
+        Box(Modifier.fillMaxSize().padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+            Text(
+                text,
+                color = SakuroColors.TextPrimary,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsTabBar(selected: SettingsTab, onSelect: (SettingsTab) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SettingsTab.entries.forEach { tab ->
+            FilterChip(
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                label = { Text(tab.label()) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = SakuroColors.Surface,
+                    selectedContainerColor = SakuroColors.AccentSakura.copy(alpha = 0.18f),
+                    labelColor = SakuroColors.TextMuted,
+                    selectedLabelColor = SakuroColors.TextPrimary,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = tab == selected,
+                    borderColor = SakuroColors.Twilight.copy(alpha = 0.65f),
+                    selectedBorderColor = SakuroColors.AccentSakura.copy(alpha = 0.7f),
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OverviewContent(
+    engineType: EngineType,
+    preset: UpscaleProfile?,
+    adaptiveEnabled: Boolean,
+    gesturesEnabled: Boolean,
+    gestureSensitivity: Float,
+    customPresetCount: Int,
+    onOpenPlayback: () -> Unit,
+    onOpenUpscale: () -> Unit,
+    onOpenControls: () -> Unit,
+    onOpenAdvanced: () -> Unit,
+) {
+    Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        OverviewRow(
+            icon = Lucide.Film,
+            title = stringResource(Res.string.settings_tab_playback),
+            value = engineType.label(),
+            onClick = onOpenPlayback,
+        )
+        OverviewRow(
+            icon = Lucide.Sparkles,
+            title = stringResource(Res.string.settings_tab_upscale),
+            value = preset?.displayName() ?: stringResource(Res.string.value_off),
+            onClick = onOpenUpscale,
+        )
+        OverviewRow(
+            icon = Lucide.Activity,
+            title = stringResource(Res.string.settings_controls),
+            value = if (gesturesEnabled) "${formatMultiplier(gestureSensitivity)}×" else stringResource(Res.string.value_off),
+            onClick = onOpenControls,
+        )
+        OverviewRow(
+            icon = Lucide.Settings,
+            title = stringResource(Res.string.settings_tab_advanced),
+            value = if (adaptiveEnabled) {
+                stringResource(Res.string.settings_quality_mode)
+            } else {
+                stringResource(Res.string.settings_fixed_quality)
+            },
+            onClick = onOpenAdvanced,
+        )
+        OverviewRow(
+            icon = Lucide.Folder,
+            title = stringResource(Res.string.settings_custom_presets),
+            value = stringResource(Res.string.settings_custom_count, customPresetCount),
+            onClick = onOpenUpscale,
+        )
+    }
+}
+
+@Composable
+private fun OverviewRow(icon: ImageVector, title: String, value: String, onClick: () -> Unit) {
+    Surface(
+        color = SakuroColors.Surface,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, SakuroColors.Twilight.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(color = SakuroColors.SurfaceElevated, shape = CircleShape) {
+                Icon(icon, contentDescription = null, tint = SakuroColors.AccentSakura, modifier = Modifier.padding(10.dp).size(18.dp))
+            }
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Text(title, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(value, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPanel(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = SakuroColors.Surface,
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, SakuroColors.Twilight.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(Modifier.padding(vertical = 8.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon, contentDescription = null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
+                Text(
+                    title,
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SettingSwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, color = SakuroColors.TextMuted, style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = SakuroColors.AccentSakura,
+                checkedTrackColor = SakuroColors.GlowMagenta.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun SettingSliderRow(
+    title: String,
+    valueText: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    enabled: Boolean,
+    onValueChange: (Float) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                color = if (enabled) SakuroColors.TextPrimary else SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Text(valueText, color = SakuroColors.AccentSakura, style = MaterialTheme.typography.bodyMedium)
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps,
+            enabled = enabled,
+            colors = SliderDefaults.colors(
+                thumbColor = SakuroColors.AccentSakura,
+                activeTrackColor = SakuroColors.GlowMagenta,
+                inactiveTrackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun PresetChoiceRow(preset: UpscaleProfile, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            color = if (selected) SakuroColors.AccentSakura.copy(alpha = 0.18f) else SakuroColors.SurfaceElevated,
+            shape = CircleShape,
+            border = BorderStroke(1.dp, if (selected) SakuroColors.AccentSakura else SakuroColors.Twilight.copy(alpha = 0.6f)),
+        ) {
+            Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                if (selected) {
+                    Icon(Lucide.Check, contentDescription = null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
+                } else {
+                    Icon(Lucide.Sparkles, contentDescription = null, tint = SakuroColors.TextMuted, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+        Column(Modifier.padding(start = 12.dp).weight(1f)) {
+            Text(preset.displayName(), color = SakuroColors.TextPrimary, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                preset.displayDescription(),
+                color = SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomPresetsPanel(
+    userPresets: List<UpscaleProfile>,
+    presetMessage: PresetMessage?,
+    onCreate: () -> Unit,
+    onImport: () -> Unit,
+    onEdit: (UpscaleProfile) -> Unit,
+    onExport: (UpscaleProfile) -> Unit,
+    onDelete: (UpscaleProfile) -> Unit,
+) {
+    SettingsPanel(title = stringResource(Res.string.settings_custom_presets), icon = Lucide.Folder) {
+        if (userPresets.isEmpty()) {
+            Text(
+                stringResource(Res.string.settings_custom_presets_empty),
+                color = SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        userPresets.forEach { preset ->
+            UserPresetRow(
+                preset = preset,
+                onEdit = { onEdit(preset) },
+                onExport = { onExport(preset) },
+                onDelete = { onDelete(preset) },
+            )
+        }
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(
+                onClick = onCreate,
+                colors = ButtonDefaults.textButtonColors(contentColor = SakuroColors.AccentSakura),
+            ) {
+                Icon(Lucide.Plus, null, Modifier.size(16.dp))
+                Spacer(Modifier.size(6.dp))
+                Text(stringResource(Res.string.action_create))
+            }
+            TextButton(
+                onClick = onImport,
+                colors = ButtonDefaults.textButtonColors(contentColor = SakuroColors.AccentSakura),
+            ) {
+                Icon(Lucide.ClipboardPaste, null, Modifier.size(16.dp))
+                Spacer(Modifier.size(6.dp))
+                Text(stringResource(Res.string.action_from_clipboard))
+            }
+        }
+        presetMessage?.let { message ->
+            Text(
+                message.text(),
+                color = SakuroColors.AccentLavender,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 
@@ -634,16 +936,6 @@ private const val UPSCALE_SLIDER_STEPS = 11
 
 // 0.5x..2x with a 0.25 step gives 5 intermediate slider ticks.
 private const val SENSITIVITY_STEPS = 5
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = SakuroColors.AccentLavender,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-    )
-}
 
 @Composable
 private fun EngineRow(type: EngineType, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {

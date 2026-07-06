@@ -52,6 +52,13 @@
     <string name="settings_debug_overlay_desc">Stats for nerds поверх плеера</string>
     <string name="settings_about">О приложении</string>
     <string name="settings_about_text">Sakuro 0.1.0 — видеоплеер с реалтайм-апскейлом.\nOpen source (GPLv3), от Rinwave.</string>
+    <string name="settings_tab_overview">Обзор</string>
+    <string name="settings_tab_playback">Плеер</string>
+    <string name="settings_tab_upscale">Апскейл</string>
+    <string name="settings_tab_advanced">Расширенные</string>
+    <string name="settings_quality_mode">Адаптивное качество</string>
+    <string name="settings_fixed_quality">Фиксированное качество</string>
+    <string name="settings_custom_count">Своих: %1$d</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>

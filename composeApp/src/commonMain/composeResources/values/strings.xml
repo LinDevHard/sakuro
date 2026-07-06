@@ -52,6 +52,13 @@
     <string name="settings_debug_overlay_desc">Stats for nerds over the player</string>
     <string name="settings_about">About</string>
     <string name="settings_about_text">Sakuro 0.1.0 — video player with real-time upscaling.\nOpen source (GPLv3), by Rinwave.</string>
+    <string name="settings_tab_overview">Overview</string>
+    <string name="settings_tab_playback">Playback</string>
+    <string name="settings_tab_upscale">Upscale</string>
+    <string name="settings_tab_advanced">Advanced</string>
+    <string name="settings_quality_mode">Adaptive quality</string>
+    <string name="settings_fixed_quality">Fixed quality</string>
+    <string name="settings_custom_count">%1$d custom</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>
