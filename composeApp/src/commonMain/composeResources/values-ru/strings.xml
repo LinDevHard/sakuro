@@ -113,6 +113,7 @@
     <string name="player_audio_tracks">Аудиодорожки</string>
     <string name="player_subtitle_tracks">Субтитры</string>
     <string name="player_subtitles_off">Выкл</string>
+    <string name="player_subtitles_open_file">Открыть файл субтитров</string>
     <string name="player_upscale_preset">Пресет апскейла</string>
     <string name="player_pin_title">Закрепить за файлом</string>
     <string name="player_pin_desc">Пресет применяется только к этому видео и не меняет общий выбор</string>

@@ -8,3 +8,6 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 expect fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit
+
+@Composable
+expect fun rememberSubtitleFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit

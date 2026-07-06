@@ -113,6 +113,7 @@
     <string name="player_audio_tracks">Audio tracks</string>
     <string name="player_subtitle_tracks">Subtitles</string>
     <string name="player_subtitles_off">Off</string>
+    <string name="player_subtitles_open_file">Open subtitle file</string>
     <string name="player_upscale_preset">Upscale preset</string>
     <string name="player_pin_title">Pin to this file</string>
     <string name="player_pin_desc">The preset applies only to this video and does not change the global selection</string>

@@ -27,6 +27,8 @@ interface PlayerEngine {
 
     fun selectTrack(track: TrackSelection)
 
+    fun addExternalSubtitle(subtitle: ExternalSubtitle)
+
     /**
      * The single upscale application point: libmpv loads a `.glsl` chain,
      * Media3 builds a `GlEffect` list and calls `setVideoEffects()`.

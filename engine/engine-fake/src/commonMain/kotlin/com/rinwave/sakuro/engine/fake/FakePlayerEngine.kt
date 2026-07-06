@@ -2,6 +2,7 @@ package com.rinwave.sakuro.engine.fake
 
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
@@ -142,6 +143,22 @@ class FakePlayerEngine : PlayerEngine {
                         else -> it.copy(selected = it.id == track.trackId)
                     }
                 },
+            )
+        }
+    }
+
+    override fun addExternalSubtitle(subtitle: ExternalSubtitle) {
+        _state.update { s ->
+            val nextId = "external-sub:${s.tracks.count { it.type == TrackType.SUBTITLE }}"
+            s.copy(
+                tracks = s.tracks.map {
+                    if (it.type == TrackType.SUBTITLE) it.copy(selected = false) else it
+                } + TrackInfo(
+                    id = nextId,
+                    type = TrackType.SUBTITLE,
+                    label = subtitle.title,
+                    selected = true,
+                ),
             )
         }
     }

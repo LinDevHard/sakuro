@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.Surface
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
@@ -223,6 +224,12 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         } else {
             mpv.setPropertyInt(property, id)
         }
+    }
+
+    override fun addExternalSubtitle(subtitle: ExternalSubtitle) {
+        if (released.get()) return
+        val target = resolvePlayableUri(subtitle.uri) ?: return
+        mpv.command(arrayOf("sub-add", target, "select", subtitle.title))
     }
 
     override fun applyUpscale(profile: UpscaleProfile) {

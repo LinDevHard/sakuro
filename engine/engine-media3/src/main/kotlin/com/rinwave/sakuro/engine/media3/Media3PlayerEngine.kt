@@ -1,10 +1,12 @@
 package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
+import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -15,6 +17,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
@@ -63,6 +66,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     private var currentMedia: MediaSource? = null
     private var currentProfile: UpscaleProfile = BuiltInPresets.OFF
+    private val externalSubtitles = mutableListOf<ExternalSubtitle>()
 
     /** Source height used when the current effect chain was built; 0 means unknown. */
     private var effectsBuiltForHeight = -1
@@ -173,6 +177,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     override fun load(media: MediaSource) {
         currentMedia = media
+        externalSubtitles.clear()
         droppedFrames = 0
         _state.update { it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null) }
         setEffectsInternal()
@@ -221,6 +226,22 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             .setTrackTypeDisabled(trackType, false)
             .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
             .build()
+    }
+
+    override fun addExternalSubtitle(subtitle: ExternalSubtitle) {
+        val media = currentMedia ?: return
+        externalSubtitles += subtitle
+        val resumePosition = player.currentPosition.coerceAtLeast(0)
+        val wasPlaying = player.playWhenReady
+        player.trackSelectionParameters = player.trackSelectionParameters
+            .buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .build()
+        player.stop()
+        player.setMediaItem(media.toMediaItem(), resumePosition)
+        player.prepare()
+        player.playWhenReady = wasPlaying
     }
 
     override fun applyUpscale(profile: UpscaleProfile) {
@@ -333,10 +354,28 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         TrackType.SUBTITLE -> language ?: sampleMimeType.orEmpty()
     }
 
-    private fun MediaSource.toMediaItem(): MediaItem = MediaItem.Builder()
-        .setUri(uri)
-        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
-        .build()
+    private fun MediaSource.toMediaItem(): MediaItem =
+        MediaItem.Builder()
+            .setUri(uri)
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+            .setSubtitleConfigurations(externalSubtitles.map { it.toSubtitleConfiguration() })
+            .build()
+
+    private fun ExternalSubtitle.toSubtitleConfiguration(): MediaItem.SubtitleConfiguration =
+        MediaItem.SubtitleConfiguration.Builder(Uri.parse(uri))
+            .setMimeType(subtitleMimeType(title, uri))
+            .setLabel(title)
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+            .build()
+
+    private fun subtitleMimeType(title: String, uri: String): String =
+        when ((title.substringAfterLast('.', "").ifBlank { uri.substringAfterLast('.', "") }).lowercase()) {
+            "srt" -> MimeTypes.APPLICATION_SUBRIP
+            "vtt", "webvtt" -> MimeTypes.TEXT_VTT
+            "ass", "ssa" -> MimeTypes.TEXT_SSA
+            "ttml", "xml", "dfxp" -> MimeTypes.APPLICATION_TTML
+            else -> MimeTypes.APPLICATION_SUBRIP
+        }
 
     private companion object {
         const val POSITION_POLL_MS = 250L

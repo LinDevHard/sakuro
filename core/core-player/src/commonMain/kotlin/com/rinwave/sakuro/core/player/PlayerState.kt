@@ -40,3 +40,8 @@ data class TrackSelection(
     val trackId: String?,
     val type: TrackType,
 )
+
+data class ExternalSubtitle(
+    val uri: String,
+    val title: String,
+)

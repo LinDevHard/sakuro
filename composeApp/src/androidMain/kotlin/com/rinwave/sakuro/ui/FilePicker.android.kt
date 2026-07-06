@@ -11,6 +11,24 @@ import androidx.compose.ui.platform.LocalContext
 
 @Composable
 actual fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit {
+    return rememberDocumentPicker(arrayOf("video/*"), "Video", onPicked)
+}
+
+@Composable
+actual fun rememberSubtitleFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit {
+    return rememberDocumentPicker(
+        arrayOf("*/*"),
+        "Subtitles",
+        onPicked,
+    )
+}
+
+@Composable
+private fun rememberDocumentPicker(
+    mimeTypes: Array<String>,
+    fallbackTitle: String,
+    onPicked: (uri: String, title: String) -> Unit,
+): () -> Unit {
     val context = LocalContext.current
     val callback = rememberUpdatedState(onPicked)
 
@@ -21,11 +39,11 @@ actual fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Uni
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            callback.value(uri.toString(), context.displayName(uri) ?: "Video")
+            callback.value(uri.toString(), context.displayName(uri) ?: fallbackTitle)
         }
     }
 
-    return { launcher.launch(arrayOf("video/*")) }
+    return { launcher.launch(mimeTypes) }
 }
 
 private fun android.content.Context.displayName(uri: Uri): String? =

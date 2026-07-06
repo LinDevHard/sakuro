@@ -114,6 +114,7 @@
     <string name="player_audio_tracks">音声トラック</string>
     <string name="player_subtitle_tracks">字幕</string>
     <string name="player_subtitles_off">オフ</string>
+    <string name="player_subtitles_open_file">字幕ファイルを開く</string>
     <string name="player_upscale_preset">アップスケールプリセット</string>
     <string name="player_pin_title">このファイルに固定</string>
     <string name="player_pin_desc">プリセットはこの動画にのみ適用され、全体の選択は変更されません</string>

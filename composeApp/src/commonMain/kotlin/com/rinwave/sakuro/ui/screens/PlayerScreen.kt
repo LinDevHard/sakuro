@@ -66,6 +66,7 @@ import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
+import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
@@ -90,6 +91,7 @@ import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
 import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
 import com.rinwave.sakuro.ui.rememberIsInPip
 import com.rinwave.sakuro.ui.rememberPlayerSystemControls
+import com.rinwave.sakuro.ui.rememberSubtitleFilePicker
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatTime
 import kotlinx.coroutines.delay
@@ -105,6 +107,7 @@ import sakuro.composeapp.generated.resources.player_stats_for_nerds
 import sakuro.composeapp.generated.resources.player_audio_tracks
 import sakuro.composeapp.generated.resources.player_subtitle_tracks
 import sakuro.composeapp.generated.resources.player_subtitles_off
+import sakuro.composeapp.generated.resources.player_subtitles_open_file
 import sakuro.composeapp.generated.resources.player_tracks
 import sakuro.composeapp.generated.resources.player_upscale_preset
 import sakuro.composeapp.generated.resources.scale_fill_screen
@@ -213,6 +216,10 @@ fun PlayerScreen(component: PlayerComponent) {
     var gestureActive by remember { mutableStateOf(false) }
     var lingerKey by remember { mutableStateOf(0) }
     var doubleTapSeek by remember { mutableStateOf<DoubleTapSeek?>(null) }
+    val openSubtitleFile = rememberSubtitleFilePicker { uri, title ->
+        component.engine.addExternalSubtitle(ExternalSubtitle(uri = uri, title = title))
+        tracksSheetVisible = true
+    }
 
     // Auto-hide controls during playback.
     LaunchedEffect(controlsVisible, state.isPlaying) {
@@ -536,6 +543,7 @@ fun PlayerScreen(component: PlayerComponent) {
         ) {
             TracksSheet(
                 tracks = state.tracks,
+                onExternalSubtitleClick = openSubtitleFile,
                 onTrackSelected = {
                     component.engine.selectTrack(it)
                     tracksSheetVisible = false
@@ -555,7 +563,6 @@ private fun PlayerControls(
     val state by component.engine.state.collectAsState()
     val activePreset = BuiltInPresets.byId(state.activeUpscaleProfileId) ?: BuiltInPresets.OFF
     val upscaleActive = activePreset.isEnabled
-    val tracksAvailable = state.tracks.hasSelectableAudioOrSubtitles()
 
     Box(Modifier.fillMaxSize()) {
         // Gradient scrims keep the frame center bright.
@@ -602,15 +609,13 @@ private fun PlayerControls(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (tracksAvailable) {
-                    IconButton(onClick = onTracksClick) {
-                        Icon(
-                            Lucide.Volume2,
-                            stringResource(Res.string.player_tracks),
-                            tint = SakuroColors.TextMuted,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
+                IconButton(onClick = onTracksClick) {
+                    Icon(
+                        Lucide.Volume2,
+                        stringResource(Res.string.player_tracks),
+                        tint = SakuroColors.TextMuted,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
                 Surface(
                     onClick = onSpeedClick,
@@ -824,15 +829,10 @@ private fun Badge(text: String) {
     }
 }
 
-private fun List<TrackInfo>.hasSelectableAudioOrSubtitles(): Boolean {
-    val audioCount = count { it.type == TrackType.AUDIO }
-    val subtitleCount = count { it.type == TrackType.SUBTITLE }
-    return audioCount > 1 || subtitleCount > 0
-}
-
 @Composable
 private fun TracksSheet(
     tracks: List<TrackInfo>,
+    onExternalSubtitleClick: () -> Unit,
     onTrackSelected: (TrackSelection) -> Unit,
 ) {
     val audioTracks = tracks.filter { it.type == TrackType.AUDIO }
@@ -866,8 +866,8 @@ private fun TracksSheet(
                     )
                 }
             }
+            TrackSectionTitle(stringResource(Res.string.player_subtitle_tracks))
             if (subtitleTracks.isNotEmpty()) {
-                TrackSectionTitle(stringResource(Res.string.player_subtitle_tracks))
                 TrackOptionRow(
                     label = stringResource(Res.string.player_subtitles_off),
                     secondary = null,
@@ -883,6 +883,12 @@ private fun TracksSheet(
                     )
                 }
             }
+            TrackOptionRow(
+                label = stringResource(Res.string.player_subtitles_open_file),
+                secondary = null,
+                selected = false,
+                onClick = onExternalSubtitleClick,
+            )
         }
     }
 }
