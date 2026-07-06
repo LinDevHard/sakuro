@@ -108,6 +108,7 @@
     <string name="player_seek_forward">+10 sec</string>
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
+    <string name="player_playback_speed">Playback speed</string>
     <string name="player_upscale_preset">Upscale preset</string>
     <string name="player_pin_title">Pin to this file</string>
     <string name="player_pin_desc">The preset applies only to this video and does not change the global selection</string>

@@ -93,6 +93,7 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.action_back
+import sakuro.composeapp.generated.resources.player_playback_speed
 import sakuro.composeapp.generated.resources.player_pin_desc
 import sakuro.composeapp.generated.resources.player_pin_title
 import sakuro.composeapp.generated.resources.player_seek_back
@@ -109,6 +110,7 @@ private const val DOUBLE_TAP_SEEK_MS = 10_000L
 private const val DOUBLE_TAP_SEEK_SEC = 10
 private const val INDICATOR_LINGER_MS = 600L
 private const val DOUBLE_TAP_LINGER_MS = 650L
+private val PLAYBACK_SPEED_OPTIONS = listOf(1f, 1.5f, 1.75f, 2f, 3f)
 
 private enum class LevelControl {
     BRIGHTNESS,
@@ -141,6 +143,15 @@ private fun formatZoom(factor: Float): String {
     return "×${tenths / 10}.${tenths % 10}"
 }
 
+private fun formatPlaybackSpeed(speed: Float): String = when {
+    abs(speed - 1.75f) < 0.01f -> "1.75×"
+    abs(speed - 1.5f) < 0.01f -> "1.5×"
+    abs(speed - 1f) < 0.01f -> "1.0×"
+    abs(speed - 2f) < 0.01f -> "2.0×"
+    abs(speed - 3f) < 0.01f -> "3.0×"
+    else -> "${(speed * 100f).roundToInt() / 100f}×"
+}
+
 /** Accumulated double-tap seek indicator, +/-N seconds per side. */
 private data class DoubleTapSeek(
     val forward: Boolean,
@@ -161,7 +172,13 @@ fun PlayerScreen(component: PlayerComponent) {
     val haptics = LocalHapticFeedback.current
 
     // Enter PiP on backgrounding; the PiP window shows video only.
-    PipEffect(state.isPlaying, state.videoWidth, state.videoHeight)
+    PipEffect(
+        isPlaying = state.isPlaying,
+        videoWidth = state.videoWidth,
+        videoHeight = state.videoHeight,
+        onPlay = component.engine::play,
+        onPause = component.engine::pause,
+    )
     val inPip = rememberIsInPip()
 
     // Fullscreen immersive mode hides system bars in the player, outside PiP.
@@ -176,7 +193,9 @@ fun PlayerScreen(component: PlayerComponent) {
 
     var controlsVisible by remember { mutableStateOf(true) }
     var presetSheetVisible by remember { mutableStateOf(false) }
+    var speedSheetVisible by remember { mutableStateOf(false) }
     var speedBoost by remember { mutableStateOf(false) }
+    var speedBeforeBoost by remember { mutableStateOf(1f) }
     // YouTube-like frame scaling: the engine applies discrete crop first,
     // then [manualZoom] adds an overlay transform (1.0 means no extra zoom).
     var scaleMode by remember { mutableStateOf(ScaleMode.FIT) }
@@ -270,6 +289,7 @@ fun PlayerScreen(component: PlayerComponent) {
                                 }
                             },
                             onLongPress = {
+                                if (!speedBoost) speedBeforeBoost = component.engine.state.value.speed
                                 speedBoost = true
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 component.engine.setSpeed(2f)
@@ -278,7 +298,7 @@ fun PlayerScreen(component: PlayerComponent) {
                                 tryAwaitRelease()
                                 if (speedBoost) {
                                     speedBoost = false
-                                    component.engine.setSpeed(1f)
+                                    component.engine.setSpeed(speedBeforeBoost)
                                 }
                             },
                         )
@@ -396,7 +416,14 @@ fun PlayerScreen(component: PlayerComponent) {
         ) {
             PlayerControls(
                 component = component,
-                onPresetClick = { presetSheetVisible = true },
+                onPresetClick = {
+                    speedSheetVisible = false
+                    presetSheetVisible = true
+                },
+                onSpeedClick = {
+                    presetSheetVisible = false
+                    speedSheetVisible = true
+                },
             )
         }
 
@@ -470,11 +497,30 @@ fun PlayerScreen(component: PlayerComponent) {
                 onDismiss = { presetSheetVisible = false },
             )
         }
+
+        AnimatedVisibility(
+            visible = speedSheetVisible && !inPip,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            SpeedSheet(
+                currentSpeed = state.speed,
+                onSpeedSelected = { speed ->
+                    component.engine.setSpeed(speed)
+                    speedSheetVisible = false
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit) {
+private fun PlayerControls(
+    component: PlayerComponent,
+    onPresetClick: () -> Unit,
+    onSpeedClick: () -> Unit,
+) {
     val state by component.engine.state.collectAsState()
     val activePreset = BuiltInPresets.byId(state.activeUpscaleProfileId) ?: BuiltInPresets.OFF
     val upscaleActive = activePreset.isEnabled
@@ -524,6 +570,23 @@ private fun PlayerControls(component: PlayerComponent, onPresetClick: () -> Unit
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                Surface(
+                    onClick = onSpeedClick,
+                    shape = RoundedCornerShape(50),
+                    color = SakuroColors.Surface.copy(alpha = 0.6f),
+                    contentColor = if (abs(state.speed - 1f) < 0.01f) {
+                        SakuroColors.TextMuted
+                    } else {
+                        SakuroColors.AccentSakura
+                    },
+                    modifier = Modifier.padding(end = 8.dp),
+                ) {
+                    Text(
+                        text = formatPlaybackSpeed(state.speed),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
                 // Upscale-on indicator.
                 Surface(
                     onClick = onPresetClick,
@@ -716,6 +779,51 @@ private fun Badge(text: String) {
         contentColor = SakuroColors.AccentSakura,
     ) {
         Text(text, Modifier.padding(horizontal = 14.dp, vertical = 6.dp), fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun SpeedSheet(
+    currentSpeed: Float,
+    onSpeedSelected: (Float) -> Unit,
+) {
+    Surface(
+        color = SakuroColors.SurfaceElevated,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(vertical = 12.dp),
+        ) {
+            Text(
+                stringResource(Res.string.player_playback_speed),
+                style = MaterialTheme.typography.titleMedium,
+                color = SakuroColors.TextPrimary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            PLAYBACK_SPEED_OPTIONS.forEach { speed ->
+                val selected = abs(speed - currentSpeed) < 0.01f
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onSpeedSelected(speed) }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        formatPlaybackSpeed(speed),
+                        color = SakuroColors.TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (selected) {
+                        Icon(Lucide.Check, null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
     }
 }
 

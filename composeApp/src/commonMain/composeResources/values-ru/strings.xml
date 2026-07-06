@@ -108,6 +108,7 @@
     <string name="player_seek_forward">+10 сек</string>
     <string name="player_play">Воспроизвести</string>
     <string name="player_pause">Пауза</string>
+    <string name="player_playback_speed">Скорость воспроизведения</string>
     <string name="player_upscale_preset">Пресет апскейла</string>
     <string name="player_pin_title">Закрепить за файлом</string>
     <string name="player_pin_desc">Пресет применяется только к этому видео и не меняет общий выбор</string>

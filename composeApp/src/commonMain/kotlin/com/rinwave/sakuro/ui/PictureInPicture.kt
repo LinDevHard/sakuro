@@ -15,7 +15,13 @@ import androidx.compose.runtime.Composable
  * (the PiP window aspect). Outside the player screen, PiP is not enabled.
  */
 @Composable
-expect fun PipEffect(isPlaying: Boolean, videoWidth: Int, videoHeight: Int)
+expect fun PipEffect(
+    isPlaying: Boolean,
+    videoWidth: Int,
+    videoHeight: Int,
+    onPlay: () -> Unit,
+    onPause: () -> Unit,
+)
 
 /** Whether the activity is in PiP mode now (in PiP we draw video only). */
 @Composable

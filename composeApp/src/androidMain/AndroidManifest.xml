@@ -25,5 +25,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".ui.PipActionReceiver"
+            android:exported="false" />
     </application>
 </manifest>
