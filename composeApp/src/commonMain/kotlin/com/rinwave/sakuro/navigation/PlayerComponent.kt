@@ -84,6 +84,8 @@ class PlayerComponent(
     private val adaptiveController = AdaptiveController()
     private val healthTracker = PlaybackHealthTracker()
     private var appliedProfile: UpscaleProfile
+    private var viewportWidth = 0
+    private var viewportHeight = 0
 
     init {
         appliedProfile = resolveUserProfile(_selectedPresetId.value, _detection.value)
@@ -163,12 +165,31 @@ class PlayerComponent(
     }
 
     /**
-     * Entering/leaving PiP: the Media3 videoEffects GL pipeline is bound to the surface
-     * size at prepare time; after a window resize the frame is drawn with the old
-     * geometry — so we restart the chain (a fast re-prepare from the same position).
+     * Entering/leaving PiP or rotating the player viewport: the Media3 videoEffects
+     * GL pipeline is bound to the surface size at prepare time; after a window resize
+     * the frame is drawn with the old geometry — so we restart the chain.
      */
     fun onPipModeChanged() {
-        engine.applyUpscale(appliedProfile)
+        refreshMedia3OutputGeometry()
+    }
+
+    fun onViewportSizeChanged(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        if (width == viewportWidth && height == viewportHeight) return
+
+        val hadViewport = viewportWidth > 0 && viewportHeight > 0
+        viewportWidth = width
+        viewportHeight = height
+
+        if (hadViewport) {
+            refreshMedia3OutputGeometry()
+        }
+    }
+
+    private fun refreshMedia3OutputGeometry() {
+        if (activeEngineType == EngineType.MEDIA3) {
+            engine.applyUpscale(appliedProfile)
+        }
     }
 
     fun toggleDebugOverlay() = settings.setDebugOverlay(!settings.debugOverlay.value)
