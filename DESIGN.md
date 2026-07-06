@@ -12,7 +12,7 @@ Sakuro should feel like a premium media player: dark plum twilight, sakura accen
 Principles:
 
 - **Content over chrome:** UI does not compete with video and fades back during playback.
-- **One language across engines:** users should not feel whether libmpv or Media3 is underneath, except in settings.
+- **One product runtime:** users should experience Sakuro as a polished Media3 player; libmpv comparison tooling stays out of the normal UI.
 - **Tactility:** gestures, micro-animations, and haptics should make actions feel responsive.
 
 ## 2. Icons
@@ -44,7 +44,7 @@ Principles:
 
 - **Library:** grid/list of local files, thumbnails, metadata, quick search.
 - **Player:** minimal chrome, gestures, upscale indicator, track/subtitle selection.
-- **Settings:** engine, default upscale preset, content auto-detect, gestures, theme, auto-hide behavior.
+- **Settings:** default upscale preset, content auto-detect, gestures, theme, auto-hide behavior, and optional debug controls.
 - **Preset manager:** built-in and user presets, create/edit, import/export.
 - **Upscale overlay:** quick preset and status access.
 - **Debug overlay:** unobtrusive monospace "stats for nerds".

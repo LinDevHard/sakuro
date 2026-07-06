@@ -9,23 +9,23 @@
 
 ![Sakuro neon logo banner](assets/branding/sakuro-readme-banner.webp)
 
-Sakuro is a Kotlin Multiplatform video player focused on local playback and real-time upscaling.
+Sakuro is a Kotlin Multiplatform video player focused on local Android playback and real-time upscaling through Media3.
 
-The Android app is the main product target. The Desktop/JVM target is kept as a fast UI and architecture sandbox, using a fake player engine where native Android playback is unavailable.
+The Android app is the main product target. The Desktop/JVM target is kept as a fast UI and architecture sandbox, using a fake player engine where native Android playback is unavailable. libmpv is kept as a developer/reference path for shader comparison and parity testing rather than the primary product runtime.
 
 ## Highlights
 
 - Local video library on Android through MediaStore, plus manual file opening through the system picker.
-- Two Android playback engines behind a shared `PlayerEngine` abstraction:
-  - **Media3/ExoPlayer** for native Android playback, hardware decoding, and GLSL ES effects through Media3 video effects.
-  - **libmpv** through `dev.jdtech.mpv:libmpv`, with native shader support and broad codec coverage.
+- **Media3/ExoPlayer** as the Android product playback engine, with hardware decoding and GLSL ES effects through Media3 video effects.
+- A shared `PlayerEngine` abstraction for Media3, fake desktop/testing, and libmpv reference workflows.
+- **libmpv** reference tooling through `dev.jdtech.mpv:libmpv`, used to run upstream mpv `.glsl` shaders, capture comparison output, and guide Media3 ports.
 - Real-time upscale presets for anime, cartoon, and live-action content.
 - Media3 Anime4K shader runtime that parses mpv-style user shaders and executes a multi-pass render graph.
 - Debug overlay with engine, decoder, codec, resolution, FPS, dropped frames, bitrate, audio, active preset, detection, adaptive state, and device signals.
 - Content detection from filenames and sampled frames, with automatic preset selection and manual override.
 - Adaptive playback controller for thermal, battery, power-save, and dropped-frame conditions.
 - Gesture-first player controls: tap, double-tap seek, long-press speed, seek swipe, brightness/volume swipe, and pinch scale modes.
-- Settings backed by multiplatform settings: engine choice, default preset, debug overlay, adaptive mode, gesture controls, and preset import/export.
+- Settings backed by multiplatform settings: default preset, debug overlay, adaptive mode, gesture controls, and preset import/export.
 - `foss` and `full` Android flavors. They are currently equivalent and do not include proprietary SDKs.
 
 ## Project Status
@@ -35,13 +35,13 @@ Sakuro is an early Android-first open-source project. It is suitable for develop
 Verified locally:
 
 - Android debug and release builds.
-- Unit tests across core modules, Media3 shader planning/parsing, mpv property mapping, library organization, settings, gestures, detection, and adaptive control.
+- Unit tests across core modules, Media3 shader planning/parsing, mpv reference mapping, library organization, settings, gestures, detection, and adaptive control.
 - Media3 playback with live preset switching and upscaled output on an emulator.
 
 Known practical limits:
 
 - Real-device profiling for the Media3 Anime4K path is still important before calling the shader runtime production-stable.
-- Native libmpv packaging increases APK size and makes licensing/distribution review more important.
+- libmpv should stay out of normal product packaging unless a specific distribution accepts the APK size and GPL tradeoff.
 - DRM/protected streams are out of scope because decoded frames are not available to custom effects.
 - Desktop is a UI sandbox, not a full desktop media player.
 
@@ -128,7 +128,7 @@ core/core-media/       Media library model, Android MediaStore integration, desk
 core/core-detect/      Filename and frame-sample content classification
 core/core-settings/    Persisted app settings
 engine/engine-media3/  Media3/ExoPlayer engine and GLSL ES upscale effects
-engine/engine-mpv/     libmpv engine, shader store, mpv property mapping
+engine/engine-mpv/     Developer/reference libmpv path, shader store, mpv property mapping
 engine/engine-fake/    Fake engine for desktop UI and tests
 build-logic/           Shared Gradle convention plugins
 tools/sakuro-bench/    Local benchmark utility for shader/output comparisons
@@ -138,7 +138,7 @@ assets/branding/       Source branding assets
 
 ## Licensing
 
-Sakuro is distributed under the [GNU General Public License v3.0](LICENSE) because the Android app links against libmpv. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses/).
+Sakuro is currently distributed under the [GNU General Public License v3.0](LICENSE) because libmpv is present in the repository. Product builds should avoid shipping libmpv unless that GPL and APK-size tradeoff is intentional. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses/).
 
 Review [ARCHITECTURE.md](ARCHITECTURE.md) for licensing notes around engines, flavors, and third-party dependencies.
 
@@ -153,6 +153,6 @@ For security reports, please follow [SECURITY.md](SECURITY.md) and do not open a
 When reporting playback or quality problems, include:
 
 - Device/OS details for playback and shader issues.
-- Engine selection: Media3 or mpv.
+- Whether the issue is in the Media3 product path or the libmpv reference path.
 - Video codec, resolution, and container when relevant.
 - Logs or screenshots for visual/rendering bugs.

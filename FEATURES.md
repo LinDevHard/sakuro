@@ -47,7 +47,7 @@ A preset is a named set of processing parameters applied during playback.
 
 ### 2.1 Preset Contents
 
-- Upscale shader chain: Anime4K modes, ArtCNN variants, Ani4K, and similar options.
+- Upscale shader chain: Anime4K modes, ArtCNN variants, Ani4K, and similar options, with Media3 as the product runtime.
 - Denoise, deblocking, and sharpening.
 - Scaling algorithm and target resolution.
 - Optional color, tonemapping, and dithering settings.
@@ -63,12 +63,12 @@ A preset is a named set of processing parameters applied during playback.
 
 - Auto-detection selects a preset by class; users can override or pin the choice.
 - `AdaptiveController` may temporarily reduce the active preset under heat or FPS drops without changing the user's saved choice.
-- Presets are abstract. Each engine applies what it supports: libmpv loads `.glsl` chains, Media3 builds `GlEffect` chains, and unsupported options degrade or hide.
+- Presets are abstract, but product playback targets Media3. Media3 builds `GlEffect` chains for supported options; libmpv is used as a developer/reference path to load upstream `.glsl` chains, compare output, and guide ports. Unsupported product options degrade or hide.
 
 ### 2.4 Implementation
 
 - `:core:core-upscale` owns `UpscaleProfile`, presets, built-ins, user store, and import/export serialization.
-- Engines apply presets through `PlayerEngine.applyUpscale(profile)`.
+- Media3 applies presets through `PlayerEngine.applyUpscale(profile)` in product builds. Reference tools may reuse the same profile metadata to configure libmpv comparisons.
 
 ## 3. Player Gestures
 
@@ -84,7 +84,7 @@ The player needs a configurable and adaptive gesture set.
 
 Requirements: configurable sensitivity, safe interaction with system edge gestures and `WindowInsets`, good behavior across device sizes, and haptics for key actions.
 
-Implementation belongs in `composeApp` through Compose gesture APIs so it is shared across engines and targets. Desktop equivalents such as mouse wheel and drag are secondary.
+Implementation belongs in `composeApp` through Compose gesture APIs so it is shared across the product runtime and sandbox targets. Desktop equivalents such as mouse wheel and drag are secondary.
 
 ## 4. Debug Overlay
 
@@ -94,7 +94,7 @@ It should show engine, decoder, codec, container, source-to-output resolution, d
 
 The overlay is toggled through settings or gesture, uses a monospace style, and stays unobtrusive.
 
-Implementation: `PlayerEngine.debugStats: Flow<DebugStats>` in `:core:core-player`; mpv fills it from properties, Media3 fills it from `AnalyticsListener` and decoder counters, and shared modules add content and thermal data.
+Implementation: `PlayerEngine.debugStats: Flow<DebugStats>` in `:core:core-player`; Media3 fills product stats from `AnalyticsListener` and decoder counters, libmpv fills reference stats from mpv properties, and shared modules add content and thermal data.
 
 ## 5. Module Impact
 
