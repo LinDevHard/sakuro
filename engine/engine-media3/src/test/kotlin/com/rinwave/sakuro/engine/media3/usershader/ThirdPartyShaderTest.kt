@@ -72,4 +72,60 @@ class ThirdPartyShaderTest {
         assertTrue(plan.passes.isEmpty())
         assertEquals("MAIN", plan.presentSlot)
     }
+
+    @Test
+    fun `FSRCNNX doubles the frame through the virtual LUMA plane`() {
+        val document = document("FSRCNNX_x2_8-0-4-1.glsl")
+        assertTrue(document.passes.isNotEmpty())
+        assertTrue(document.passes.all { it.hooks == listOf("LUMA") })
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
+        assertTrue(plan.skipped.isEmpty(), "skipped: ${plan.skipped}")
+        // Extraction opens the planes, the merge closes them.
+        assertEquals(listOf("<extract-luma>", "<extract-chroma>"), plan.passes.take(2).map { it.pass.desc })
+        assertEquals("<merge-planes>", plan.passes.last().pass.desc)
+        assertEquals(document.passes.size + 3, plan.passes.size)
+        // The aggregation pass doubled LUMA in place → the merged MAIN is ×2.
+        assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+        assertEquals("MAIN", plan.presentSlot)
+
+        for (planned in plan.passes) {
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
+        }
+    }
+
+    @Test
+    fun `FSRCNNX is cut entirely without upscaling and costs no plane round-trip`() {
+        val plan = ShaderGraphPlanner.plan(document("FSRCNNX_x2_8-0-4-1.glsl"), 1920, 1080, 1920, 1080)
+        assertTrue(plan.passes.isEmpty())
+    }
+
+    @Test
+    fun `KrigBilateral upscales the virtual chroma to the luma size`() {
+        val document = document("KrigBilateral.glsl")
+        assertEquals(3, document.passes.size)
+        assertTrue(document.passes.all { it.hooks == listOf("CHROMA") })
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080)
+        assertTrue(plan.skipped.isEmpty(), "skipped: ${plan.skipped}")
+        assertEquals(
+            listOf(
+                "<extract-luma>", "<extract-chroma>",
+                "KrigBilateral Downscaling Y pass 1", "KrigBilateral Downscaling Y pass 2",
+                "KrigBilateral Upscaling UV", "<merge-planes>",
+            ),
+            plan.passes.map { it.pass.desc },
+        )
+        // The UV upscale runs at the luma size; the frame itself does not grow.
+        assertEquals(640 to 360, plan.passes[4].outWidth to plan.passes[4].outHeight)
+        assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
+        // Its OFFSET ALIGN resets the frame offset.
+        assertEquals(0f to 0f, plan.offsetX to plan.offsetY)
+
+        for (planned in plan.passes) {
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
+        }
+    }
 }

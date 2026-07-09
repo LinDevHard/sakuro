@@ -8,7 +8,7 @@ internal data class PlannedPass(
     val pass: UserShaderPass,
     /** The raw hook point the pass fired on (`PREKERNEL`, `OUTPUT`, …) — its `HOOKED`. */
     val hook: String,
-    /** The canonical frame slot of that hook (`MAIN`, `LINEAR`, `SIGMOID`, `POSTKERNEL`). */
+    /** The canonical frame slot of that hook (`MAIN`, `LUMA`, `LINEAR`, `POSTKERNEL`, …). */
     val stage: String,
     val outWidth: Int,
     val outHeight: Int,
@@ -30,15 +30,17 @@ internal data class GraphPlan(
 
 /**
  * Statically runs a user-shader pass graph: expands `//!HOOK`s into firings in
- * mpv pipeline order (`NATIVE→MAIN→LINEAR→SIGMOID→PREKERNEL→POSTKERNEL→…→OUTPUT`,
+ * mpv pipeline order (`LUMA→CHROMA→…→MAIN→LINEAR→SIGMOID→PREKERNEL→POSTKERNEL→…`,
  * document order within a hook point), computes the size of every intermediate
  * texture from the `//!WIDTH/HEIGHT` RPN formulas, cuts passes with a false
  * `//!WHEN`, and skips passes whose hooks never occur in the pipeline.
  *
- * `LINEAR`/`SIGMOID` hooks are emulated: synthetic conversion passes linearize
- * the frame before the first such hook and convert back before the next
- * electrical-space firing. `//!OFFSET` shifts accumulate on the frame and are
- * compensated by the present pass; `ALIGN` resets the accumulator.
+ * `LUMA`/`CHROMA` hooks run on virtual planes synthesized from the RGB frame
+ * (full-res Y and half-res CbCr, BT.709 full-range) and merged back into `MAIN`
+ * at the final LUMA size — this is how FSRCNNX-style luma doublers upscale the
+ * frame. `LINEAR`/`SIGMOID` hooks are emulated with synthetic conversion passes
+ * around them. `//!OFFSET` shifts accumulate on the frame and are compensated by
+ * the present pass; `ALIGN` resets the accumulator.
  *
  * `OUTPUT` in RPN expressions is the target-size pseudo-texture (for gating
  * `//!WHEN`); hooking `OUTPUT` runs on the post-scale slot. Bare `//!PARAM`
@@ -91,7 +93,8 @@ internal object ShaderGraphPlanner {
         }
     }
 
-    /** Sequentially plans firings, materializing color states and the post slot on demand. */
+    /** Sequentially plans firings, materializing planes, color states and the post slot on demand. */
+    @Suppress("TooManyFunctions")
     private class Builder(
         document: ShaderDocument,
         inputWidth: Int,
@@ -111,47 +114,133 @@ internal object ShaderGraphPlanner {
         private val planned = mutableListOf<PlannedPass>()
         private var linearOpen = false
         private var sigmoidOpen = false
+        private var planesOpen = false
+        private var planesDirty = false
+        private var chromaScaledOpen = false
         private var postStarted = false
         private var offsetX = 0f
         private var offsetY = 0f
 
+        /** The MAIN size at plane-seed time — the size the extraction passes render at. */
+        private var planeSeed: Pair<Int, Int>? = null
+
         fun add(firing: Firing) {
             val slot = ShaderStages.slotOf(firing.hook)
-            when (slot) {
-                ShaderStages.MAIN -> closeColorStates()
-                ShaderStages.LINEAR -> sizes[ShaderStages.LINEAR] = sizes.getValue(ShaderStages.MAIN)
-                ShaderStages.SIGMOID -> {
-                    sizes[ShaderStages.LINEAR] = sizes.getValue(ShaderStages.MAIN)
-                    sizes[ShaderStages.SIGMOID] = sizes.getValue(ShaderStages.MAIN)
-                }
-                ShaderStages.POST -> {
-                    closeColorStates()
-                    sizes.getOrPut(ShaderStages.POST) { sizes.getValue(ShaderStages.MAIN) }
-                }
-            }
+            prepareSlot(slot)
             val pass = planPass(firing.pass, firing.hook, slot) ?: return
+            openPlanes(slot)
             openColorStates(slot)
-            // The frame presents from the post slot only when a post pass actually ran.
             if (slot == ShaderStages.POST) postStarted = true
+            // A plane is dirty once a hooked pass writes a plane in place — only
+            // then does the frame need a merge (mpv re-merges planes anyway; we
+            // skip the chroma round-trip when nothing touched the planes).
+            if (ShaderStages.isPlane(slot) &&
+                ShaderStages.isPlane(canonicalStage(firing.pass.save, slot))
+            ) {
+                planesDirty = true
+            }
             planned += pass
             accumulateOffset(pass)
         }
 
         fun build(skipped: List<String>): GraphPlan {
+            closePlanes()
             closeColorStates()
             val presentSlot = if (postStarted) ShaderStages.POST else ShaderStages.MAIN
             val (outW, outH) = sizes.getValue(presentSlot)
             return GraphPlan(planned, outW, outH, skipped, presentSlot, offsetX, offsetY)
         }
 
+        /** Seeds slot sizes and folds finished pipeline phases before a firing plans. */
+        private fun prepareSlot(slot: String) {
+            when {
+                ShaderStages.isPlane(slot) -> seedPlanes(slot)
+                slot == ShaderStages.LINEAR -> {
+                    closePlanes()
+                    sizes[ShaderStages.LINEAR] = sizes.getValue(ShaderStages.MAIN)
+                }
+                slot == ShaderStages.SIGMOID -> {
+                    closePlanes()
+                    sizes[ShaderStages.LINEAR] = sizes.getValue(ShaderStages.MAIN)
+                    sizes[ShaderStages.SIGMOID] = sizes.getValue(ShaderStages.MAIN)
+                }
+                slot == ShaderStages.POST -> {
+                    closePlanes()
+                    closeColorStates()
+                    sizes.getOrPut(ShaderStages.POST) { sizes.getValue(ShaderStages.MAIN) }
+                }
+                else -> {
+                    closePlanes()
+                    closeColorStates()
+                }
+            }
+        }
+
+        /** Registers the virtual plane sizes: full-res LUMA, half-res CHROMA (4:2:0). */
+        private fun seedPlanes(slot: String) {
+            val main = sizes.getValue(ShaderStages.MAIN)
+            if (planeSeed == null) planeSeed = main
+            sizes.getOrPut(ShaderStages.LUMA) { main }
+            sizes.getOrPut(ShaderStages.CHROMA) { (main.first + 1) / 2 to (main.second + 1) / 2 }
+            if (slot == ShaderStages.CHROMA_SCALED) {
+                sizes.getOrPut(ShaderStages.CHROMA_SCALED) { sizes.getValue(ShaderStages.LUMA) }
+            }
+        }
+
+        /** Inserts the plane-extraction passes before the first pass that hooks a plane. */
+        private fun openPlanes(slot: String) {
+            if (!ShaderStages.isPlane(slot)) return
+            if (!planesOpen) {
+                val (w, h) = checkNotNull(planeSeed)
+                planned += syntheticPass(
+                    "<extract-luma>", listOf(ShaderStages.MAIN), ShaderStages.LUMA,
+                    w to h, EXTRACT_LUMA_BODY,
+                )
+                planned += syntheticPass(
+                    "<extract-chroma>", listOf(ShaderStages.MAIN), ShaderStages.CHROMA,
+                    (w + 1) / 2 to (h + 1) / 2, EXTRACT_CHROMA_BODY,
+                )
+                planesOpen = true
+            }
+            if (slot == ShaderStages.CHROMA_SCALED && !chromaScaledOpen) {
+                val (w, h) = sizes.getValue(ShaderStages.CHROMA_SCALED)
+                planned += syntheticPass(
+                    "<scale-chroma>", listOf(ShaderStages.CHROMA), ShaderStages.CHROMA_SCALED,
+                    w to h, SCALE_CHROMA_BODY,
+                )
+                chromaScaledOpen = true
+            }
+        }
+
+        /** Merges the (possibly resized) planes back into MAIN at the final LUMA size. */
+        private fun closePlanes() {
+            if (!planesDirty) return
+            val chroma = if (chromaScaledOpen) ShaderStages.CHROMA_SCALED else ShaderStages.CHROMA
+            val (w, h) = sizes.getValue(ShaderStages.LUMA)
+            planned += syntheticPass(
+                "<merge-planes>", listOf(ShaderStages.LUMA, chroma), ShaderStages.MAIN,
+                w to h, mergeBody(chroma),
+            )
+            sizes[ShaderStages.MAIN] = w to h
+            planesDirty = false
+        }
+
         /** Inserts linearize/sigmoidize before the first pass that needs the state. */
         private fun openColorStates(slot: String) {
             if ((slot == ShaderStages.LINEAR || slot == ShaderStages.SIGMOID) && !linearOpen) {
-                planned += syntheticPass(SyntheticBody.LINEARIZE, ShaderStages.MAIN, ShaderStages.LINEAR)
+                val (w, h) = sizes.getValue(ShaderStages.MAIN)
+                planned += syntheticPass(
+                    "<linearize>", listOf(ShaderStages.MAIN), ShaderStages.LINEAR,
+                    w to h, LINEARIZE_BODY,
+                )
                 linearOpen = true
             }
             if (slot == ShaderStages.SIGMOID && !sigmoidOpen) {
-                planned += syntheticPass(SyntheticBody.SIGMOIDIZE, ShaderStages.LINEAR, ShaderStages.SIGMOID)
+                val (w, h) = sizes.getValue(ShaderStages.LINEAR)
+                planned += syntheticPass(
+                    "<sigmoidize>", listOf(ShaderStages.LINEAR), ShaderStages.SIGMOID,
+                    w to h, SIGMOIDIZE_BODY,
+                )
                 sigmoidOpen = true
             }
         }
@@ -159,33 +248,48 @@ internal object ShaderGraphPlanner {
         /** Converts the frame back to electrical space before MAIN/POST firings and present. */
         private fun closeColorStates() {
             if (sigmoidOpen) {
-                planned += syntheticPass(SyntheticBody.DESIGMOIDIZE, ShaderStages.SIGMOID, ShaderStages.LINEAR)
+                val (w, h) = sizes.getValue(ShaderStages.SIGMOID)
+                planned += syntheticPass(
+                    "<desigmoidize>", listOf(ShaderStages.SIGMOID), ShaderStages.LINEAR,
+                    w to h, DESIGMOIDIZE_BODY,
+                )
                 sigmoidOpen = false
             }
             if (linearOpen) {
-                planned += syntheticPass(SyntheticBody.DELINEARIZE, ShaderStages.LINEAR, ShaderStages.MAIN)
+                val (w, h) = sizes.getValue(ShaderStages.LINEAR)
+                planned += syntheticPass(
+                    "<delinearize>", listOf(ShaderStages.LINEAR), ShaderStages.MAIN,
+                    w to h, DELINEARIZE_BODY,
+                )
                 linearOpen = false
             }
         }
 
-        /** A generated conversion pass between color states of the frame. */
-        private fun syntheticPass(body: SyntheticBody, from: String, to: String): PlannedPass {
-            val (width, height) = sizes.getValue(from)
-            sizes[to] = width to height
+        /** A generated runtime pass; the caller manages the [sizes] bookkeeping. */
+        private fun syntheticPass(
+            desc: String,
+            binds: List<String>,
+            save: String,
+            size: Pair<Int, Int>,
+            body: String,
+        ): PlannedPass {
+            // The caller manages [sizes]: extraction must not clobber a size a
+            // shader pass has already evolved (e.g. an in-place LUMA resize).
+            val (width, height) = size
             val pass = UserShaderPass(
-                desc = body.desc,
-                hooks = listOf(from),
-                binds = listOf(from),
-                save = to,
+                desc = desc,
+                hooks = listOf(binds.first()),
+                binds = binds,
+                save = save,
                 width = null,
                 height = null,
                 components = 4,
                 condition = null,
                 offset = null,
                 compute = null,
-                body = body.glsl(from),
+                body = body,
             )
-            return PlannedPass(pass, hook = from, stage = from, outWidth = width, outHeight = height)
+            return PlannedPass(pass, hook = binds.first(), stage = binds.first(), width, height)
         }
 
         /** Plans one firing; null — its `//!WHEN` is false. Registers the SAVE size. */
@@ -205,7 +309,8 @@ internal object ShaderGraphPlanner {
             val saveName = canonicalStage(pass.save, slot)
             if (saveName == slot && (outW to outH) != hookSize && !ShaderStages.isResizable(slot)) {
                 throw UserShaderException(
-                    "pass '${pass.desc}' resizes the non-resizable stage '$slot' (spec: only the MAIN family)",
+                    "pass '${pass.desc}' resizes the non-resizable stage '$slot' " +
+                        "(spec: only RGB/LUMA/CHROMA/XYZ/NATIVE/MAIN)",
                 )
             }
 
@@ -225,6 +330,11 @@ internal object ShaderGraphPlanner {
                         "pass '${pass.desc}' binds '$name' declared as //!TEXTURE or //!BUFFER — not supported yet",
                     )
                 }
+                // Binding a plane (even from a non-plane pass) forces its extraction.
+                if (name in PLANE_SLOTS) {
+                    seedPlanes(name)
+                    openPlanes(name)
+                }
                 if (!sizes.containsKey(name)) {
                     throw UserShaderException("pass '${pass.desc}' binds an undefined texture '$name'")
                 }
@@ -238,6 +348,7 @@ internal object ShaderGraphPlanner {
                 params[token] ?: throw UserShaderException("unknown variable '$token' for '${pass.desc}'")
             } else {
                 val name = token.substring(0, dot)
+                if (name in PLANE_SLOTS) seedPlanes(name)
                 // Raw first: `OUTPUT.w` is the target-size pseudo-texture, not the post slot.
                 val size = sizes[name] ?: sizes[canonicalStage(name, slot)]
                     ?: throw UserShaderException("unknown texture '$token' for '${pass.desc}'")
@@ -273,46 +384,66 @@ internal object ShaderGraphPlanner {
         return ShaderStages.canonicalOrSelf(resolved)
     }
 
+    private val PLANE_SLOTS = setOf(ShaderStages.LUMA, ShaderStages.CHROMA)
+
     // mpv sigmoid defaults (`sigmoid-center`, `sigmoid-slope`).
     private const val SIGMOID_CENTER = 0.75f
     private const val SIGMOID_SLOPE = 6.5f
     private val SIGMOID_OFFSET = 1f / (1f + exp(SIGMOID_SLOPE * SIGMOID_CENTER))
     private val SIGMOID_SCALE = 1f / (1f + exp(SIGMOID_SLOPE * (SIGMOID_CENTER - 1f))) - SIGMOID_OFFSET
 
-    /** Bodies of the synthetic color-state conversion passes. */
-    private enum class SyntheticBody(val desc: String) {
-        LINEARIZE("<linearize>") {
-            override fun glsl(from: String): String =
-                "vec4 hook() { return linearize(clamp(${from}_tex(${from}_pos), 0.0, 1.0)); }"
-        },
-        DELINEARIZE("<delinearize>") {
-            override fun glsl(from: String): String =
-                "vec4 hook() { return delinearize(clamp(${from}_tex(${from}_pos), 0.0, 1.0)); }"
-        },
-        SIGMOIDIZE("<sigmoidize>") {
-            // mpv pass_sigmoidize: v = center - log(1/(x*scale + offset) - 1)/slope (x is linear).
-            override fun glsl(from: String): String = """
-                vec4 hook() {
-                  vec4 c = clamp(${from}_tex(${from}_pos), 0.0, 1.0);
-                  c.rgb = vec3($SIGMOID_CENTER) -
-                      log(vec3(1.0) / (c.rgb * $SIGMOID_SCALE + $SIGMOID_OFFSET) - vec3(1.0)) / $SIGMOID_SLOPE;
-                  return c;
-                }
-            """.trimIndent()
-        },
-        DESIGMOIDIZE("<desigmoidize>") {
-            // mpv pass_unsigmoidize: x = (1/(1 + exp(slope*(center - v))) - offset)/scale.
-            override fun glsl(from: String): String = """
-                vec4 hook() {
-                  vec4 c = ${from}_tex(${from}_pos);
-                  c.rgb = (vec3(1.0) / (vec3(1.0) + exp(vec3($SIGMOID_SLOPE) * (vec3($SIGMOID_CENTER) - c.rgb))) -
-                      $SIGMOID_OFFSET) / $SIGMOID_SCALE;
-                  return c;
-                }
-            """.trimIndent()
-        },
-        ;
+    private const val LINEARIZE_BODY =
+        "vec4 hook() { return linearize(clamp(MAIN_tex(MAIN_pos), 0.0, 1.0)); }"
 
-        abstract fun glsl(from: String): String
-    }
+    private const val DELINEARIZE_BODY =
+        "vec4 hook() { return delinearize(clamp(LINEAR_tex(LINEAR_pos), 0.0, 1.0)); }"
+
+    // mpv pass_sigmoidize: v = center - log(1/(x*scale + offset) - 1)/slope (x is linear).
+    private val SIGMOIDIZE_BODY = """
+        vec4 hook() {
+          vec4 c = clamp(LINEAR_tex(LINEAR_pos), 0.0, 1.0);
+          c.rgb = vec3($SIGMOID_CENTER) -
+              log(vec3(1.0) / (c.rgb * $SIGMOID_SCALE + $SIGMOID_OFFSET) - vec3(1.0)) / $SIGMOID_SLOPE;
+          return c;
+        }
+    """.trimIndent()
+
+    // mpv pass_unsigmoidize: x = (1/(1 + exp(slope*(center - v))) - offset)/scale.
+    private val DESIGMOIDIZE_BODY = """
+        vec4 hook() {
+          vec4 c = SIGMOID_tex(SIGMOID_pos);
+          c.rgb = (vec3(1.0) / (vec3(1.0) + exp(vec3($SIGMOID_SLOPE) * (vec3($SIGMOID_CENTER) - c.rgb))) -
+              $SIGMOID_OFFSET) / $SIGMOID_SCALE;
+          return c;
+        }
+    """.trimIndent()
+
+    // Virtual planes: BT.709 full-range Y'CbCr over the electrical RGB frame.
+    // The decompose/merge pair is exactly inverse, so an identity plane chain
+    // costs only the chroma subsampling round-trip.
+    private const val EXTRACT_LUMA_BODY =
+        "vec4 hook() { return vec4(dot(MAIN_tex(MAIN_pos).rgb, vec3(0.2126, 0.7152, 0.0722)), 0.0, 0.0, 1.0); }"
+
+    private val EXTRACT_CHROMA_BODY = """
+        vec4 hook() {
+          vec3 c = MAIN_tex(MAIN_pos).rgb;
+          float y = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          return vec4((c.b - y) / 1.8556 + 0.5, (c.r - y) / 1.5748 + 0.5, 0.0, 1.0);
+        }
+    """.trimIndent()
+
+    private const val SCALE_CHROMA_BODY =
+        "vec4 hook() { return CHROMA_tex(CHROMA_pos); }"
+
+    private fun mergeBody(chroma: String) = """
+        vec4 hook() {
+          float y = LUMA_tex(LUMA_pos).x;
+          vec2 cbcr = ${chroma}_tex(${chroma}_pos).xy - vec2(0.5);
+          return vec4(
+              y + 1.5748 * cbcr.y,
+              y - 0.1873 * cbcr.x - 0.4681 * cbcr.y,
+              y + 1.8556 * cbcr.x,
+              1.0);
+        }
+    """.trimIndent()
 }

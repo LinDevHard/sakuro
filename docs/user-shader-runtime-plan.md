@@ -85,8 +85,17 @@ re-plans on demand.
    `src/test/resources/usershader/`); Anime4K graph verified on emulator
    (854×480→1708×960, no passthrough). Note: Anime4K De-Ring-Clamp now fires last
    (true mpv order) — re-bench in phase 8.*
-3. **Virtual planes** — LUMA/CHROMA/RGB decomposition & recombination.
-   *Acceptance: FSRCNNX x2 (LUMA hooks) runs; KrigBilateral runs with documented deviation.*
+3. ✅ **Virtual planes** (2026-07-09) — LUMA (full-res Y) and CHROMA (half-res
+   CbCr, BT.709 full-range) synthesized on demand from the RGB frame, plane
+   hooks fire first and may resize their plane, `CHROMA_SCALED` via a synthetic
+   upscale, planes merged back into MAIN at the final LUMA size only when a
+   hooked pass wrote a plane in place (no chroma round-trip otherwise); binding
+   a plane from any pass forces extraction. *Acceptance: FSRCNNX x2 plans to a
+   ×2 frame through the LUMA plane, KrigBilateral plans with chroma upscaled to
+   the luma size (fixtures in `src/test/resources/usershader/`); all 28
+   generated fragments for the four fixture chains validate as GLSL ES 3.00
+   with glslang (see `FragmentDumpTest`). On-device visual check pending a way
+   to select these chains in the app (phase 6).*
 4. **`//!TEXTURE`** — hex `DATA` decode, formats (`rgba16f`, `rg16f`, `r32f`, …), 1D/2D/3D,
    FILTER/BORDER. *Acceptance: ravu-lite (fragment) runs.*
 5. **ES 3.1 tier** — `NAME_gather`, `//!COMPUTE` (`out_image`, workgroups, barriers),

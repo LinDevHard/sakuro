@@ -119,23 +119,113 @@ class ShaderGraphPlannerTest {
     @Test
     fun `a pass hooking a stage absent from the pipeline is skipped like in mpv`() {
         val passes = listOf(
-            pass("luma-only", hooks = listOf("LUMA"), binds = listOf("HOOKED"), save = "HOOKED"),
+            pass("xyz-only", hooks = listOf("XYZ"), binds = listOf("HOOKED"), save = "HOOKED"),
             pass("main", hooks = listOf("MAIN"), binds = listOf("MAIN"), save = "MAIN"),
         )
         val plan = plan(passes, 640, 360, 1920, 1080)
         assertEquals(1, plan.passes.size)
         assertEquals("main", plan.passes.single().pass.desc)
-        assertEquals(listOf("luma-only"), plan.skipped)
+        assertEquals(listOf("xyz-only"), plan.skipped)
     }
 
     @Test
     fun `of several hooks only the ones existing in the pipeline fire`() {
         val passes = listOf(
-            pass("multi", hooks = listOf("LUMA", "MAIN"), binds = listOf("HOOKED"), save = "HOOKED"),
+            pass("multi", hooks = listOf("XYZ", "MAIN"), binds = listOf("HOOKED"), save = "HOOKED"),
         )
         val plan = plan(passes, 640, 360, 1920, 1080)
         assertEquals("MAIN", plan.passes.single().stage)
         assertTrue(plan.skipped.isEmpty())
+    }
+
+    @Test
+    fun `a LUMA doubler gets plane extraction and a merge that resizes MAIN`() {
+        val passes = listOf(
+            pass(
+                "luma-x2", hooks = listOf("LUMA"), binds = listOf("HOOKED"), save = "HOOKED",
+                width = "LUMA.w 2 *", height = "LUMA.h 2 *",
+            ),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "luma-x2", "<merge-planes>"),
+            plan.passes.map { it.pass.desc },
+        )
+        // CHROMA is synthesized at half resolution (4:2:0 emulation).
+        assertEquals(320 to 180, plan.passes[1].outWidth to plan.passes[1].outHeight)
+        // The merge brings the doubled LUMA back into MAIN.
+        assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+        assertEquals("MAIN", plan.presentSlot)
+    }
+
+    @Test
+    fun `a plane pass saving only named intermediates does not force a merge`() {
+        val passes = listOf(
+            pass("stats", hooks = listOf("LUMA"), binds = listOf("HOOKED"), save = "SCRATCH"),
+            pass("main", hooks = listOf("MAIN"), binds = listOf("MAIN"), save = "MAIN"),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "stats", "main"),
+            plan.passes.map { it.pass.desc },
+        )
+        assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
+    }
+
+    @Test
+    fun `a Krig-style CHROMA pass resizes chroma to the luma size and merges`() {
+        val passes = listOf(
+            pass(
+                "krig", hooks = listOf("CHROMA"), binds = listOf("HOOKED", "LUMA"), save = "HOOKED",
+                width = "LUMA.w", height = "LUMA.h", whenExpr = "CHROMA.w LUMA.w <",
+            ),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "krig", "<merge-planes>"),
+            plan.passes.map { it.pass.desc },
+        )
+        // Chroma upscaled from 320×180 to the luma size by the shader itself.
+        assertEquals(640 to 360, plan.passes[2].outWidth to plan.passes[2].outHeight)
+        assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
+    }
+
+    @Test
+    fun `a MAIN pass binding LUMA forces plane extraction without a merge`() {
+        val passes = listOf(
+            pass("luma-guided", hooks = listOf("MAIN"), binds = listOf("MAIN", "LUMA"), save = "MAIN"),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "luma-guided"),
+            plan.passes.map { it.pass.desc },
+        )
+    }
+
+    @Test
+    fun `a CHROMA_SCALED hook gets the synthetic chroma upscale`() {
+        val passes = listOf(
+            pass("tweak", hooks = listOf("CHROMA_SCALED"), binds = listOf("HOOKED"), save = "HOOKED"),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "<scale-chroma>", "tweak", "<merge-planes>"),
+            plan.passes.map { it.pass.desc },
+        )
+        // CHROMA_SCALED lives at the luma resolution.
+        assertEquals(640 to 360, plan.passes[3].outWidth to plan.passes[3].outHeight)
+    }
+
+    @Test
+    fun `WHEN-cut plane passes leave no extraction behind`() {
+        val passes = listOf(
+            pass(
+                "never", hooks = listOf("LUMA"), binds = listOf("HOOKED"), save = "HOOKED",
+                whenExpr = "0",
+            ),
+        )
+        val plan = plan(passes, 640, 360, 1920, 1080)
+        assertTrue(plan.passes.isEmpty())
     }
 
     @Test
