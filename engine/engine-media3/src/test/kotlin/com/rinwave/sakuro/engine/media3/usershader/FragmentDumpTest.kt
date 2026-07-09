@@ -27,6 +27,7 @@ class FragmentDumpTest {
             "SSimSuperRes.glsl",
             "FSRCNNX_x2_8-0-4-1.glsl",
             "KrigBilateral.glsl",
+            "ravu-r3.hook",
         )
         for (fixture in fixtures) {
             val source = javaClass.getResourceAsStream("/usershader/$fixture")!!
@@ -35,7 +36,7 @@ class FragmentDumpTest {
             val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
             plan.passes.forEachIndexed { i, planned ->
                 val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
-                val name = fixture.removeSuffix(".glsl") + "_$i" +
+                val name = fixture.substringBeforeLast('.') + "_$i" +
                     "_" + planned.pass.desc.replace(Regex("[^A-Za-z0-9]+"), "-")
                 File(dir, "$name.frag").writeText(fragment)
             }

@@ -29,8 +29,12 @@ void main() {
 }
 """
 
-    /** Uniform name of the sampler for input [bind]. */
-    fun samplerUniform(bind: String): String = "${bind}_sampler"
+    /**
+     * Uniform name of the sampler for input [bind] — the bare bind name, as in
+     * mpv: custom `//!TEXTURE` LUTs are sampled directly by name
+     * (ravu: `texture(ravu_lut3, …)`), and `<bind>_raw` aliases it.
+     */
+    fun samplerUniform(bind: String): String = bind
 
     /** Uniform name of the size (in texels) for input [bind]. */
     fun sizeUniform(bind: String): String = "${bind}_size"
@@ -136,10 +140,9 @@ void main() {
         appendLine("#define ${bind}_mul 1.0")
         appendLine("#define ${bind}_rot mat2(1.0)")
         appendLine("vec4 ${bind}_tex(vec2 p) { return texture(${samplerUniform(bind)}, p); }")
-        appendLine(
-            "vec4 ${bind}_texOff(vec2 o) { " +
-                "return texture(${samplerUniform(bind)}, v_texcoord + o * ${pointUniform(bind)}); }",
-        )
+        // A macro, as in mpv: shaders call texOff with ivec2/float arguments too,
+        // and GLSL ES has no implicit int→float conversion for a function call.
+        appendLine("#define ${bind}_texOff(off) ${bind}_tex(v_texcoord + vec2(off) * ${pointUniform(bind)})")
         appendLine("vec2 ${bind}_map(ivec2 id) { return (vec2(id) + vec2(0.5)) * ${pointUniform(bind)}; }")
     }
 
@@ -162,7 +165,7 @@ void main() {
         appendLine("#define ${target}_mul 1.0")
         appendLine("#define ${target}_rot mat2(1.0)")
         appendLine("vec4 ${target}_tex(vec2 p) { return ${source}_tex(p); }")
-        appendLine("vec4 ${target}_texOff(vec2 o) { return ${source}_texOff(o); }")
+        appendLine("#define ${target}_texOff(off) ${source}_texOff(off)")
         appendLine("vec2 ${target}_map(ivec2 id) { return ${source}_map(id); }")
     }
 }

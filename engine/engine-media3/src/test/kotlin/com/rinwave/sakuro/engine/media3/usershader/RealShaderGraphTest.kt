@@ -126,7 +126,7 @@ class RealShaderGraphTest {
             .first { it.body.contains("MAIN_texOff") }
         val fragment = ShaderPreamble.fragmentShader(stats)
         assertTrue(fragment.contains("vec4 MAIN_tex("), "no MAIN_tex alias")
-        assertTrue(fragment.contains("vec4 MAIN_texOff("), "no MAIN_texOff alias")
+        assertTrue(fragment.contains("#define MAIN_texOff(off)"), "no MAIN_texOff alias")
     }
 
     @Test

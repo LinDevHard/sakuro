@@ -96,8 +96,15 @@ re-plans on demand.
    generated fragments for the four fixture chains validate as GLSL ES 3.00
    with glslang (see `FragmentDumpTest`). On-device visual check pending a way
    to select these chains in the app (phase 6).*
-4. **`//!TEXTURE`** — hex `DATA` decode, formats (`rgba16f`, `rg16f`, `r32f`, …), 1D/2D/3D,
-   FILTER/BORDER. *Acceptance: ravu-lite (fragment) runs.*
+4. ✅ **`//!TEXTURE`** (2026-07-09) — LUT upload at configure (1D/2D; float and
+   unorm formats via `ShaderTextureFormats`, validated data size at plan time),
+   FILTER/BORDER mapping, samplers named by the bare bind name (mpv-style:
+   `texture(ravu_lut3, …)` works), `texOff` is a macro with `vec2()` conversion
+   as in mpv. Classic-mpv `16f` formats carry float32 payload (ravu), `16hf` are
+   true halves. 3D and `STORAGE` textures still degrade (phase 5+).
+   *Acceptance: ravu-r3 (fragment) parses+plans (×2 through LUMA, OFFSET −0.5)
+   and all 35 generated fragments for the five fixture chains validate with
+   glslang.*
 5. **ES 3.1 tier** — `NAME_gather`, `//!COMPUTE` (`out_image`, workgroups, barriers),
    `//!BUFFER`, `TEXTURE STORAGE`; capability probe + per-chain gating.
    *Acceptance: FSR/CAS with gather path, ravu compute variants, NNEDI3 run on capable devices.*

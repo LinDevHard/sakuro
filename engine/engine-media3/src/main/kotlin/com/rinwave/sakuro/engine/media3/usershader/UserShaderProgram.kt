@@ -9,6 +9,8 @@ import androidx.media3.common.util.GlUtil
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BaseGlShaderProgram
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.random.Random
 
 /**
@@ -39,6 +41,7 @@ internal class UserShaderProgram(
     private var plan: GraphPlan = GraphPlan(emptyList(), 0, 0, emptyList())
     private var passPrograms: List<GlProgram> = emptyList()
     private var targets: List<Target> = emptyList()
+    private var lutTextures: Map<String, TexRef> = emptyMap()
     private lateinit var presentProgram: GlProgram
 
     private var inputWidth = 0
@@ -70,6 +73,7 @@ internal class UserShaderProgram(
                 }
             }
             targets = plan.passes.map { createFp16Target(it.outWidth, it.outHeight) }
+            lutTextures = uploadLutTextures()
             degraded = false
         } catch (e: GlUtil.GlException) {
             degradeToPassthrough(e)
@@ -109,8 +113,9 @@ internal class UserShaderProgram(
         GLES30.glGetIntegerv(GLES30.GL_FRAMEBUFFER_BINDING, outputFbo, 0)
 
         // Frame stages PREKERNEL/NATIVE are canonicalized to MAIN (see the planner),
-        // so the map holds a single frame slot.
+        // so the map holds a single frame slot. Custom //!TEXTURE LUTs are static inputs.
         val current = HashMap<String, TexRef>()
+        current.putAll(lutTextures)
         current[MAIN] = TexRef(inputTexId, inputWidth, inputHeight)
 
         plan.passes.forEachIndexed { i, planned ->
@@ -221,6 +226,43 @@ internal class UserShaderProgram(
             GLES30.glDeleteTextures(1, intArrayOf(target.texId), 0)
         }
         targets = emptyList()
+        lutTextures.values.forEach { GLES30.glDeleteTextures(1, intArrayOf(it.texId), 0) }
+        lutTextures = emptyMap()
+    }
+
+    /** Uploads the `//!TEXTURE` blocks referenced by the planned passes as static LUTs. */
+    private fun uploadLutTextures(): Map<String, TexRef> {
+        val bound = plan.passes
+            .flatMap { planned -> planned.pass.binds.map { ShaderGraphPlanner.canonicalStage(it, planned.stage) } }
+            .toSet()
+        return document.textures.filter { it.name in bound }.associate { it.name to uploadLut(it) }
+    }
+
+    private fun uploadLut(texture: ShaderTexture): TexRef {
+        val format = ShaderTextureFormats.validate(texture)
+        val data = checkNotNull(texture.data)
+        val height = texture.height ?: 1
+        val buffer = ByteBuffer.allocateDirect(data.size).order(ByteOrder.nativeOrder())
+        buffer.put(data).position(0)
+
+        val tex = IntArray(1)
+        GLES30.glGenTextures(1, tex, 0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[0])
+        // Texel rows are tightly packed regardless of format width.
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1)
+        GLES30.glTexImage2D(
+            GLES30.GL_TEXTURE_2D, 0, format.internalFormat, texture.width, height, 0,
+            format.format, format.type, buffer,
+        )
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, DEFAULT_UNPACK_ALIGNMENT)
+        val filter = if (texture.filterLinear) GLES30.GL_LINEAR else GLES30.GL_NEAREST
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, filter)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, filter)
+        val wrap = ShaderTextureFormats.wrapMode(texture.border)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, wrap)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, wrap)
+        GlUtil.checkGlError()
+        return TexRef(tex[0], texture.width, height)
     }
 
     /** Whether a uniform is active in the program (otherwise the GLSL compiler dropped it). */
@@ -270,6 +312,8 @@ internal class UserShaderProgram(
 
         /** We compute OUTPUT as N× the input so the `//!WHEN` upscale gates trigger. */
         const val OUTPUT_GATE_SCALE = 4
+
+        const val DEFAULT_UNPACK_ALIGNMENT = 4
 
         const val PRESENT_FRAGMENT = """#version 300 es
 precision highp float;

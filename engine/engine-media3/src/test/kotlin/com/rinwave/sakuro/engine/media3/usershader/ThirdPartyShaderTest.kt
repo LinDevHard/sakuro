@@ -102,6 +102,32 @@ class ThirdPartyShaderTest {
     }
 
     @Test
+    fun `ravu-r3 plans with its hex weight LUT and doubles the frame`() {
+        val document = document("ravu-r3.hook")
+        assertEquals(4, document.passes.size)
+        val lut = document.textures.single()
+        assertEquals("ravu_lut3", lut.name)
+        assertEquals(5 to 648, lut.width to lut.height)
+        assertEquals("rgba16f", lut.format)
+        // Classic-mpv rgba16f = float32 payload: 16 bytes per texel.
+        assertEquals(5 * 648 * 16, lut.data!!.size)
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
+        assertTrue(plan.skipped.isEmpty(), "skipped: ${plan.skipped}")
+        assertEquals(listOf("<extract-luma>", "<extract-chroma>"), plan.passes.take(2).map { it.pass.desc })
+        assertEquals("<merge-planes>", plan.passes.last().pass.desc)
+        // step4 doubles LUMA in place (WIDTH 2 HOOKED.w *) → the merged MAIN is ×2.
+        assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+        // Its //!OFFSET -0.5 -0.5 accumulates for present compensation.
+        assertEquals(-0.5f to -0.5f, plan.offsetX to plan.offsetY)
+
+        for (planned in plan.passes) {
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
+        }
+    }
+
+    @Test
     fun `KrigBilateral upscales the virtual chroma to the luma size`() {
         val document = document("KrigBilateral.glsl")
         assertEquals(3, document.passes.size)

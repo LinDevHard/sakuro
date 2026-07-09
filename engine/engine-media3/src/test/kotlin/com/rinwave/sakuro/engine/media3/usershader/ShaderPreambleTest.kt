@@ -27,7 +27,7 @@ class ShaderPreambleTest {
             assertTrue(fragment.contains("#define HOOKED$symbol"), "missing HOOKED$symbol")
         }
         assertTrue(fragment.contains("vec4 HOOKED_tex("))
-        assertTrue(fragment.contains("vec4 HOOKED_texOff("))
+        assertTrue(fragment.contains("#define HOOKED_texOff(off)"))
         assertTrue(fragment.contains("vec2 HOOKED_map("))
         assertTrue(fragment.contains("uniform vec2 HOOKED_size;"))
         assertTrue(fragment.contains("uniform vec2 HOOKED_pt;"))
@@ -51,7 +51,7 @@ class ShaderPreambleTest {
         val fragment = ShaderPreamble.fragmentShader(
             pass("vec4 hook() { return texelFetch(MAIN_raw, ivec2(0), 0); }"),
         )
-        assertTrue(fragment.contains("#define MAIN_raw HOOKED_sampler"))
+        assertTrue(fragment.contains("#define MAIN_raw HOOKED"))
         assertTrue(fragment.contains("#define MAIN_rot"))
         assertTrue(fragment.contains("vec2 MAIN_map("))
     }

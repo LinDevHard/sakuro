@@ -352,17 +352,58 @@ class ShaderGraphPlannerTest {
         assertEquals(0f to 0f, aligned.offsetX to aligned.offsetY)
     }
 
-    @Test
-    fun `binding a declared TEXTURE fails the plan until phase 4`() {
-        val document = ShaderDocument(
-            passes = listOf(pass("lut-read", binds = listOf("MAIN", "LUT"), save = "MAIN")),
-            textures = listOf(
-                ShaderTexture(
-                    name = "LUT", width = 2, height = 2, depth = null, format = "rgba16f",
-                    filterLinear = false, border = "CLAMP", storage = false, data = ByteArray(0),
-                ),
+    private fun lutTexture(
+        data: ByteArray? = ByteArray(2 * 2 * 16),
+        storage: Boolean = false,
+        depth: Int? = null,
+    ) = ShaderTexture(
+        name = "LUT", width = 2, height = 2, depth = depth, format = "rgba16f",
+        filterLinear = false, border = "CLAMP", storage = storage, data = data,
+    )
+
+    private fun lutDocument(texture: ShaderTexture) = ShaderDocument(
+        passes = listOf(
+            pass(
+                "lut-read", binds = listOf("MAIN", "LUT"), save = "MAIN",
+                width = "LUT.w 320 *", height = "MAIN.h",
             ),
-            buffers = emptyList(),
+        ),
+        textures = listOf(texture),
+        buffers = emptyList(),
+        params = emptyList(),
+    )
+
+    @Test
+    fun `a valid TEXTURE bind plans and its size resolves in RPN`() {
+        val plan = ShaderGraphPlanner.plan(lutDocument(lutTexture()), 640, 360, 1920, 1080)
+        // WIDTH "LUT.w 320 *" = 2*320 — the LUT size is visible to expressions.
+        assertEquals(640 to 360, plan.passes.single().outWidth to plan.passes.single().outHeight)
+    }
+
+    @Test
+    fun `a STORAGE texture bind fails the plan until phase 5`() {
+        val document = lutDocument(lutTexture(data = null, storage = true))
+        assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }
+    }
+
+    @Test
+    fun `a TEXTURE with mis-sized data fails the plan`() {
+        val document = lutDocument(lutTexture(data = ByteArray(7)))
+        assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }
+    }
+
+    @Test
+    fun `a 3D texture bind fails the plan until it is supported`() {
+        val document = lutDocument(lutTexture(data = ByteArray(2 * 2 * 2 * 16), depth = 2))
+        assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }
+    }
+
+    @Test
+    fun `a BUFFER bind still fails the plan`() {
+        val document = ShaderDocument(
+            passes = listOf(pass("stats-read", binds = listOf("MAIN", "stats"), save = "MAIN")),
+            textures = emptyList(),
+            buffers = listOf(ShaderBuffer("stats", listOf(BufferVar("uint", "n")), storage = true)),
             params = emptyList(),
         )
         assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }

@@ -46,10 +46,12 @@ internal data class GraphPlan(
  * `//!WHEN`); hooking `OUTPUT` runs on the post-scale slot. Bare `//!PARAM`
  * names in expressions resolve to their default values.
  *
- * Features the executor does not support yet (`//!COMPUTE`, binds of
- * `//!TEXTURE`/`//!BUFFER` blocks) fail the plan with [UserShaderException] — the
- * runtime catches it and degrades the whole chain to passthrough instead of
- * silently rendering garbage.
+ * `//!TEXTURE` blocks are sized statically and validated at bind time (see
+ * [ShaderTextureFormats]); the program uploads them as LUTs. Features the
+ * executor does not support yet (`//!COMPUTE`, `//!BUFFER` binds, storage/3D
+ * textures) fail the plan with [UserShaderException] — the runtime catches it
+ * and degrades the whole chain to passthrough instead of silently rendering
+ * garbage.
  */
 internal object ShaderGraphPlanner {
 
@@ -108,8 +110,15 @@ internal object ShaderGraphPlanner {
             ShaderStages.NATIVE_CROPPED_REF to (inputWidth to inputHeight),
         )
         private val params = document.params.associate { it.name to it.defaultValue }
-        private val unsupportedBinds =
-            (document.textures.map { it.name } + document.buffers.map { it.name }).toSet()
+        private val customTextures = document.textures.associateBy { it.name }
+        private val bufferNames = document.buffers.map { it.name }.toSet()
+
+        init {
+            // Custom textures are sized statically; validation happens at bind time.
+            document.textures.forEach { texture ->
+                sizes.putIfAbsent(texture.name, texture.width to (texture.height ?: 1))
+            }
+        }
 
         private val planned = mutableListOf<PlannedPass>()
         private var linearOpen = false
@@ -325,11 +334,13 @@ internal object ShaderGraphPlanner {
         private fun validateBinds(pass: UserShaderPass, slot: String) {
             pass.binds.forEach { bind ->
                 val name = canonicalStage(bind, slot)
-                if (name in unsupportedBinds) {
+                if (name in bufferNames) {
                     throw UserShaderException(
-                        "pass '${pass.desc}' binds '$name' declared as //!TEXTURE or //!BUFFER — not supported yet",
+                        "pass '${pass.desc}' binds '$name' declared as //!BUFFER — not supported yet",
                     )
                 }
+                // A bound custom texture must be one the executor can upload.
+                customTextures[name]?.let { ShaderTextureFormats.validate(it) }
                 // Binding a plane (even from a non-plane pass) forces its extraction.
                 if (name in PLANE_SLOTS) {
                     seedPlanes(name)
