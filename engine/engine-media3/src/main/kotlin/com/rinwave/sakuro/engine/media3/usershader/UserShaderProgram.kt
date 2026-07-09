@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.engine.media3.anime4k
+package com.rinwave.sakuro.engine.media3.usershader
 
 import android.opengl.GLES20
 import android.opengl.GLES30
@@ -9,25 +9,26 @@ import androidx.media3.common.util.GlUtil
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BaseGlShaderProgram
+import kotlin.random.Random
 
 /**
  * A mini render-graph runtime for mpv user-shaders on top of a single
- * [BaseGlShaderProgram]. Media3 sees one effect; the whole multi-pass nature
- * of Anime4K (conv chains, depth-to-space, residual) runs inside `drawFrame`
- * over its own FP16 FBOs.
+ * [BaseGlShaderProgram]. Media3 sees one effect; the whole multi-pass graph
+ * (conv chains, depth-to-space, residual) runs inside `drawFrame` over its own
+ * FP16 FBOs.
  *
- * Passes arrive already concatenated from several `.glsl` files of the preset
- * (Clamp→Denoise→Restore→Upscale). The resolution of each intermediate texture is
- * computed by [Anime4KGraphPlanner]; the result of the `MAIN` stage is presented into the
- * Media3 output texture.
+ * Passes arrive already concatenated from the `.glsl` files of the chain. The
+ * resolution of each intermediate texture is computed by [ShaderGraphPlanner];
+ * the result of the `MAIN` stage is presented into the Media3 output texture.
  *
  * FP16 is a hard requirement (CNN feature maps go beyond [0,1] and go negative).
- * If color-renderable FP16 is unavailable / the FBO is incomplete, the runtime degrades to
+ * If color-renderable FP16 is unavailable, the plan fails ([UserShaderException])
+ * or the shader does not build ([GlUtil.GlException]) — the runtime degrades to
  * a simple passthrough (the frame without upscaling) instead of breaking the pipeline.
  */
 @UnstableApi
-internal class Anime4KShaderProgram(
-    private val passes: List<UserShaderPass>,
+internal class UserShaderProgram(
+    private val document: ShaderDocument,
     /** Target-size multiplier for gating `//!WHEN` (upscale larger than the input). */
     private val outputGateScale: Int = OUTPUT_GATE_SCALE,
 ) : BaseGlShaderProgram(HIGH_PRECISION, TEXTURE_POOL_CAPACITY) {
@@ -35,7 +36,7 @@ internal class Anime4KShaderProgram(
     private data class TexRef(val texId: Int, val width: Int, val height: Int)
     private data class Target(val texId: Int, val fbo: Int, val width: Int, val height: Int)
 
-    private var plan: GraphPlan = GraphPlan(emptyList(), 0, 0)
+    private var plan: GraphPlan = GraphPlan(emptyList(), 0, 0, emptyList())
     private var passPrograms: List<GlProgram> = emptyList()
     private var targets: List<Target> = emptyList()
     private lateinit var presentProgram: GlProgram
@@ -43,26 +44,27 @@ internal class Anime4KShaderProgram(
     private var inputWidth = 0
     private var inputHeight = 0
     private var degraded = false
+    private var frameIndex = 0
 
     override fun configure(inputWidth: Int, inputHeight: Int): Size {
         this.inputWidth = inputWidth
         this.inputHeight = inputHeight
         releaseGraph()
 
-        plan = Anime4KGraphPlanner.plan(
-            passes,
-            inputWidth,
-            inputHeight,
-            inputWidth * outputGateScale,
-            inputHeight * outputGateScale,
-        )
-
         try {
             presentProgram = GlProgram(ShaderPreamble.VERTEX_SHADER, PRESENT_FRAGMENT).apply {
                 setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
             }
+            plan = ShaderGraphPlanner.plan(
+                document,
+                inputWidth,
+                inputHeight,
+                inputWidth * outputGateScale,
+                inputHeight * outputGateScale,
+            )
+            plan.skipped.forEach { Log.i(TAG, "pass '$it' skipped: its hooks never fire in this pipeline") }
             passPrograms = plan.passes.map { planned ->
-                val fragment = ShaderPreamble.fragmentShader(planned.pass, isFinal = false)
+                val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
                 GlProgram(ShaderPreamble.VERTEX_SHADER, fragment).apply {
                     setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
                 }
@@ -70,14 +72,20 @@ internal class Anime4KShaderProgram(
             targets = plan.passes.map { createFp16Target(it.outWidth, it.outHeight) }
             degraded = false
         } catch (e: GlUtil.GlException) {
-            // No FP16 targets / the shader did not build — degrade to passthrough.
-            Log.w(TAG, "Anime4K graph was not built, passthrough: ${e.message}")
-            degraded = true
-            releaseGraph()
+            degradeToPassthrough(e)
+        } catch (e: UserShaderException) {
+            degradeToPassthrough(e)
         }
 
         // On degradation we return the source size (no upscale is applied).
         return if (degraded) Size(inputWidth, inputHeight) else Size(plan.outputWidth, plan.outputHeight)
+    }
+
+    /** No FP16 targets / an unsupported feature / a broken shader — play the frame as-is. */
+    private fun degradeToPassthrough(cause: Exception) {
+        Log.w(TAG, "shader graph was not built, passthrough: ${cause.message}")
+        degraded = true
+        releaseGraph()
     }
 
     override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
@@ -87,7 +95,10 @@ internal class Anime4KShaderProgram(
                 return
             }
             runGraph(inputTexId)
+            frameIndex++
         } catch (e: GlUtil.GlException) {
+            throw VideoFrameProcessingException(e, presentationTimeUs)
+        } catch (e: UserShaderException) {
             throw VideoFrameProcessingException(e, presentationTimeUs)
         }
     }
@@ -103,6 +114,10 @@ internal class Anime4KShaderProgram(
         current[MAIN] = TexRef(inputTexId, inputWidth, inputHeight)
 
         plan.passes.forEachIndexed { i, planned ->
+            // The post-scale slot starts as the final MAIN (our kernel is the identity).
+            if (planned.stage == ShaderStages.POST && ShaderStages.POST !in current) {
+                current[ShaderStages.POST] = current.getValue(MAIN)
+            }
             val program = passPrograms[i]
             val target = targets[i]
             GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
@@ -115,8 +130,8 @@ internal class Anime4KShaderProgram(
             val programId = IntArray(1)
             GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
             planned.pass.binds.distinct().forEachIndexed { unit, bind ->
-                val ref = current[Anime4KGraphPlanner.canonicalStage(bind, planned.pass.hook)]
-                    ?: error("Anime4K: '${planned.pass.desc}' binds a missing texture '$bind'")
+                val ref = current[ShaderGraphPlanner.canonicalStage(bind, planned.stage)]
+                    ?: throw UserShaderException("'${planned.pass.desc}' binds a missing texture '$bind'")
                 val sampler = ShaderPreamble.samplerUniform(bind)
                 if (isActive(programId[0], sampler)) program.setSamplerTexIdUniform(sampler, ref.texId, unit)
                 val sizeName = ShaderPreamble.sizeUniform(bind)
@@ -128,19 +143,50 @@ internal class Anime4KShaderProgram(
                     program.setFloatsUniform(ptName, floatArrayOf(1f / ref.width, 1f / ref.height))
                 }
             }
+            setGlobalUniforms(program, programId[0])
             program.bindAttributesAndUniforms()
             GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
-            val saved = Anime4KGraphPlanner.canonicalStage(planned.pass.save, planned.pass.hook)
+            val saved = ShaderGraphPlanner.canonicalStage(planned.pass.save, planned.stage)
             current[saved] = TexRef(target.texId, target.width, target.height)
         }
 
-        // Presentation: MAIN → the Media3 output texture, alpha is forced to 1.
-        val main = current.getValue(MAIN)
+        // Presentation: the final frame slot → the Media3 output texture, alpha is
+        // forced to 1 and the accumulated //!OFFSET is compensated by shifting sampling.
+        val frame = current[plan.presentSlot] ?: current.getValue(MAIN)
         GlUtil.focusFramebufferUsingCurrentContext(outputFbo[0], plan.outputWidth, plan.outputHeight)
         presentProgram.use()
-        presentProgram.setSamplerTexIdUniform(PRESENT_SAMPLER, main.texId, 0)
+        presentProgram.setSamplerTexIdUniform(PRESENT_SAMPLER, frame.texId, 0)
+        presentProgram.setFloatsUniform(
+            PRESENT_OFFSET,
+            floatArrayOf(plan.offsetX / frame.width, plan.offsetY / frame.height),
+        )
         presentProgram.bindAttributesAndUniforms()
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+    }
+
+    /** The spec globals (`frame`, `random`, sizes) — set only when the pass uses them. */
+    private fun setGlobalUniforms(program: GlProgram, programId: Int) {
+        if (isActive(programId, ShaderPreamble.UNIFORM_FRAME)) {
+            program.setIntUniform(ShaderPreamble.UNIFORM_FRAME, frameIndex)
+        }
+        if (isActive(programId, ShaderPreamble.UNIFORM_RANDOM)) {
+            program.setFloatUniform(ShaderPreamble.UNIFORM_RANDOM, Random.nextFloat())
+        }
+        if (isActive(programId, ShaderPreamble.UNIFORM_INPUT_SIZE)) {
+            program.setFloatsUniform(
+                ShaderPreamble.UNIFORM_INPUT_SIZE,
+                floatArrayOf(inputWidth.toFloat(), inputHeight.toFloat()),
+            )
+        }
+        if (isActive(programId, ShaderPreamble.UNIFORM_TARGET_SIZE)) {
+            program.setFloatsUniform(
+                ShaderPreamble.UNIFORM_TARGET_SIZE,
+                floatArrayOf(plan.outputWidth.toFloat(), plan.outputHeight.toFloat()),
+            )
+        }
+        if (isActive(programId, ShaderPreamble.UNIFORM_TEX_OFFSET)) {
+            program.setFloatsUniform(ShaderPreamble.UNIFORM_TEX_OFFSET, floatArrayOf(0f, 0f))
+        }
     }
 
     /** Passthrough on degradation: copy the input into the Media3 output texture. */
@@ -150,6 +196,7 @@ internal class Anime4KShaderProgram(
         GlUtil.focusFramebufferUsingCurrentContext(outputFbo[0], width, height)
         presentProgram.use()
         presentProgram.setSamplerTexIdUniform(PRESENT_SAMPLER, inputTexId, 0)
+        presentProgram.setFloatsUniform(PRESENT_OFFSET, floatArrayOf(0f, 0f))
         presentProgram.bindAttributesAndUniforms()
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
     }
@@ -203,18 +250,22 @@ internal class Anime4KShaderProgram(
         if (status != GLES30.GL_FRAMEBUFFER_COMPLETE) {
             GLES30.glDeleteFramebuffers(1, fbo, 0)
             GLES30.glDeleteTextures(1, texture, 0)
-            throw GlUtil.GlException("Anime4K: FP16 FBO is incomplete (status=$status) — color-renderable RGBA16F is unavailable")
+            throw GlUtil.GlException(
+                "FP16 FBO is incomplete (status=$status) — color-renderable RGBA16F is unavailable",
+            )
         }
         return Target(texture[0], fbo[0], width, height)
     }
 
     private companion object {
-        const val TAG = "Anime4K"
+        /** Grep tag for on-device diagnostics: `adb logcat | grep UserShader`. */
+        const val TAG = "UserShader"
         const val HIGH_PRECISION = true
         const val TEXTURE_POOL_CAPACITY = 1
         const val MAIN = "MAIN"
         const val POSITION_ATTR = "a_position"
         const val PRESENT_SAMPLER = "uTex"
+        const val PRESENT_OFFSET = "uOffset"
         const val COORD_SIZE = 4
 
         /** We compute OUTPUT as N× the input so the `//!WHEN` upscale gates trigger. */
@@ -223,10 +274,11 @@ internal class Anime4KShaderProgram(
         const val PRESENT_FRAGMENT = """#version 300 es
 precision highp float;
 uniform sampler2D uTex;
+uniform vec2 uOffset;
 in vec2 v_texcoord;
 out vec4 frag_out;
 void main() {
-  frag_out = vec4(texture(uTex, v_texcoord).rgb, 1.0);
+  frag_out = vec4(texture(uTex, v_texcoord + uOffset).rgb, 1.0);
 }
 """
     }

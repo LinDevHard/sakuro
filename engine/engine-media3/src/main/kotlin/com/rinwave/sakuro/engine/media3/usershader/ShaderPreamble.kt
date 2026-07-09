@@ -1,0 +1,168 @@
+package com.rinwave.sakuro.engine.media3.usershader
+
+/**
+ * Generates the GLSL ES 3.00 around an mpv user-shader pass's `hook()` body so that
+ * it compiles unchanged.
+ *
+ * For each `//!BIND <n>` the mpv body may reference a set of symbols:
+ * `<n>_tex(vec2)`, `<n>_texOff(vec2)`, `<n>_raw`, `<n>_pos`, `<n>_size`, `<n>_pt`,
+ * `<n>_off`, `<n>_mul`, `<n>_rot`, `<n>_map(ivec2)`. Here they are synthesized on
+ * top of a plain `sampler2D`; the coordinate comes from the varying `v_texcoord`
+ * (shared by all inputs — we draw a fullscreen quad).
+ *
+ * The spec's global symbols (`frame`, `random`, `input_size`, `target_size`,
+ * `tex_offset`, `linearize()`, `delinearize()`) are declared for every pass; the
+ * GLSL compiler drops the unused ones, and [UserShaderProgram] sets only the
+ * active uniforms.
+ *
+ * Intermediate textures are `GL_RGBA16F` (needed because CNN feature maps go beyond
+ * [0,1] and go negative), so all the math is in `highp`.
+ */
+internal object ShaderPreamble {
+
+    const val VERTEX_SHADER = """#version 300 es
+in vec4 a_position;
+out vec2 v_texcoord;
+void main() {
+  gl_Position = a_position;
+  v_texcoord = a_position.xy * 0.5 + 0.5;
+}
+"""
+
+    /** Uniform name of the sampler for input [bind]. */
+    fun samplerUniform(bind: String): String = "${bind}_sampler"
+
+    /** Uniform name of the size (in texels) for input [bind]. */
+    fun sizeUniform(bind: String): String = "${bind}_size"
+
+    /** Uniform name of the texel step (1/size) for input [bind]. */
+    fun pointUniform(bind: String): String = "${bind}_pt"
+
+    /** Names of the global uniforms every pass may reference (spec globals). */
+    const val UNIFORM_FRAME = "frame"
+    const val UNIFORM_RANDOM = "random"
+    const val UNIFORM_INPUT_SIZE = "input_size"
+    const val UNIFORM_TARGET_SIZE = "target_size"
+    const val UNIFORM_TEX_OFFSET = "tex_offset"
+
+    /**
+     * Assembles the full fragment shader for pass [pass].
+     * [hook] — the hook point the pass actually fired on (its `HOOKED`); a pass
+     * with several `//!HOOK`s builds a separate program per firing.
+     * [params] — the document's `//!PARAM` blocks, injected as compile-time
+     * constants/defines with their default values (runtime tunability is phase 6).
+     * [isFinal] — the last pass of the graph: we write into the Media3 output texture
+     * with alpha=1 (intermediate passes keep all 4 channels as-is).
+     */
+    fun fragmentShader(
+        pass: UserShaderPass,
+        hook: String = pass.hooks.first(),
+        params: List<ShaderParam> = emptyList(),
+        isFinal: Boolean = false,
+    ): String = buildString {
+        appendLine("#version 300 es")
+        appendLine("precision highp float;")
+        appendLine("precision highp sampler2D;")
+        appendLine("in vec2 v_texcoord;")
+        appendLine("out vec4 frag_out;")
+        appendGlobals()
+        appendParams(params)
+        val binds = pass.binds.distinct()
+        for (bind in binds) {
+            appendBindSymbols(bind)
+        }
+        // In mpv, `HOOKED` and the hooked-stage name (`MAIN`/`PREKERNEL`/`NATIVE`) are
+        // aliases of ONE texture: both symbol sets are available. A pass may
+        // bind one name and reference another in its body (Denoise: BIND HOOKED,
+        // the body calls MAIN_texOff). We add the missing alias over the same sampler.
+        appendStageAlias(binds, MpvUserShaderParser.HOOKED, hook)
+        appendLine()
+        appendLine(pass.body)
+        appendLine()
+        appendLine("void main() {")
+        if (isFinal) {
+            appendLine("  frag_out = vec4(hook().rgb, 1.0);")
+        } else {
+            appendLine("  frag_out = hook();")
+        }
+        appendLine("}")
+    }
+
+    /** Spec globals available to every pass (unused ones are dropped by the compiler). */
+    private fun StringBuilder.appendGlobals() {
+        appendLine("uniform int $UNIFORM_FRAME;")
+        appendLine("uniform float $UNIFORM_RANDOM;")
+        appendLine("uniform vec2 $UNIFORM_INPUT_SIZE;")
+        appendLine("uniform vec2 $UNIFORM_TARGET_SIZE;")
+        appendLine("uniform vec2 $UNIFORM_TEX_OFFSET;")
+        // SDR working space of the Media3 pipeline is electrical RGB; a pure-power
+        // gamma 2.2 approximation stands in for the source transfer until the
+        // LINEAR/SIGMOID stage emulation lands (plan phase 2).
+        appendLine("vec4 linearize(vec4 color) { return vec4(pow(max(color.rgb, vec3(0.0)), vec3(2.2)), color.a); }")
+        appendLine(
+            "vec4 delinearize(vec4 color) " +
+                "{ return vec4(pow(max(color.rgb, vec3(0.0)), vec3(1.0 / 2.2)), color.a); }",
+        )
+    }
+
+    /** `//!PARAM` blocks as compile-time constants (defaults) — phase 6 makes them live. */
+    private fun StringBuilder.appendParams(params: List<ShaderParam>) {
+        for (param in params) {
+            if (param.define) {
+                appendLine("#define ${param.name} ${param.default}")
+            } else {
+                val type = param.type.ifEmpty { "float" }
+                appendLine("const $type ${param.name} = ${param.type.glslLiteral(param.default)};")
+            }
+        }
+    }
+
+    /** Formats a `//!PARAM` default as a literal of its GLSL type. */
+    private fun String.glslLiteral(default: String): String = when (this) {
+        "int" -> default.toFloatOrNull()?.toInt()?.toString() ?: default
+        "uint" -> (default.toFloatOrNull()?.toInt()?.toString() ?: default) + "u"
+        else -> (default.toFloatOrNull() ?: 0f).toString()
+    }
+
+    /** The full per-bind symbol set of the spec on top of one `sampler2D`. */
+    private fun StringBuilder.appendBindSymbols(bind: String) {
+        appendLine("uniform sampler2D ${samplerUniform(bind)};")
+        appendLine("uniform vec2 ${sizeUniform(bind)};")
+        appendLine("uniform vec2 ${pointUniform(bind)};")
+        // Coordinate and texel step — as in mpv (a single v_texcoord for all inputs).
+        appendLine("#define ${bind}_pos v_texcoord")
+        appendLine("#define ${bind}_raw ${samplerUniform(bind)}")
+        appendLine("#define ${bind}_off vec2(0.0)")
+        appendLine("#define ${bind}_mul 1.0")
+        appendLine("#define ${bind}_rot mat2(1.0)")
+        appendLine("vec4 ${bind}_tex(vec2 p) { return texture(${samplerUniform(bind)}, p); }")
+        appendLine(
+            "vec4 ${bind}_texOff(vec2 o) { " +
+                "return texture(${samplerUniform(bind)}, v_texcoord + o * ${pointUniform(bind)}); }",
+        )
+        appendLine("vec2 ${bind}_map(ivec2 id) { return (vec2(id) + vec2(0.5)) * ${pointUniform(bind)}; }")
+    }
+
+    /**
+     * Adds an alias between `HOOKED` and the hooked-stage name over the sampler
+     * actually bound from them: symbols `<target>_tex/_texOff/_pos/_pt/_size/…`
+     * reference the already-declared `<source>_*`.
+     */
+    private fun StringBuilder.appendStageAlias(binds: List<String>, hooked: String, hookName: String) {
+        val (target, source) = when {
+            hooked in binds && hookName !in binds -> hookName to hooked
+            hookName in binds && hooked !in binds -> hooked to hookName
+            else -> return
+        }
+        appendLine("#define ${target}_pos v_texcoord")
+        appendLine("#define ${target}_pt ${pointUniform(source)}")
+        appendLine("#define ${target}_size ${sizeUniform(source)}")
+        appendLine("#define ${target}_raw ${samplerUniform(source)}")
+        appendLine("#define ${target}_off vec2(0.0)")
+        appendLine("#define ${target}_mul 1.0")
+        appendLine("#define ${target}_rot mat2(1.0)")
+        appendLine("vec4 ${target}_tex(vec2 p) { return ${source}_tex(p); }")
+        appendLine("vec4 ${target}_texOff(vec2 o) { return ${source}_texOff(o); }")
+        appendLine("vec2 ${target}_map(ivec2 id) { return ${source}_map(id); }")
+    }
+}

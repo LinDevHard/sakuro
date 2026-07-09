@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.engine.media3.anime4k
+package com.rinwave.sakuro.engine.media3.usershader
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,6 +46,27 @@ class RpnExpressionTest {
     }
 
     @Test
+    fun `modulo is fmod`() {
+        assertEquals(1f, RpnExpression.parse("7 2 %").eval { error("no variables") })
+        assertEquals(0.5f, RpnExpression.parse("2.5 1 %").eval { error("no variables") })
+    }
+
+    @Test
+    fun `negation flips truthiness`() {
+        assertEquals(1f, RpnExpression.parse("0 !").eval { error("no variables") })
+        assertEquals(0f, RpnExpression.parse("42 !").eval { error("no variables") })
+        // NOT of a comparison: `MAIN.w 640 = !` → false for equal sizes.
+        assertFalse(RpnExpression.parse("MAIN.w 640 = !").isTruthy(::resolve))
+    }
+
+    @Test
+    fun `equality is fuzzy within about 1 ppm`() {
+        assertTrue(RpnExpression.parse("1000000 1000000.5 =").isTruthy { error("no variables") })
+        assertFalse(RpnExpression.parse("1000000 1000010 =").isTruthy { error("no variables") })
+        assertTrue(RpnExpression.parse("2 2 =").isTruthy { error("no variables") })
+    }
+
+    @Test
     fun `an empty expression does not parse`() {
         assertFailsWith<IllegalArgumentException> { RpnExpression.parse("   ") }
     }
@@ -53,5 +74,6 @@ class RpnExpressionTest {
     @Test
     fun `too few operands is an error`() {
         assertFailsWith<IllegalStateException> { RpnExpression.parse("2 *").eval { it.toFloat() } }
+        assertFailsWith<IllegalStateException> { RpnExpression.parse("!").eval { it.toFloat() } }
     }
 }

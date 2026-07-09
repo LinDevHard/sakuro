@@ -1,17 +1,18 @@
-package com.rinwave.sakuro.engine.media3.anime4k
+package com.rinwave.sakuro.engine.media3.usershader
 
 /**
  * A single mpv user-shader pass — the `hook()` body plus the parsed directives
- * `//!HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN` (see [MpvUserShaderParser]).
+ * `//!HOOK/BIND/SAVE/WIDTH/HEIGHT/COMPONENTS/WHEN/OFFSET/COMPUTE`
+ * (see [MpvUserShaderParser]).
  *
- * The [hook]/[save] names may be pipeline "stages" (`MAIN`, `PREKERNEL`,
+ * The [hooks]/[save] names may be pipeline "stages" (`MAIN`, `PREKERNEL`,
  * `HOOKED`) or named intermediates (`conv2d_tf`); the runtime resolves them
  * to concrete textures while executing the graph.
  */
 internal data class UserShaderPass(
     val desc: String,
-    /** The stage being hooked; `HOOKED` in the body refers to its texture. */
-    val hook: String,
+    /** Stages this pass hooks (a pass may list several); `HOOKED` in the body refers to the fired one. */
+    val hooks: List<String>,
     /** Input textures (in `//!BIND` order); may include `HOOKED`/`MAIN`. */
     val binds: List<String>,
     /** Where the result is written; defaults to the hooked stage (in-place). */
@@ -24,6 +25,10 @@ internal data class UserShaderPass(
     val components: Int,
     /** RPN condition for applying the pass; null → always apply. */
     val condition: RpnExpression?,
+    /** `//!OFFSET` shift of the output; null → no shift. */
+    val offset: PassOffset?,
+    /** `//!COMPUTE` layout; null → an ordinary fragment pass. */
+    val compute: ComputeLayout?,
     /** GLSL body: everything between directives (usually `vec4 hook() { ... }`). */
     val body: String,
 )

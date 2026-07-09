@@ -5,6 +5,8 @@ import android.util.Log
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.engine.media3.usershader.MpvUserShaderParser
+import com.rinwave.sakuro.engine.media3.usershader.ShaderDocument
 import java.io.IOException
 
 /**
@@ -47,22 +49,24 @@ internal object Anime4KChain {
     }
 
     /**
-     * Loads and parses the chain for a profile into a flat list of passes.
-     * The files' passes are concatenated in [shaderFilesFor] order. An empty list —
+     * Loads and parses the chain for a profile into one merged [ShaderDocument].
+     * The files' passes are concatenated in [shaderFilesFor] order. An empty document —
      * Anime4K is not applied (the profile is not anime/cartoon, or has no passes).
      */
-    fun load(context: Context, profile: UpscaleProfile): List<UserShaderPass> {
+    fun load(context: Context, profile: UpscaleProfile): ShaderDocument {
         val files = shaderFilesFor(profile)
-        if (files.isEmpty()) return emptyList()
+        if (files.isEmpty()) return ShaderDocument.EMPTY
         return try {
-            files.flatMap { file ->
-                val source = context.assets.open("$ASSET_DIR/$file").bufferedReader().use { it.readText() }
-                MpvUserShaderParser.parse(source)
-            }
+            ShaderDocument.merge(
+                files.map { file ->
+                    val source = context.assets.open("$ASSET_DIR/$file").bufferedReader().use { it.readText() }
+                    MpvUserShaderParser.parse(source)
+                },
+            )
         } catch (e: IOException) {
             // Anime4K assets are not in this build (no engine-mpv module) — fall back to the legacy chain.
             Log.w(TAG, "Anime4K assets unavailable, falling back to legacy: ${e.message}")
-            emptyList()
+            ShaderDocument.EMPTY
         }
     }
 

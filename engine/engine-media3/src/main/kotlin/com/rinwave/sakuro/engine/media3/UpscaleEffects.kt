@@ -14,12 +14,12 @@ import androidx.media3.effect.Presentation
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.engine.media3.anime4k.Anime4KChain
-import com.rinwave.sakuro.engine.media3.anime4k.Anime4KGlEffect
+import com.rinwave.sakuro.engine.media3.usershader.UserShaderGlEffect
 import kotlin.math.roundToInt
 
 /**
  * Builds a `GlEffect` chain from the abstract [UpscaleProfile] (ARCHITECTURE.md §4):
- * - anime/cartoon → a single [Anime4KGlEffect] with a real multi-pass Anime4K CNN;
+ * - anime/cartoon → a single [UserShaderGlEffect] with a real multi-pass Anime4K CNN;
  *   depth-to-space already gives ×2, so a separate
  *   [Presentation] is not needed;
  * - Upscale → [Presentation] with the target height (a real change of output resolution);
@@ -32,8 +32,8 @@ object UpscaleEffectChain {
     const val MAX_TARGET_HEIGHT = 2160
 
     fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): List<Effect> {
-        val anime4kPasses = Anime4KChain.load(context, profile)
-        if (anime4kPasses.isNotEmpty()) return listOf(Anime4KGlEffect(anime4kPasses))
+        val anime4kChain = Anime4KChain.load(context, profile)
+        if (anime4kChain.passes.isNotEmpty()) return listOf(UserShaderGlEffect(anime4kChain))
         return buildLegacyChain(profile, sourceHeight)
     }
 

@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.engine.media3.anime4k
+package com.rinwave.sakuro.engine.media3.usershader
 
 import java.io.File
 import kotlin.test.Test
@@ -30,7 +30,8 @@ class RealShaderGraphTest {
         fail("assets/anime4k directory not found relative to ${File("").absolutePath}")
     }
 
-    private fun source(file: String): String = File(assetsDir, file).readText()
+    private fun document(file: String): ShaderDocument =
+        MpvUserShaderParser.parse(File(assetsDir, file).readText())
 
     private val allShaders = listOf(
         "Anime4K_Clamp_Highlights.glsl",
@@ -44,7 +45,7 @@ class RealShaderGraphTest {
     @Test
     fun `all six shaders parse into non-empty passes`() {
         for (file in allShaders) {
-            val passes = MpvUserShaderParser.parse(source(file))
+            val passes = document(file).passes
             assertTrue(passes.isNotEmpty(), "$file produced no passes")
             assertTrue(passes.all { it.body.contains("hook()") }, "$file: a pass has no hook()")
         }
@@ -58,60 +59,72 @@ class RealShaderGraphTest {
             "Anime4K_Restore_CNN_S.glsl",
             "Anime4K_Upscale_CNN_x2_S.glsl",
         )
-        val passes = chainFiles.flatMap { MpvUserShaderParser.parse(source(it)) }
-        val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640 * 4, 360 * 4)
+        val merged = ShaderDocument.merge(chainFiles.map { document(it) })
+        val plan = ShaderGraphPlanner.plan(merged, 640, 360, 640 * 4, 360 * 4)
 
         assertTrue(plan.passes.isNotEmpty())
         // The upscale branch is active (OUTPUT ≫ MAIN) → depth-to-space doubles MAIN.
         assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+        // mpv pipeline order: the De-Ring-Clamp hooks PREKERNEL and must fire after
+        // all MAIN hooks (Restore/Upscale), even though its file is first in the chain.
+        assertEquals("Anime4K-v4.0-De-Ring-Clamp", plan.passes.last().pass.desc)
+        assertEquals(1280 to 720, plan.passes.last().outWidth to plan.passes.last().outHeight)
     }
 
     @Test
     fun `the M upscale model plans without errors and doubles MAIN`() {
-        val passes = MpvUserShaderParser.parse(source("Anime4K_Upscale_CNN_x2_M.glsl"))
-        val plan = Anime4KGraphPlanner.plan(passes, 720, 480, 720 * 4, 480 * 4)
+        val plan = ShaderGraphPlanner.plan(document("Anime4K_Upscale_CNN_x2_M.glsl"), 720, 480, 720 * 4, 480 * 4)
         assertEquals(1440 to 960, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
     fun `Denoise with PREKERNEL stages and COMPONENTS 1 plans, MAIN size unchanged`() {
-        val passes = MpvUserShaderParser.parse(source("Anime4K_Denoise_Bilateral_Mode.glsl"))
-        assertTrue(passes.isNotEmpty())
-        val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640 * 4, 360 * 4)
+        val denoise = document("Anime4K_Denoise_Bilateral_Mode.glsl")
+        assertTrue(denoise.passes.isNotEmpty())
+        val plan = ShaderGraphPlanner.plan(denoise, 640, 360, 640 * 4, 360 * 4)
         // Denoise does not scale.
         assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
     }
 
     @Test
     fun `without upscale (OUTPUT equals input) depth-to-space is cut, MAIN stays source`() {
-        val passes = MpvUserShaderParser.parse(source("Anime4K_Upscale_CNN_x2_S.glsl"))
-        val plan = Anime4KGraphPlanner.plan(passes, 640, 360, 640, 360)
+        val plan = ShaderGraphPlanner.plan(document("Anime4K_Upscale_CNN_x2_S.glsl"), 640, 360, 640, 360)
         assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
+    }
+
+    @Test
+    fun `no real pass is skipped — every Anime4K hook fires in our pipeline`() {
+        for (file in allShaders) {
+            val plan = ShaderGraphPlanner.plan(document(file), 640, 360, 640 * 4, 360 * 4)
+            assertTrue(plan.skipped.isEmpty(), "$file: unexpectedly skipped ${plan.skipped}")
+        }
     }
 
     @Test
     fun `a fragment shader is generated for every real pass`() {
         for (file in allShaders) {
-            for (pass in MpvUserShaderParser.parse(source(file))) {
-                val fragment = ShaderPreamble.fragmentShader(pass, isFinal = false)
+            for (pass in document(file).passes) {
+                val fragment = ShaderPreamble.fragmentShader(pass)
                 assertTrue(fragment.startsWith("#version 300 es"), "$file: no version in the shim")
                 assertTrue(fragment.contains("void main()"), "$file: no main() in the shim")
             }
         }
     }
 
-    // Every `<name>_tex/_texOff/_pos/_pt/_size` from the body must be declared in
+    // Every `<name>_tex/_texOff/_pos/_pt/_size/_mul` from the body must be declared in
     // the shim — otherwise the shader fails to compile (Denoise bug: BIND HOOKED, body calls
-    // MAIN_texOff). Catches missing stage aliases across all real shaders.
+    // MAIN_texOff). Catches missing stage aliases across all real shaders. The rarer
+    // suffixes (_raw/_off/_rot/_map) are excluded: Anime4K macro parameters like
+    // `x_off` would false-positive; their declaration is covered by ShaderPreambleTest.
     private val symbolRef = Regex("([A-Za-z_][A-Za-z0-9_]*)_(texOff|tex|pos|pt|size|mul)\\b")
 
     @Test
     fun `Clamp with BIND HOOKED and a MAIN_texOff body gets the MAIN alias`() {
         // This exact pass (De-Ring-Compute-Statistics: HOOK MAIN, BIND HOOKED,
         // body calls MAIN_texOff) used to break compilation on device → passthrough.
-        val stats = MpvUserShaderParser.parse(source("Anime4K_Clamp_Highlights.glsl"))
+        val stats = document("Anime4K_Clamp_Highlights.glsl").passes
             .first { it.body.contains("MAIN_texOff") }
-        val fragment = ShaderPreamble.fragmentShader(stats, isFinal = false)
+        val fragment = ShaderPreamble.fragmentShader(stats)
         assertTrue(fragment.contains("vec4 MAIN_tex("), "no MAIN_tex alias")
         assertTrue(fragment.contains("vec4 MAIN_texOff("), "no MAIN_texOff alias")
     }
@@ -120,8 +133,8 @@ class RealShaderGraphTest {
     fun `all mpv symbols from real shader bodies are declared in the shim`() {
         var checked = 0
         for (file in allShaders) {
-            for (pass in MpvUserShaderParser.parse(source(file))) {
-                val fragment = ShaderPreamble.fragmentShader(pass, isFinal = false)
+            for (pass in document(file).passes) {
+                val fragment = ShaderPreamble.fragmentShader(pass)
                 val referenced = symbolRef.findAll(pass.body).map { it.groupValues[1] }.toSet()
                 for (name in referenced) {
                     checked++
