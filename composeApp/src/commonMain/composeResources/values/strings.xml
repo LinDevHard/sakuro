@@ -43,7 +43,15 @@
     <string name="settings_custom_presets_empty">No custom presets yet — create one or paste one from the clipboard.</string>
     <string name="settings_controls">Controls</string>
     <string name="settings_player_gestures">Player gestures</string>
-    <string name="settings_player_gestures_desc">Swipes: brightness/volume/seek; pinch: frame mode</string>
+    <string name="settings_player_gestures_desc">Master switch for swipe and pinch gestures</string>
+    <string name="settings_gesture_brightness">Brightness swipe</string>
+    <string name="settings_gesture_brightness_desc">Vertical swipe on the left side</string>
+    <string name="settings_gesture_volume">Volume swipe</string>
+    <string name="settings_gesture_volume_desc">Vertical swipe on the right side</string>
+    <string name="settings_gesture_seek">Seek swipe</string>
+    <string name="settings_gesture_seek_desc">Horizontal swipe to scrub</string>
+    <string name="settings_gesture_zoom">Pinch to zoom</string>
+    <string name="settings_gesture_zoom_desc">Fit / fill / free zoom of the frame</string>
     <string name="settings_swipe_sensitivity">Swipe sensitivity</string>
     <string name="settings_debug">Debug</string>
     <string name="settings_adaptive_title">Adaptive shader switching</string>
@@ -51,14 +59,40 @@
     <string name="settings_debug_overlay">Debug overlay</string>
     <string name="settings_debug_overlay_desc">Stats for nerds over the player</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_text">Sakuro 0.1.0 — video player with real-time upscaling.\nOpen source (GPLv3), by Rinwave.</string>
     <string name="settings_tab_overview">Overview</string>
     <string name="settings_tab_playback">Playback</string>
     <string name="settings_tab_upscale">Upscale</string>
     <string name="settings_tab_advanced">Advanced</string>
+    <string name="settings_tab_about">About</string>
     <string name="settings_quality_mode">Adaptive quality</string>
     <string name="settings_fixed_quality">Fixed quality</string>
     <string name="settings_custom_count">%1$d custom</string>
+
+    <!-- Settings menu (section list) -->
+    <string name="settings_section_playback_desc">Decoding and rendering engine</string>
+    <string name="settings_section_upscale_desc">Default preset and custom chains</string>
+    <string name="settings_section_controls_desc">Player gestures and sensitivity</string>
+    <string name="settings_section_advanced_desc">Adaptive quality and debug tools</string>
+    <string name="settings_section_about_desc">Version, links and credits</string>
+
+    <!-- About -->
+    <string name="about_tagline">Real-time video upscaling</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_made_by">Crafted by Rinwave</string>
+    <string name="about_open_source">Open source · GPLv3</string>
+    <string name="about_links">Links</string>
+    <string name="about_link_github">GitHub</string>
+    <string name="about_link_github_desc">Source code — a star is appreciated</string>
+    <string name="about_link_releases">Releases</string>
+    <string name="about_link_releases_desc">Changelog and downloads</string>
+    <string name="about_link_issues">Report an issue</string>
+    <string name="about_link_issues_desc">Bugs and feature requests</string>
+    <string name="about_link_donate">Support the project</string>
+    <string name="about_link_donate_desc">Buy the team a coffee</string>
+    <string name="about_link_license">License</string>
+    <string name="about_link_license_desc">GNU GPL v3.0</string>
+    <string name="about_credits">Built with</string>
+    <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>

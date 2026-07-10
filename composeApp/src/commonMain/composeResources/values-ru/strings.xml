@@ -43,7 +43,15 @@
     <string name="settings_custom_presets_empty">Пока нет своих пресетов — создайте новый или вставьте из буфера обмена.</string>
     <string name="settings_controls">Управление</string>
     <string name="settings_player_gestures">Жесты в плеере</string>
-    <string name="settings_player_gestures_desc">Свайпы: яркость/громкость/перемотка; пинч: режим кадра</string>
+    <string name="settings_player_gestures_desc">Общий выключатель свайпов и пинча</string>
+    <string name="settings_gesture_brightness">Свайп яркости</string>
+    <string name="settings_gesture_brightness_desc">Вертикальный свайп по левой части</string>
+    <string name="settings_gesture_volume">Свайп громкости</string>
+    <string name="settings_gesture_volume_desc">Вертикальный свайп по правой части</string>
+    <string name="settings_gesture_seek">Свайп перемотки</string>
+    <string name="settings_gesture_seek_desc">Горизонтальный свайп для перемотки</string>
+    <string name="settings_gesture_zoom">Пинч-зум</string>
+    <string name="settings_gesture_zoom_desc">Вписать / заполнить / свободный зум кадра</string>
     <string name="settings_swipe_sensitivity">Чувствительность свайпов</string>
     <string name="settings_debug">Отладка</string>
     <string name="settings_adaptive_title">Адаптивная смена шейдеров</string>
@@ -51,14 +59,40 @@
     <string name="settings_debug_overlay">Оверлей отладки</string>
     <string name="settings_debug_overlay_desc">Stats for nerds поверх плеера</string>
     <string name="settings_about">О приложении</string>
-    <string name="settings_about_text">Sakuro 0.1.0 — видеоплеер с реалтайм-апскейлом.\nOpen source (GPLv3), от Rinwave.</string>
     <string name="settings_tab_overview">Обзор</string>
     <string name="settings_tab_playback">Плеер</string>
     <string name="settings_tab_upscale">Апскейл</string>
     <string name="settings_tab_advanced">Расширенные</string>
+    <string name="settings_tab_about">О приложении</string>
     <string name="settings_quality_mode">Адаптивное качество</string>
     <string name="settings_fixed_quality">Фиксированное качество</string>
     <string name="settings_custom_count">Своих: %1$d</string>
+
+    <!-- Settings menu (section list) -->
+    <string name="settings_section_playback_desc">Движок декодирования и рендера</string>
+    <string name="settings_section_upscale_desc">Пресет по умолчанию и свои цепочки</string>
+    <string name="settings_section_controls_desc">Жесты плеера и чувствительность</string>
+    <string name="settings_section_advanced_desc">Адаптивное качество и отладка</string>
+    <string name="settings_section_about_desc">Версия, ссылки и благодарности</string>
+
+    <!-- About -->
+    <string name="about_tagline">Реалтайм-апскейл видео</string>
+    <string name="about_version">Версия %1$s</string>
+    <string name="about_made_by">Сделано в Rinwave</string>
+    <string name="about_open_source">Открытый код · GPLv3</string>
+    <string name="about_links">Ссылки</string>
+    <string name="about_link_github">GitHub</string>
+    <string name="about_link_github_desc">Исходный код — будем рады звёздочке</string>
+    <string name="about_link_releases">Релизы</string>
+    <string name="about_link_releases_desc">История изменений и загрузки</string>
+    <string name="about_link_issues">Сообщить о проблеме</string>
+    <string name="about_link_issues_desc">Баги и идеи для новых функций</string>
+    <string name="about_link_donate">Поддержать проект</string>
+    <string name="about_link_donate_desc">Угостить команду кофе</string>
+    <string name="about_link_license">Лицензия</string>
+    <string name="about_link_license_desc">GNU GPL v3.0</string>
+    <string name="about_credits">Собрано на</string>
+    <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>

@@ -87,6 +87,7 @@ import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.gestures.LevelSwipeSession
 import com.rinwave.sakuro.ui.gestures.PinchZoomSession
 import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
+import com.rinwave.sakuro.ui.gestures.PlayerGestureConfig
 import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
 import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
 import com.rinwave.sakuro.ui.rememberIsInPip
@@ -98,13 +99,13 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.action_back
-import sakuro.composeapp.generated.resources.player_playback_speed
+import sakuro.composeapp.generated.resources.player_audio_tracks
 import sakuro.composeapp.generated.resources.player_pin_desc
 import sakuro.composeapp.generated.resources.player_pin_title
+import sakuro.composeapp.generated.resources.player_playback_speed
 import sakuro.composeapp.generated.resources.player_seek_back
 import sakuro.composeapp.generated.resources.player_seek_forward
 import sakuro.composeapp.generated.resources.player_stats_for_nerds
-import sakuro.composeapp.generated.resources.player_audio_tracks
 import sakuro.composeapp.generated.resources.player_subtitle_tracks
 import sakuro.composeapp.generated.resources.player_subtitles_off
 import sakuro.composeapp.generated.resources.player_subtitles_open_file
@@ -176,6 +177,10 @@ fun PlayerScreen(component: PlayerComponent) {
     val debugEnabled by component.debugOverlay.collectAsState()
     val selectedPresetId by component.selectedPresetId.collectAsState()
     val gesturesEnabled by component.gesturesEnabled.collectAsState()
+    val gestureBrightness by component.gestureBrightness.collectAsState()
+    val gestureVolume by component.gestureVolume.collectAsState()
+    val gestureSeek by component.gestureSeek.collectAsState()
+    val gestureZoom by component.gestureZoom.collectAsState()
     val gestureSensitivity by component.gestureSensitivity.collectAsState()
 
     val systemControls = rememberPlayerSystemControls()
@@ -318,7 +323,7 @@ fun PlayerScreen(component: PlayerComponent) {
                             },
                         )
                     }
-                    .pointerInput(gesturesEnabled) {
+                    .pointerInput(gesturesEnabled, gestureBrightness, gestureVolume, gestureSeek, gestureZoom) {
                         if (!gesturesEnabled) return@pointerInput
 
                         var seekSession: SeekSwipeSession? = null
@@ -328,7 +333,13 @@ fun PlayerScreen(component: PlayerComponent) {
                         var levelControl = LevelControl.BRIGHTNESS
                         var pinchSession: PinchZoomSession? = null
 
-                        detectPlayerGestures(object : PlayerGestureCallbacks {
+                        val gestureConfig = PlayerGestureConfig(
+                            seek = gestureSeek,
+                            brightness = gestureBrightness,
+                            volume = gestureVolume,
+                            zoom = gestureZoom,
+                        )
+                        val callbacks = object : PlayerGestureCallbacks {
                             override fun onSeekStart() {
                                 gestureActive = true
                                 val current = component.engine.state.value
@@ -407,7 +418,8 @@ fun PlayerScreen(component: PlayerComponent) {
                                 gestureActive = false
                                 lingerKey++
                             }
-                        })
+                        }
+                        detectPlayerGestures(gestureConfig, callbacks)
                     },
             )
         }

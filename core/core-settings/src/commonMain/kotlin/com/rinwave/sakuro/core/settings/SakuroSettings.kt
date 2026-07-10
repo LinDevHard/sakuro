@@ -36,9 +36,22 @@ class SakuroSettings(
     private val _adaptiveEnabled = MutableStateFlow(settings.getBoolean(KEY_ADAPTIVE, true))
     val adaptiveEnabled: StateFlow<Boolean> = _adaptiveEnabled.asStateFlow()
 
-    /** Swipes/pinch in the player (FEATURES.md §3.2); taps and long-press always work. */
+    /** Master switch for swipes/pinch in the player (FEATURES.md §3.2); taps and long-press always work. */
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
+
+    /** Per-gesture switches, each honoured only while [gesturesEnabled] is on. */
+    private val _gestureBrightness = MutableStateFlow(settings.getBoolean(KEY_GESTURE_BRIGHTNESS, true))
+    val gestureBrightness: StateFlow<Boolean> = _gestureBrightness.asStateFlow()
+
+    private val _gestureVolume = MutableStateFlow(settings.getBoolean(KEY_GESTURE_VOLUME, true))
+    val gestureVolume: StateFlow<Boolean> = _gestureVolume.asStateFlow()
+
+    private val _gestureSeek = MutableStateFlow(settings.getBoolean(KEY_GESTURE_SEEK, true))
+    val gestureSeek: StateFlow<Boolean> = _gestureSeek.asStateFlow()
+
+    private val _gestureZoom = MutableStateFlow(settings.getBoolean(KEY_GESTURE_ZOOM, true))
+    val gestureZoom: StateFlow<Boolean> = _gestureZoom.asStateFlow()
 
     /** Swipe sensitivity multiplier (FEATURES.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
     private val _gestureSensitivity = MutableStateFlow(
@@ -72,6 +85,26 @@ class SakuroSettings(
         _gesturesEnabled.value = enabled
     }
 
+    fun setGestureBrightness(enabled: Boolean) {
+        settings.putBoolean(KEY_GESTURE_BRIGHTNESS, enabled)
+        _gestureBrightness.value = enabled
+    }
+
+    fun setGestureVolume(enabled: Boolean) {
+        settings.putBoolean(KEY_GESTURE_VOLUME, enabled)
+        _gestureVolume.value = enabled
+    }
+
+    fun setGestureSeek(enabled: Boolean) {
+        settings.putBoolean(KEY_GESTURE_SEEK, enabled)
+        _gestureSeek.value = enabled
+    }
+
+    fun setGestureZoom(enabled: Boolean) {
+        settings.putBoolean(KEY_GESTURE_ZOOM, enabled)
+        _gestureZoom.value = enabled
+    }
+
     fun setGestureSensitivity(value: Float) {
         val clamped = value.coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX)
         settings.putFloat(KEY_GESTURE_SENSITIVITY, clamped)
@@ -88,6 +121,10 @@ class SakuroSettings(
         private const val KEY_DEBUG_OVERLAY = "debug_overlay"
         private const val KEY_ADAPTIVE = "adaptive_enabled"
         private const val KEY_GESTURES = "player_gestures"
+        private const val KEY_GESTURE_BRIGHTNESS = "player_gesture_brightness"
+        private const val KEY_GESTURE_VOLUME = "player_gesture_volume"
+        private const val KEY_GESTURE_SEEK = "player_gesture_seek"
+        private const val KEY_GESTURE_ZOOM = "player_gesture_zoom"
         private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
         private const val DEFAULT_PRESET_ID = "off"
     }

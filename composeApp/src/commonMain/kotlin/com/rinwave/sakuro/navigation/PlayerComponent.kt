@@ -60,8 +60,14 @@ class PlayerComponent(
     /** Whether adaptive preset degradation is enabled (for the debug overlay indicator). */
     val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
 
-    /** Swipes/pinch in the player (FEATURES.md §3.2). */
+    /** Master switch for swipes/pinch in the player (FEATURES.md §3.2). */
     val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
+
+    /** Per-gesture switches, honoured only while [gesturesEnabled] is on. */
+    val gestureBrightness: StateFlow<Boolean> = settings.gestureBrightness
+    val gestureVolume: StateFlow<Boolean> = settings.gestureVolume
+    val gestureSeek: StateFlow<Boolean> = settings.gestureSeek
+    val gestureZoom: StateFlow<Boolean> = settings.gestureZoom
 
     /** Swipe sensitivity multiplier (FEATURES.md §3.2). */
     val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
@@ -70,7 +76,10 @@ class PlayerComponent(
     private val _selectedPresetId = MutableStateFlow(initialPresetId())
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
 
-    /** The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin, not the global default. */
+    /**
+     * The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin,
+     * not the global default.
+     */
     val isPinned: StateFlow<Boolean> = pinnedPresets.pins
         .map { media.uri in it }
         .stateIn(scope, SharingStarted.Eagerly, media.uri in pinnedPresets.pins.value)

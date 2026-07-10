@@ -18,7 +18,10 @@ interface PlayerGestureCallbacks {
 
     fun onSeekEnd()
 
-    /** @param leftSide the gesture started in the left half of the screen (brightness), otherwise the right (volume). */
+    /**
+     * @param leftSide the gesture started in the left half of the screen (brightness),
+     * otherwise the right (volume).
+     */
     fun onLevelStart(leftSide: Boolean)
 
     fun onLevelDrag(totalDyPx: Float)
@@ -34,6 +37,18 @@ interface PlayerGestureCallbacks {
 private enum class GestureKind { SEEK, LEVEL, PINCH }
 
 /**
+ * Which player gestures are active. A disabled gesture is never classified, so its
+ * events stay unconsumed and pass through instead of being silently swallowed.
+ * Brightness and volume are the two sides of a vertical swipe (left / right).
+ */
+data class PlayerGestureConfig(
+    val seek: Boolean = true,
+    val brightness: Boolean = true,
+    val volume: Boolean = true,
+    val zoom: Boolean = true,
+)
+
+/**
  * Player swipes and pinch (FEATURES.md §3.1) on top of detectTapGestures:
  * below the touchSlop threshold events are not consumed (taps and long-press live
  * in a sibling pointerInput); above it they are consumed and the tap detector is cancelled.
@@ -41,7 +56,10 @@ private enum class GestureKind { SEEK, LEVEL, PINCH }
  */
 @Suppress("CyclomaticComplexMethod", "LoopWithTooManyJumpStatements") // the gesture state machine —
 // a single pass over awaitEachGesture; splitting it would break the shared state (kind/totalPan/cancelled)
-suspend fun PointerInputScope.detectPlayerGestures(callbacks: PlayerGestureCallbacks) {
+suspend fun PointerInputScope.detectPlayerGestures(
+    config: PlayerGestureConfig = PlayerGestureConfig(),
+    callbacks: PlayerGestureCallbacks,
+) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         var kind: GestureKind? = null
@@ -64,10 +82,14 @@ suspend fun PointerInputScope.detectPlayerGestures(callbacks: PlayerGestureCallb
             if (kind == null) {
                 val slop = viewConfiguration.touchSlop
                 val pointerCount = event.changes.count { it.pressed }
+                val leftSide = down.position.x < size.width / 2f
+                val levelEnabled = if (leftSide) config.brightness else config.volume
                 kind = when {
-                    pointerCount > 1 -> GestureKind.PINCH
-                    abs(totalPan.x) > slop && abs(totalPan.x) > abs(totalPan.y) -> GestureKind.SEEK
-                    abs(totalPan.y) > slop && abs(totalPan.y) > abs(totalPan.x) -> GestureKind.LEVEL
+                    pointerCount > 1 -> GestureKind.PINCH.takeIf { config.zoom }
+                    abs(totalPan.x) > slop && abs(totalPan.x) > abs(totalPan.y) ->
+                        GestureKind.SEEK.takeIf { config.seek }
+                    abs(totalPan.y) > slop && abs(totalPan.y) > abs(totalPan.x) ->
+                        GestureKind.LEVEL.takeIf { levelEnabled }
                     else -> null
                 }
                 when (kind) {

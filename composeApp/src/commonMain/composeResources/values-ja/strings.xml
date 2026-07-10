@@ -44,7 +44,15 @@
     <string name="settings_custom_presets_empty">カスタムプリセットはまだありません。新規作成するか、クリップボードから貼り付けてください。</string>
     <string name="settings_controls">操作</string>
     <string name="settings_player_gestures">プレーヤーのジェスチャー</string>
-    <string name="settings_player_gestures_desc">スワイプ: 明るさ/音量/シーク、ピンチ: 表示モード</string>
+    <string name="settings_player_gestures_desc">スワイプとピンチの一括スイッチ</string>
+    <string name="settings_gesture_brightness">明るさスワイプ</string>
+    <string name="settings_gesture_brightness_desc">左側の縦スワイプ</string>
+    <string name="settings_gesture_volume">音量スワイプ</string>
+    <string name="settings_gesture_volume_desc">右側の縦スワイプ</string>
+    <string name="settings_gesture_seek">シークスワイプ</string>
+    <string name="settings_gesture_seek_desc">横スワイプでシーク</string>
+    <string name="settings_gesture_zoom">ピンチズーム</string>
+    <string name="settings_gesture_zoom_desc">フィット / フィル / 自由ズーム</string>
     <string name="settings_swipe_sensitivity">スワイプ感度</string>
     <string name="settings_debug">デバッグ</string>
     <string name="settings_adaptive_title">アダプティブなシェーダー切り替え</string>
@@ -52,14 +60,40 @@
     <string name="settings_debug_overlay">デバッグオーバーレイ</string>
     <string name="settings_debug_overlay_desc">プレーヤー上の詳細統計 (Stats for nerds)</string>
     <string name="settings_about">アプリについて</string>
-    <string name="settings_about_text">Sakuro 0.1.0 — リアルタイムアップスケール対応の動画プレーヤー。\nオープンソース (GPLv3)、Rinwave 制作。</string>
     <string name="settings_tab_overview">概要</string>
     <string name="settings_tab_playback">再生</string>
     <string name="settings_tab_upscale">アップスケール</string>
     <string name="settings_tab_advanced">詳細</string>
+    <string name="settings_tab_about">情報</string>
     <string name="settings_quality_mode">アダプティブ品質</string>
     <string name="settings_fixed_quality">固定品質</string>
     <string name="settings_custom_count">カスタム %1$d 件</string>
+
+    <!-- Settings menu (section list) -->
+    <string name="settings_section_playback_desc">デコードとレンダリングのエンジン</string>
+    <string name="settings_section_upscale_desc">既定のプリセットとカスタムチェーン</string>
+    <string name="settings_section_controls_desc">プレーヤーのジェスチャーと感度</string>
+    <string name="settings_section_advanced_desc">アダプティブ品質とデバッグ</string>
+    <string name="settings_section_about_desc">バージョン・リンク・クレジット</string>
+
+    <!-- About -->
+    <string name="about_tagline">リアルタイム動画アップスケール</string>
+    <string name="about_version">バージョン %1$s</string>
+    <string name="about_made_by">Rinwave 制作</string>
+    <string name="about_open_source">オープンソース · GPLv3</string>
+    <string name="about_links">リンク</string>
+    <string name="about_link_github">GitHub</string>
+    <string name="about_link_github_desc">ソースコード — スターを歓迎します</string>
+    <string name="about_link_releases">リリース</string>
+    <string name="about_link_releases_desc">変更履歴とダウンロード</string>
+    <string name="about_link_issues">問題を報告</string>
+    <string name="about_link_issues_desc">バグや機能のリクエスト</string>
+    <string name="about_link_donate">プロジェクトを支援</string>
+    <string name="about_link_donate_desc">チームにコーヒーを一杯</string>
+    <string name="about_link_license">ライセンス</string>
+    <string name="about_link_license_desc">GNU GPL v3.0</string>
+    <string name="about_credits">使用技術</string>
+    <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
     <string name="engine_mpv">libmpv</string>

@@ -1,69 +1,95 @@
 package com.rinwave.sakuro.navigation
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DelicateDecomposeApi
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.value.Value
+import com.rinwave.sakuro.AppInfo
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
-import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.PresetStores
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.serialization.Serializable
 
+/**
+ * Parent of the settings feature. The root is a menu that lists sections; tapping a
+ * section pushes its own screen onto an inner stack (drill-down navigation). Each
+ * section is a dedicated Decompose child with its own state and lifecycle.
+ */
 class SettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
-    engineRegistry: EngineRegistry,
-    presetStores: PresetStores,
+    private val engineRegistry: EngineRegistry,
+    private val presetStores: PresetStores,
     val onBack: () -> Unit,
 ) : ComponentContext by componentContext {
 
-    private val userPresets = presetStores.user
-    private val pinnedPresets = presetStores.pinned
+    @Serializable
+    private sealed interface Config {
+        @Serializable
+        data object Menu : Config
 
-    private val scope = componentScope()
+        @Serializable
+        data object Playback : Config
 
-    val availableEngines: List<EngineType> = engineRegistry.available
+        @Serializable
+        data object Upscale : Config
 
-    val engineType: StateFlow<EngineType> = settings.engineType
-    val presetId: StateFlow<String> = settings.presetId
-    val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
-    val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
-    val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
-    val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
+        @Serializable
+        data object Controls : Config
 
-    /** Built-in + user presets (FEATURES.md §2.2) — candidates for the default. */
-    val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
-        .map { user -> BuiltInPresets.all + user }
-        .stateIn(scope, SharingStarted.Eagerly, BuiltInPresets.all + userPresets.presets.value)
+        @Serializable
+        data object Advanced : Config
 
-    /** User presets only — for the section that manages your own presets. */
-    val userPresetList: StateFlow<List<UpscaleProfile>> = userPresets.presets
-
-    fun selectEngine(type: EngineType) = settings.setEngineType(type)
-
-    fun selectPreset(id: String) = settings.setPresetId(id)
-
-    fun saveUserPreset(profile: UpscaleProfile): UpscaleProfile = userPresets.save(profile)
-
-    fun deleteUserPreset(id: String) {
-        userPresets.delete(id)
-        // A deleted preset must remain neither the default nor in the file pins.
-        if (settings.presetId.value == id) settings.setPresetId(BuiltInPresets.OFF.id)
-        pinnedPresets.removeAllFor(id)
+        @Serializable
+        data object About : Config
     }
 
-    fun exportUserPreset(profile: UpscaleProfile): String = userPresets.export(profile)
+    sealed interface Child {
+        class Menu(val component: SettingsMenuComponent) : Child
+        class Playback(val component: PlaybackSettingsComponent) : Child
+        class Upscale(val component: UpscaleSettingsComponent) : Child
+        class Controls(val component: ControlsSettingsComponent) : Child
+        class Advanced(val component: AdvancedSettingsComponent) : Child
+        class About(val component: AboutSettingsComponent) : Child
+    }
 
-    fun importUserPreset(raw: String): Result<UpscaleProfile> = userPresets.import(raw)
+    private val navigation = StackNavigation<Config>()
 
-    fun setDebugOverlay(enabled: Boolean) = settings.setDebugOverlay(enabled)
+    val stack: Value<ChildStack<*, Child>> = childStack(
+        source = navigation,
+        serializer = Config.serializer(),
+        initialConfiguration = Config.Menu,
+        handleBackButton = true,
+        childFactory = ::createChild,
+    )
 
-    fun setAdaptiveEnabled(enabled: Boolean) = settings.setAdaptiveEnabled(enabled)
+    @OptIn(DelicateDecomposeApi::class)
+    private fun createChild(config: Config, componentContext: ComponentContext): Child = when (config) {
+        is Config.Menu -> Child.Menu(
+            SettingsMenuComponent(
+                componentContext = componentContext,
+                version = AppInfo.VERSION,
+                onBack = onBack,
+                onOpenPlayback = { navigation.push(Config.Playback) },
+                onOpenUpscale = { navigation.push(Config.Upscale) },
+                onOpenControls = { navigation.push(Config.Controls) },
+                onOpenAdvanced = { navigation.push(Config.Advanced) },
+                onOpenAbout = { navigation.push(Config.About) },
+            ),
+        )
 
-    fun setGesturesEnabled(enabled: Boolean) = settings.setGesturesEnabled(enabled)
+        is Config.Playback -> Child.Playback(PlaybackSettingsComponent(componentContext, settings, engineRegistry))
+        is Config.Upscale -> Child.Upscale(UpscaleSettingsComponent(componentContext, settings, presetStores))
+        is Config.Controls -> Child.Controls(ControlsSettingsComponent(componentContext, settings))
+        is Config.Advanced -> Child.Advanced(AdvancedSettingsComponent(componentContext, settings))
+        is Config.About -> Child.About(AboutSettingsComponent(componentContext))
+    }
 
-    fun setGestureSensitivity(value: Float) = settings.setGestureSensitivity(value)
+    fun pop() {
+        navigation.pop()
+    }
 }
