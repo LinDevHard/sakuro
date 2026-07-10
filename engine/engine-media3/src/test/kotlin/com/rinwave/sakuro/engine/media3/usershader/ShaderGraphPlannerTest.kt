@@ -239,7 +239,7 @@ class ShaderGraphPlannerTest {
     }
 
     @Test
-    fun `a compute pass fails the plan until phase 5`() {
+    fun `a compute pass fails the plan on an ES 3-0 baseline context`() {
         val passes = listOf(
             pass(
                 "cas", binds = listOf("MAIN"), save = "MAIN",
@@ -247,6 +247,21 @@ class ShaderGraphPlannerTest {
             ),
         )
         assertFailsWith<UserShaderException> { plan(passes, 640, 360, 1920, 1080) }
+    }
+
+    @Test
+    fun `a compute pass plans on an ES 3-1 context`() {
+        val passes = listOf(
+            pass(
+                "cas", binds = listOf("MAIN"), save = "MAIN",
+                compute = ComputeLayout(32, 8, 32, 8),
+            ),
+        )
+        val plan = ShaderGraphPlanner.plan(
+            ShaderDocument.of(passes), 640, 360, 1920, 1080, RuntimeCapabilities.ES31,
+        )
+        assertEquals(1, plan.passes.size)
+        assertEquals(ComputeLayout(32, 8, 32, 8), plan.passes.single().pass.compute)
     }
 
     @Test

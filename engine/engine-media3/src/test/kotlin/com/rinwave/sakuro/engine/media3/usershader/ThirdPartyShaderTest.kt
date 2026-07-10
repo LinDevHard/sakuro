@@ -2,6 +2,7 @@ package com.rinwave.sakuro.engine.media3.usershader
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -124,6 +125,32 @@ class ThirdPartyShaderTest {
         for (planned in plan.passes) {
             val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
             assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
+        }
+    }
+
+    @Test
+    fun `ravu-lite-r3 plans its compute pass on an ES 3-1 context and degrades without one`() {
+        val document = document("ravu-lite-r3.hook")
+        val pass = document.passes.single()
+        assertEquals(ComputeLayout(64, 16, 32, 8), pass.compute)
+        assertEquals(13 to 288, document.textures.single().width to document.textures.single().height)
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4, RuntimeCapabilities.ES31)
+        assertTrue(plan.skipped.isEmpty(), "skipped: ${plan.skipped}")
+        assertEquals(
+            listOf("<extract-luma>", "<extract-chroma>", "RAVU-Lite (r3, compute)", "<merge-planes>"),
+            plan.passes.map { it.pass.desc },
+        )
+        // The compute pass doubles LUMA in place → the merged MAIN is ×2.
+        assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+
+        val source = ShaderPreamble.computeShader(pass, "LUMA", document.params)
+        assertTrue(source.contains("layout(local_size_x = 32, local_size_y = 8"))
+        assertTrue(source.contains("shared float inp[432];"))
+
+        // Without ES 3.1 the whole chain honestly degrades.
+        assertFailsWith<UserShaderException> {
+            ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
         }
     }
 

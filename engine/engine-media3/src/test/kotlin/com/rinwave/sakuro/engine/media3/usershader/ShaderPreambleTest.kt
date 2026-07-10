@@ -82,6 +82,43 @@ class ShaderPreambleTest {
     }
 
     @Test
+    fun `gather symbols and version 310 appear only with the capability`() {
+        val body = "vec4 hook() { return HOOKED_gather(HOOKED_pos, 0); }"
+        val baseline = ShaderPreamble.fragmentShader(pass(body))
+        assertTrue(baseline.startsWith("#version 300 es"))
+        assertTrue(!baseline.contains("#define HOOKED_gather"))
+
+        val es31 = ShaderPreamble.fragmentShader(pass(body), caps = RuntimeCapabilities.ES31)
+        assertTrue(es31.startsWith("#version 310 es"))
+        assertTrue(es31.contains("#define HOOKED_gather(pos, c) textureGather(HOOKED, pos, c)"))
+    }
+
+    @Test
+    fun `a compute pass gets the workgroup layout and out_image instead of frag_out`() {
+        val compute = UserShaderPass(
+            desc = "cs",
+            hooks = listOf("MAIN"),
+            binds = listOf("HOOKED"),
+            save = "MAIN",
+            width = null,
+            height = null,
+            components = 4,
+            condition = null,
+            offset = null,
+            compute = ComputeLayout(64, 16, 32, 8),
+            body = "void hook() { imageStore(out_image, ivec2(gl_GlobalInvocationID.xy), vec4(0.0)); }",
+        )
+        val source = ShaderPreamble.computeShader(compute)
+        assertTrue(source.startsWith("#version 310 es"))
+        assertTrue(source.contains("layout(local_size_x = 32, local_size_y = 8, local_size_z = 1) in;"))
+        assertTrue(source.contains("writeonly highp image2D out_image;"))
+        assertTrue(source.contains("#define HOOKED_pos (HOOKED_map(ivec2(gl_GlobalInvocationID.xy)))"))
+        assertTrue(!source.contains("frag_out"))
+        assertTrue(!source.contains("v_texcoord"))
+        assertTrue(source.contains("void main() {\n  hook();\n}"))
+    }
+
+    @Test
     fun `the final pass forces alpha to one`() {
         val fragment = ShaderPreamble.fragmentShader(
             pass("vec4 hook() { return vec4(0.5); }"),

@@ -2,6 +2,7 @@ package com.rinwave.sakuro.engine.media3.usershader
 
 import android.opengl.GLES20
 import android.opengl.GLES30
+import android.opengl.GLES31
 import android.util.Log
 import androidx.media3.common.VideoFrameProcessingException
 import androidx.media3.common.util.GlProgram
@@ -38,8 +39,14 @@ internal class UserShaderProgram(
     private data class TexRef(val texId: Int, val width: Int, val height: Int)
     private data class Target(val texId: Int, val fbo: Int, val width: Int, val height: Int)
 
+    /** A compiled pass: an ordinary fragment program or a compute program. */
+    private sealed interface PassProgram {
+        class Fragment(val program: GlProgram) : PassProgram
+        class Compute(val programId: Int, val layout: ComputeLayout) : PassProgram
+    }
+
     private var plan: GraphPlan = GraphPlan(emptyList(), 0, 0, emptyList())
-    private var passPrograms: List<GlProgram> = emptyList()
+    private var passPrograms: List<PassProgram> = emptyList()
     private var targets: List<Target> = emptyList()
     private var lutTextures: Map<String, TexRef> = emptyMap()
     private lateinit var presentProgram: GlProgram
@@ -58,18 +65,28 @@ internal class UserShaderProgram(
             presentProgram = GlProgram(ShaderPreamble.VERTEX_SHADER, PRESENT_FRAGMENT).apply {
                 setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
             }
+            val caps = RuntimeCapabilities.probe()
             plan = ShaderGraphPlanner.plan(
                 document,
                 inputWidth,
                 inputHeight,
                 inputWidth * outputGateScale,
                 inputHeight * outputGateScale,
+                caps,
             )
             plan.skipped.forEach { Log.i(TAG, "pass '$it' skipped: its hooks never fire in this pipeline") }
             passPrograms = plan.passes.map { planned ->
-                val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
-                GlProgram(ShaderPreamble.VERTEX_SHADER, fragment).apply {
-                    setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
+                val compute = planned.pass.compute
+                if (compute != null) {
+                    val source = ShaderPreamble.computeShader(planned.pass, planned.hook, document.params)
+                    PassProgram.Compute(compileComputeProgram(planned.pass.desc, source), compute)
+                } else {
+                    val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params, caps)
+                    PassProgram.Fragment(
+                        GlProgram(ShaderPreamble.VERTEX_SHADER, fragment).apply {
+                            setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
+                        },
+                    )
                 }
             }
             targets = plan.passes.map { createFp16Target(it.outWidth, it.outHeight) }
@@ -123,34 +140,11 @@ internal class UserShaderProgram(
             if (planned.stage == ShaderStages.POST && ShaderStages.POST !in current) {
                 current[ShaderStages.POST] = current.getValue(MAIN)
             }
-            val program = passPrograms[i]
             val target = targets[i]
-            GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
-            program.use()
-            // The current program id — so we set only the ACTIVE uniforms:
-            // the GLSL compiler drops unused ones (e.g. _size is only needed by
-            // depth-to-space), GlProgram does not register them and fails on set;
-            // yet bindAttributesAndUniforms requires a value for every one it knows,
-            // so we set them through GlProgram (not around it) but gated by activity.
-            val programId = IntArray(1)
-            GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
-            planned.pass.binds.distinct().forEachIndexed { unit, bind ->
-                val ref = current[ShaderGraphPlanner.canonicalStage(bind, planned.stage)]
-                    ?: throw UserShaderException("'${planned.pass.desc}' binds a missing texture '$bind'")
-                val sampler = ShaderPreamble.samplerUniform(bind)
-                if (isActive(programId[0], sampler)) program.setSamplerTexIdUniform(sampler, ref.texId, unit)
-                val sizeName = ShaderPreamble.sizeUniform(bind)
-                if (isActive(programId[0], sizeName)) {
-                    program.setFloatsUniform(sizeName, floatArrayOf(ref.width.toFloat(), ref.height.toFloat()))
-                }
-                val ptName = ShaderPreamble.pointUniform(bind)
-                if (isActive(programId[0], ptName)) {
-                    program.setFloatsUniform(ptName, floatArrayOf(1f / ref.width, 1f / ref.height))
-                }
+            when (val program = passPrograms[i]) {
+                is PassProgram.Fragment -> runFragmentPass(planned, program.program, target, current)
+                is PassProgram.Compute -> runComputePass(planned, program, target, current)
             }
-            setGlobalUniforms(program, programId[0])
-            program.bindAttributesAndUniforms()
-            GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
             val saved = ShaderGraphPlanner.canonicalStage(planned.pass.save, planned.stage)
             current[saved] = TexRef(target.texId, target.width, target.height)
         }
@@ -167,6 +161,126 @@ internal class UserShaderProgram(
         )
         presentProgram.bindAttributesAndUniforms()
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+    }
+
+    private fun runFragmentPass(
+        planned: PlannedPass,
+        program: GlProgram,
+        target: Target,
+        current: Map<String, TexRef>,
+    ) {
+        GlUtil.focusFramebufferUsingCurrentContext(target.fbo, target.width, target.height)
+        program.use()
+        // The current program id — so we set only the ACTIVE uniforms:
+        // the GLSL compiler drops unused ones (e.g. _size is only needed by
+        // depth-to-space), GlProgram does not register them and fails on set;
+        // yet bindAttributesAndUniforms requires a value for every one it knows,
+        // so we set them through GlProgram (not around it) but gated by activity.
+        val programId = IntArray(1)
+        GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
+        planned.pass.binds.distinct().forEachIndexed { unit, bind ->
+            val ref = resolveBind(planned, bind, current)
+            val sampler = ShaderPreamble.samplerUniform(bind)
+            if (isActive(programId[0], sampler)) program.setSamplerTexIdUniform(sampler, ref.texId, unit)
+            val sizeName = ShaderPreamble.sizeUniform(bind)
+            if (isActive(programId[0], sizeName)) {
+                program.setFloatsUniform(sizeName, floatArrayOf(ref.width.toFloat(), ref.height.toFloat()))
+            }
+            val ptName = ShaderPreamble.pointUniform(bind)
+            if (isActive(programId[0], ptName)) {
+                program.setFloatsUniform(ptName, floatArrayOf(1f / ref.width, 1f / ref.height))
+            }
+        }
+        setGlobalUniforms(program, programId[0])
+        program.bindAttributesAndUniforms()
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+    }
+
+    /** Dispatches a `//!COMPUTE` pass writing into the target via `out_image`. */
+    private fun runComputePass(
+        planned: PlannedPass,
+        program: PassProgram.Compute,
+        target: Target,
+        current: Map<String, TexRef>,
+    ) {
+        GLES31.glUseProgram(program.programId)
+        planned.pass.binds.distinct().forEachIndexed { unit, bind ->
+            val ref = resolveBind(planned, bind, current)
+            val sampler = GLES31.glGetUniformLocation(program.programId, ShaderPreamble.samplerUniform(bind))
+            if (sampler >= 0) {
+                GLES31.glActiveTexture(GLES31.GL_TEXTURE0 + unit)
+                GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, ref.texId)
+                GLES31.glUniform1i(sampler, unit)
+            }
+            setVec2IfActive(
+                program.programId, ShaderPreamble.sizeUniform(bind),
+                ref.width.toFloat(), ref.height.toFloat(),
+            )
+            setVec2IfActive(program.programId, ShaderPreamble.pointUniform(bind), 1f / ref.width, 1f / ref.height)
+        }
+        setComputeGlobals(program.programId)
+        GLES31.glBindImageTexture(
+            0, target.texId, 0, false, 0, GLES31.GL_WRITE_ONLY, GLES30.GL_RGBA16F,
+        )
+        val groupsX = (target.width + program.layout.blockWidth - 1) / program.layout.blockWidth
+        val groupsY = (target.height + program.layout.blockHeight - 1) / program.layout.blockHeight
+        GLES31.glDispatchCompute(groupsX, groupsY, 1)
+        // The written image is sampled by the next pass (or presented).
+        GLES31.glMemoryBarrier(
+            GLES31.GL_TEXTURE_FETCH_BARRIER_BIT or
+                GLES31.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT or
+                GLES31.GL_FRAMEBUFFER_BARRIER_BIT,
+        )
+        GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
+        GlUtil.checkGlError()
+    }
+
+    private fun resolveBind(planned: PlannedPass, bind: String, current: Map<String, TexRef>): TexRef =
+        current[ShaderGraphPlanner.canonicalStage(bind, planned.stage)]
+            ?: throw UserShaderException("'${planned.pass.desc}' binds a missing texture '$bind'")
+
+    private fun setVec2IfActive(programId: Int, name: String, x: Float, y: Float) {
+        val location = GLES31.glGetUniformLocation(programId, name)
+        if (location >= 0) GLES31.glUniform2f(location, x, y)
+    }
+
+    /** The spec globals for a compute pass, set with raw GL calls when active. */
+    private fun setComputeGlobals(programId: Int) {
+        val frame = GLES31.glGetUniformLocation(programId, ShaderPreamble.UNIFORM_FRAME)
+        if (frame >= 0) GLES31.glUniform1i(frame, frameIndex)
+        val random = GLES31.glGetUniformLocation(programId, ShaderPreamble.UNIFORM_RANDOM)
+        if (random >= 0) GLES31.glUniform1f(random, Random.nextFloat())
+        setVec2IfActive(programId, ShaderPreamble.UNIFORM_INPUT_SIZE, inputWidth.toFloat(), inputHeight.toFloat())
+        setVec2IfActive(
+            programId, ShaderPreamble.UNIFORM_TARGET_SIZE,
+            plan.outputWidth.toFloat(), plan.outputHeight.toFloat(),
+        )
+        setVec2IfActive(programId, ShaderPreamble.UNIFORM_TEX_OFFSET, 0f, 0f)
+    }
+
+    /** Compiles and links a compute program; failures degrade the chain. */
+    private fun compileComputeProgram(desc: String, source: String): Int {
+        val shader = GLES31.glCreateShader(GLES31.GL_COMPUTE_SHADER)
+        GLES31.glShaderSource(shader, source)
+        GLES31.glCompileShader(shader)
+        val status = IntArray(1)
+        GLES31.glGetShaderiv(shader, GLES31.GL_COMPILE_STATUS, status, 0)
+        if (status[0] == 0) {
+            val log = GLES31.glGetShaderInfoLog(shader)
+            GLES31.glDeleteShader(shader)
+            throw UserShaderException("compute pass '$desc' failed to compile: $log")
+        }
+        val program = GLES31.glCreateProgram()
+        GLES31.glAttachShader(program, shader)
+        GLES31.glLinkProgram(program)
+        GLES31.glDeleteShader(shader)
+        GLES31.glGetProgramiv(program, GLES31.GL_LINK_STATUS, status, 0)
+        if (status[0] == 0) {
+            val log = GLES31.glGetProgramInfoLog(program)
+            GLES31.glDeleteProgram(program)
+            throw UserShaderException("compute pass '$desc' failed to link: $log")
+        }
+        return program
     }
 
     /** The spec globals (`frame`, `random`, sizes) — set only when the pass uses them. */
@@ -219,7 +333,12 @@ internal class UserShaderProgram(
     }
 
     private fun releaseGraph() {
-        passPrograms.forEach { runCatching { it.delete() } }
+        passPrograms.forEach { program ->
+            when (program) {
+                is PassProgram.Fragment -> runCatching { program.program.delete() }
+                is PassProgram.Compute -> GLES31.glDeleteProgram(program.programId)
+            }
+        }
         passPrograms = emptyList()
         targets.forEach { target ->
             GLES30.glDeleteFramebuffers(1, intArrayOf(target.fbo), 0)
@@ -273,10 +392,8 @@ internal class UserShaderProgram(
         val texture = IntArray(1)
         GLES30.glGenTextures(1, texture, 0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture[0])
-        GLES30.glTexImage2D(
-            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, width, height, 0,
-            GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, null,
-        )
+        // Immutable storage: image load/store (compute out_image) requires it.
+        GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_RGBA16F, width, height)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)

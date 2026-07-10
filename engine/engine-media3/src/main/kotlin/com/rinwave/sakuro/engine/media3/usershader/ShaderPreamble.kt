@@ -1,14 +1,17 @@
 package com.rinwave.sakuro.engine.media3.usershader
 
 /**
- * Generates the GLSL ES 3.00 around an mpv user-shader pass's `hook()` body so that
- * it compiles unchanged.
+ * Generates the GLSL ES around an mpv user-shader pass's `hook()` body so that
+ * it compiles unchanged — as a fragment shader for ordinary passes and as a
+ * compute shader for `//!COMPUTE` passes.
  *
  * For each `//!BIND <n>` the mpv body may reference a set of symbols:
- * `<n>_tex(vec2)`, `<n>_texOff(vec2)`, `<n>_raw`, `<n>_pos`, `<n>_size`, `<n>_pt`,
- * `<n>_off`, `<n>_mul`, `<n>_rot`, `<n>_map(ivec2)`. Here they are synthesized on
- * top of a plain `sampler2D`; the coordinate comes from the varying `v_texcoord`
- * (shared by all inputs — we draw a fullscreen quad).
+ * `<n>_tex(vec2)`, `<n>_texOff(off)`, `<n>_raw`, `<n>_pos`, `<n>_size`,
+ * `<n>_pt`, `<n>_off`, `<n>_mul`, `<n>_rot`, `<n>_map(ivec2)` and (on ES 3.1)
+ * `<n>_gather(pos, c)`. The sampler uniform is the bare bind name, as in mpv —
+ * custom `//!TEXTURE` LUTs are sampled directly by name (`texture(ravu_lut3, …)`)
+ * and `<n>_raw` aliases it. `texOff` is a macro with a `vec2()` argument
+ * conversion because shaders call it with `ivec2` and scalar arguments.
  *
  * The spec's global symbols (`frame`, `random`, `input_size`, `target_size`,
  * `tex_offset`, `linearize()`, `delinearize()`) are declared for every pass; the
@@ -55,6 +58,7 @@ void main() {
      * with several `//!HOOK`s builds a separate program per firing.
      * [params] — the document's `//!PARAM` blocks, injected as compile-time
      * constants/defines with their default values (runtime tunability is phase 6).
+     * [caps] — gather symbols and `#version 310 es` are emitted only when available.
      * [isFinal] — the last pass of the graph: we write into the Media3 output texture
      * with alpha=1 (intermediate passes keep all 4 channels as-is).
      */
@@ -62,9 +66,10 @@ void main() {
         pass: UserShaderPass,
         hook: String = pass.hooks.first(),
         params: List<ShaderParam> = emptyList(),
+        caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
         isFinal: Boolean = false,
     ): String = buildString {
-        appendLine("#version 300 es")
+        appendLine(if (caps.gather) "#version 310 es" else "#version 300 es")
         appendLine("precision highp float;")
         appendLine("precision highp sampler2D;")
         appendLine("in vec2 v_texcoord;")
@@ -73,13 +78,9 @@ void main() {
         appendParams(params)
         val binds = pass.binds.distinct()
         for (bind in binds) {
-            appendBindSymbols(bind)
+            appendBindSymbols(bind, posExpression = "v_texcoord", gather = caps.gather)
         }
-        // In mpv, `HOOKED` and the hooked-stage name (`MAIN`/`PREKERNEL`/`NATIVE`) are
-        // aliases of ONE texture: both symbol sets are available. A pass may
-        // bind one name and reference another in its body (Denoise: BIND HOOKED,
-        // the body calls MAIN_texOff). We add the missing alias over the same sampler.
-        appendStageAlias(binds, MpvUserShaderParser.HOOKED, hook)
+        appendStageAlias(binds, MpvUserShaderParser.HOOKED, hook, gather = caps.gather)
         appendLine()
         appendLine(pass.body)
         appendLine()
@@ -89,6 +90,45 @@ void main() {
         } else {
             appendLine("  frag_out = hook();")
         }
+        appendLine("}")
+    }
+
+    /**
+     * Assembles the compute shader for a `//!COMPUTE` pass. The body defines
+     * `void hook()` and writes through `out_image`; `<bind>_pos` maps the
+     * invocation id into texel coordinates, as in mpv.
+     */
+    fun computeShader(
+        pass: UserShaderPass,
+        hook: String = pass.hooks.first(),
+        params: List<ShaderParam> = emptyList(),
+    ): String = buildString {
+        val layout = requireNotNull(pass.compute) { "not a compute pass: '${pass.desc}'" }
+        appendLine("#version 310 es")
+        appendLine("precision highp float;")
+        appendLine("precision highp sampler2D;")
+        appendLine("precision highp image2D;")
+        appendLine(
+            "layout(local_size_x = ${layout.threadsWidth}, " +
+                "local_size_y = ${layout.threadsHeight}, local_size_z = 1) in;",
+        )
+        appendLine("layout(rgba16f, binding = 0) uniform writeonly highp image2D out_image;")
+        appendGlobals()
+        appendParams(params)
+        val binds = pass.binds.distinct()
+        for (bind in binds) {
+            appendBindSymbols(
+                bind,
+                posExpression = "${bind}_map(ivec2(gl_GlobalInvocationID.xy))",
+                gather = true,
+            )
+        }
+        appendStageAlias(binds, MpvUserShaderParser.HOOKED, hook, gather = true)
+        appendLine()
+        appendLine(pass.body)
+        appendLine()
+        appendLine("void main() {")
+        appendLine("  hook();")
         appendLine("}")
     }
 
@@ -129,12 +169,12 @@ void main() {
     }
 
     /** The full per-bind symbol set of the spec on top of one `sampler2D`. */
-    private fun StringBuilder.appendBindSymbols(bind: String) {
+    private fun StringBuilder.appendBindSymbols(bind: String, posExpression: String, gather: Boolean) {
         appendLine("uniform sampler2D ${samplerUniform(bind)};")
         appendLine("uniform vec2 ${sizeUniform(bind)};")
         appendLine("uniform vec2 ${pointUniform(bind)};")
-        // Coordinate and texel step — as in mpv (a single v_texcoord for all inputs).
-        appendLine("#define ${bind}_pos v_texcoord")
+        appendLine("vec2 ${bind}_map(ivec2 id) { return (vec2(id) + vec2(0.5)) * ${pointUniform(bind)}; }")
+        appendLine("#define ${bind}_pos ($posExpression)")
         appendLine("#define ${bind}_raw ${samplerUniform(bind)}")
         appendLine("#define ${bind}_off vec2(0.0)")
         appendLine("#define ${bind}_mul 1.0")
@@ -142,8 +182,10 @@ void main() {
         appendLine("vec4 ${bind}_tex(vec2 p) { return texture(${samplerUniform(bind)}, p); }")
         // A macro, as in mpv: shaders call texOff with ivec2/float arguments too,
         // and GLSL ES has no implicit int→float conversion for a function call.
-        appendLine("#define ${bind}_texOff(off) ${bind}_tex(v_texcoord + vec2(off) * ${pointUniform(bind)})")
-        appendLine("vec2 ${bind}_map(ivec2 id) { return (vec2(id) + vec2(0.5)) * ${pointUniform(bind)}; }")
+        appendLine("#define ${bind}_texOff(off) ${bind}_tex(${bind}_pos + vec2(off) * ${pointUniform(bind)})")
+        if (gather) {
+            appendLine("#define ${bind}_gather(pos, c) textureGather(${samplerUniform(bind)}, pos, c)")
+        }
     }
 
     /**
@@ -151,13 +193,18 @@ void main() {
      * actually bound from them: symbols `<target>_tex/_texOff/_pos/_pt/_size/…`
      * reference the already-declared `<source>_*`.
      */
-    private fun StringBuilder.appendStageAlias(binds: List<String>, hooked: String, hookName: String) {
+    private fun StringBuilder.appendStageAlias(
+        binds: List<String>,
+        hooked: String,
+        hookName: String,
+        gather: Boolean,
+    ) {
         val (target, source) = when {
             hooked in binds && hookName !in binds -> hookName to hooked
             hookName in binds && hooked !in binds -> hooked to hookName
             else -> return
         }
-        appendLine("#define ${target}_pos v_texcoord")
+        appendLine("#define ${target}_pos ${source}_pos")
         appendLine("#define ${target}_pt ${pointUniform(source)}")
         appendLine("#define ${target}_size ${sizeUniform(source)}")
         appendLine("#define ${target}_raw ${samplerUniform(source)}")
@@ -167,5 +214,8 @@ void main() {
         appendLine("vec4 ${target}_tex(vec2 p) { return ${source}_tex(p); }")
         appendLine("#define ${target}_texOff(off) ${source}_texOff(off)")
         appendLine("vec2 ${target}_map(ivec2 id) { return ${source}_map(id); }")
+        if (gather) {
+            appendLine("#define ${target}_gather(pos, c) ${source}_gather(pos, c)")
+        }
     }
 }

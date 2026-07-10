@@ -105,9 +105,17 @@ re-plans on demand.
    *Acceptance: ravu-r3 (fragment) parses+plans (×2 through LUMA, OFFSET −0.5)
    and all 35 generated fragments for the five fixture chains validate with
    glslang.*
-5. **ES 3.1 tier** — `NAME_gather`, `//!COMPUTE` (`out_image`, workgroups, barriers),
-   `//!BUFFER`, `TEXTURE STORAGE`; capability probe + per-chain gating.
-   *Acceptance: FSR/CAS with gather path, ravu compute variants, NNEDI3 run on capable devices.*
+5. ✅ **ES 3.1 tier — gather + compute** (2026-07-10) — `RuntimeCapabilities`
+   probed from the GL context at configure; `NAME_gather` macros and
+   `#version 310 es` when available; `//!COMPUTE` passes compile as compute
+   shaders (`out_image` at binding 0, `NAME_pos` maps `gl_GlobalInvocationID`,
+   dispatch by block size, memory barriers), render targets are immutable
+   (`glTexStorage2D`) as image load/store requires. Chains needing compute on an
+   ES 3.0 context degrade to passthrough. *Acceptance: ravu-lite-r3
+   (compute + LUT) plans to ×2 and its generated compute shader validates with
+   glslang alongside all 39 fixture shaders.* **Deferred to 5b:** `//!BUFFER`
+   SSBOs and `TEXTURE STORAGE` images (needed by histogram/stats-style shaders);
+   on-device compute execution check needs chain selection UI (phase 6).
 6. **User-facing** — `//!PARAM` (+ settings UI for tunables), import of arbitrary `.glsl`
    via SAF into `MpvShaderStore` (shared with engine-mpv so both engines eat the same
    files), custom chains in presets (ordered shader list per content class), validation

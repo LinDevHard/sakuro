@@ -55,16 +55,18 @@ internal data class GraphPlan(
  */
 internal object ShaderGraphPlanner {
 
+    @Suppress("LongParameterList")
     fun plan(
         document: ShaderDocument,
         inputWidth: Int,
         inputHeight: Int,
         outputWidth: Int,
         outputHeight: Int,
+        caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
     ): GraphPlan {
         val builder = Builder(document, inputWidth, inputHeight, outputWidth, outputHeight)
         val skipped = mutableListOf<String>()
-        for (firing in expandFirings(document.passes, skipped)) {
+        for (firing in expandFirings(document.passes, skipped, caps)) {
             builder.add(firing)
         }
         return builder.build(skipped)
@@ -77,10 +79,14 @@ internal object ShaderGraphPlanner {
      * of its hook points that occurs), sorted by pipeline firing order; document
      * order is kept within a hook point. Passes with no hookable hooks are skipped.
      */
-    private fun expandFirings(passes: List<UserShaderPass>, skipped: MutableList<String>): List<Firing> {
+    private fun expandFirings(
+        passes: List<UserShaderPass>,
+        skipped: MutableList<String>,
+        caps: RuntimeCapabilities,
+    ): List<Firing> {
         val firings = mutableListOf<Firing>()
         for (pass in passes) {
-            requireSupported(pass)
+            requireSupported(pass, caps)
             val hooks = pass.hooks.distinct().filter { ShaderStages.isHookable(it) }
             if (hooks.isEmpty()) skipped += pass.desc
             hooks.forEach { firings += Firing(pass, it) }
@@ -88,10 +94,10 @@ internal object ShaderGraphPlanner {
         return firings.sortedBy { ShaderStages.firingOrder(it.hook) } // stable sort
     }
 
-    /** Rejects passes that need executor features not implemented yet (plan phase 5). */
-    private fun requireSupported(pass: UserShaderPass) {
-        if (pass.compute != null) {
-            throw UserShaderException("pass '${pass.desc}' is a //!COMPUTE shader — not supported yet")
+    /** Rejects passes the executor cannot run on this device. */
+    private fun requireSupported(pass: UserShaderPass, caps: RuntimeCapabilities) {
+        if (pass.compute != null && !caps.compute) {
+            throw UserShaderException("pass '${pass.desc}' is a //!COMPUTE shader — needs an ES 3.1 context")
         }
     }
 

@@ -28,17 +28,25 @@ class FragmentDumpTest {
             "FSRCNNX_x2_8-0-4-1.glsl",
             "KrigBilateral.glsl",
             "ravu-r3.hook",
+            "ravu-lite-r3.hook",
         )
+        val caps = RuntimeCapabilities.ES31
         for (fixture in fixtures) {
             val source = javaClass.getResourceAsStream("/usershader/$fixture")!!
                 .bufferedReader().use { it.readText() }
             val document = MpvUserShaderParser.parse(source)
-            val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
+            val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4, caps)
             plan.passes.forEachIndexed { i, planned ->
-                val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
                 val name = fixture.substringBeforeLast('.') + "_$i" +
                     "_" + planned.pass.desc.replace(Regex("[^A-Za-z0-9]+"), "-")
-                File(dir, "$name.frag").writeText(fragment)
+                if (planned.pass.compute != null) {
+                    val compute = ShaderPreamble.computeShader(planned.pass, planned.hook, document.params)
+                    File(dir, "$name.comp").writeText(compute)
+                } else {
+                    val fragment =
+                        ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params, caps)
+                    File(dir, "$name.frag").writeText(fragment)
+                }
             }
         }
     }
