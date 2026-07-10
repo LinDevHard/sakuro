@@ -13,13 +13,19 @@ internal data class RuntimeCapabilities(
     val gather: Boolean,
     /** `//!COMPUTE` passes via compute shaders and image load/store (ES 3.1). */
     val compute: Boolean,
+    /**
+     * `//!BUFFER` blocks and `//!TEXTURE … STORAGE` images (ES 3.1). Only
+     * guaranteed for the compute stage — ES 3.1 allows zero fragment-stage
+     * SSBO/image units, so the planner restricts them to compute passes.
+     */
+    val ssbo: Boolean,
 ) {
     companion object {
         /** ES 3.0: fragment-only, no gather. */
-        val BASELINE = RuntimeCapabilities(gather = false, compute = false)
+        val BASELINE = RuntimeCapabilities(gather = false, compute = false, ssbo = false)
 
         /** Everything the runtime currently knows how to use. */
-        val ES31 = RuntimeCapabilities(gather = true, compute = true)
+        val ES31 = RuntimeCapabilities(gather = true, compute = true, ssbo = true)
 
         /** Reads the context version; call on the GL thread. */
         fun probe(): RuntimeCapabilities {
@@ -28,7 +34,7 @@ internal data class RuntimeCapabilities(
             GLES30.glGetIntegerv(GLES30.GL_MAJOR_VERSION, major, 0)
             GLES30.glGetIntegerv(GLES30.GL_MINOR_VERSION, minor, 0)
             val es31 = major[0] > 3 || (major[0] == 3 && minor[0] >= 1)
-            return RuntimeCapabilities(gather = es31, compute = es31)
+            return RuntimeCapabilities(gather = es31, compute = es31, ssbo = es31)
         }
     }
 }

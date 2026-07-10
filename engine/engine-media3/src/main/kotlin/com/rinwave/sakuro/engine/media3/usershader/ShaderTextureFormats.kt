@@ -46,25 +46,46 @@ internal object ShaderTextureFormats {
     }
 
     /**
-     * Checks that a texture is one the executor can upload and sample:
-     * a 1D/2D non-storage texture in a known format with correctly sized data.
-     * Throws [UserShaderException] otherwise.
+     * GLSL ES image format qualifier for a `STORAGE` image, or null when the
+     * format is not usable with image load/store (ES 3.1 supports a short list).
+     */
+    fun imageFormatQualifier(token: String): String? = when (token.lowercase()) {
+        "rgba16f", "rgba16hf" -> "rgba16f"
+        "rgba32f" -> "rgba32f"
+        "r32f" -> "r32f"
+        "rgba8" -> "rgba8"
+        else -> null
+    }
+
+    /**
+     * Checks that a texture is one the executor can create: a sampled 1D/2D/3D
+     * texture in a known format with correctly sized data, or a 2D `STORAGE`
+     * image in an image-compatible format. Throws [UserShaderException] otherwise.
      */
     fun validate(texture: ShaderTexture): TextureFormat {
-        val format = parse(texture.format)
-        val data = texture.data
-        val expected = format?.let { texture.width * (texture.height ?: 1) * it.bytesPerTexel }
-        val problem = when {
-            texture.storage -> "STORAGE images are not supported yet"
-            (texture.depth ?: 1) > 1 -> "3D textures are not supported yet"
-            format == null -> "unsupported format '${texture.format}'"
-            data == null -> "missing texel data"
-            data.size != expected ->
-                "data is ${data.size} bytes, expected $expected " +
-                    "(${texture.width}x${texture.height ?: 1}, '${texture.format}')"
-            else -> null
-        }
+        val problem = problemOf(texture)
         if (problem != null) throw UserShaderException("//!TEXTURE ${texture.name}: $problem")
-        return checkNotNull(format)
+        return checkNotNull(parse(texture.format))
+    }
+
+    private fun problemOf(texture: ShaderTexture): String? {
+        if ((texture.depth ?: 1) > 1) {
+            return "3D textures are not supported (no known user shaders use them)"
+        }
+        if (texture.storage) {
+            return if (imageFormatQualifier(texture.format) == null) {
+                "format '${texture.format}' is not usable as a STORAGE image"
+            } else {
+                null
+            }
+        }
+        val format = parse(texture.format) ?: return "unsupported format '${texture.format}'"
+        val data = texture.data ?: return "missing texel data"
+        val expected = texture.width * (texture.height ?: 1) * format.bytesPerTexel
+        if (data.size != expected) {
+            return "data is ${data.size} bytes, expected $expected " +
+                "(${texture.width}x${texture.height ?: 1}, '${texture.format}')"
+        }
+        return null
     }
 }

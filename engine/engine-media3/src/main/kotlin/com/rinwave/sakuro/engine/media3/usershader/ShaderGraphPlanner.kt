@@ -47,11 +47,11 @@ internal data class GraphPlan(
  * names in expressions resolve to their default values.
  *
  * `//!TEXTURE` blocks are sized statically and validated at bind time (see
- * [ShaderTextureFormats]); the program uploads them as LUTs. Features the
- * executor does not support yet (`//!COMPUTE`, `//!BUFFER` binds, storage/3D
- * textures) fail the plan with [UserShaderException] — the runtime catches it
- * and degrades the whole chain to passthrough instead of silently rendering
- * garbage.
+ * [ShaderTextureFormats]); the program uploads them as LUTs, creates
+ * `STORAGE` images, and allocates `//!BUFFER` blocks (compute passes on
+ * ES 3.1 only). Anything the device cannot run fails the plan with
+ * [UserShaderException] — the runtime catches it and degrades the whole
+ * chain to passthrough instead of silently rendering garbage.
  */
 internal object ShaderGraphPlanner {
 
@@ -64,7 +64,7 @@ internal object ShaderGraphPlanner {
         outputHeight: Int,
         caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
     ): GraphPlan {
-        val builder = Builder(document, inputWidth, inputHeight, outputWidth, outputHeight)
+        val builder = Builder(document, inputWidth, inputHeight, outputWidth, outputHeight, caps)
         val skipped = mutableListOf<String>()
         for (firing in expandFirings(document.passes, skipped, caps)) {
             builder.add(firing)
@@ -109,6 +109,7 @@ internal object ShaderGraphPlanner {
         inputHeight: Int,
         outputWidth: Int,
         outputHeight: Int,
+        private val caps: RuntimeCapabilities,
     ) {
         private val sizes = hashMapOf(
             ShaderStages.MAIN to (inputWidth to inputHeight),
@@ -117,7 +118,7 @@ internal object ShaderGraphPlanner {
         )
         private val params = document.params.associate { it.name to it.defaultValue }
         private val customTextures = document.textures.associateBy { it.name }
-        private val bufferNames = document.buffers.map { it.name }.toSet()
+        private val buffersByName = document.buffers.associateBy { it.name }
 
         init {
             // Custom textures are sized statically; validation happens at bind time.
@@ -340,13 +341,14 @@ internal object ShaderGraphPlanner {
         private fun validateBinds(pass: UserShaderPass, slot: String) {
             pass.binds.forEach { bind ->
                 val name = canonicalStage(bind, slot)
-                if (name in bufferNames) {
-                    throw UserShaderException(
-                        "pass '${pass.desc}' binds '$name' declared as //!BUFFER — not supported yet",
-                    )
+                val buffer = buffersByName[name]
+                if (buffer != null) {
+                    requireComputeResource(pass, "//!BUFFER '$name'")
+                    BufferLayout.sizeOf(buffer) // validates the //!VAR types
+                    return@forEach
                 }
-                // A bound custom texture must be one the executor can upload.
-                customTextures[name]?.let { ShaderTextureFormats.validate(it) }
+                // A bound custom texture must be one the executor can create.
+                customTextures[name]?.let { validateTextureBind(pass, name, it) }
                 // Binding a plane (even from a non-plane pass) forces its extraction.
                 if (name in PLANE_SLOTS) {
                     seedPlanes(name)
@@ -355,6 +357,34 @@ internal object ShaderGraphPlanner {
                 if (!sizes.containsKey(name)) {
                     throw UserShaderException("pass '${pass.desc}' binds an undefined texture '$name'")
                 }
+            }
+        }
+
+        /** A sampled LUT must be uploadable; a storage image must fit ES 3.1 rules. */
+        private fun validateTextureBind(pass: UserShaderPass, name: String, texture: ShaderTexture) {
+            ShaderTextureFormats.validate(texture)
+            if (!texture.storage) return
+            requireComputeResource(pass, "//!TEXTURE STORAGE '$name'")
+            val readWrite =
+                ShaderBindings.imageAccess(pass.body, name) == ShaderBindings.ImageAccess.READ_WRITE
+            if (readWrite && !texture.format.equals("r32f", ignoreCase = true)) {
+                throw UserShaderException(
+                    "pass '${pass.desc}': ES 3.1 allows read-write images only for r32f, " +
+                        "'$name' is '${texture.format}'",
+                )
+            }
+        }
+
+        /** SSBOs and storage images: ES 3.1 only, and only from compute passes. */
+        private fun requireComputeResource(pass: UserShaderPass, what: String) {
+            if (!caps.ssbo) {
+                throw UserShaderException("pass '${pass.desc}' binds $what — needs an ES 3.1 context")
+            }
+            if (pass.compute == null) {
+                throw UserShaderException(
+                    "pass '${pass.desc}' binds $what from a fragment pass — " +
+                        "ES 3.1 guarantees these units for compute only",
+                )
             }
         }
 

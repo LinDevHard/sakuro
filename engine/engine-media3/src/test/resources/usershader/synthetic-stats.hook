@@ -1,0 +1,29 @@
+// Synthetic acceptance fixture for //!BUFFER and //!TEXTURE STORAGE support
+// (modeled on libplacebo's custom-shader examples). Not a third-party shader.
+
+//!BUFFER stats
+//!VAR uint histogram[64]
+//!VAR uint total
+//!STORAGE
+
+//!TEXTURE pooled
+//!SIZE 1 1
+//!FORMAT rgba16f
+//!STORAGE
+
+//!DESC collect statistics
+//!HOOK MAIN
+//!BIND HOOKED
+//!BIND stats
+//!BIND pooled
+//!COMPUTE 16 16 16 16
+void hook() {
+  ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+  vec4 c = HOOKED_tex(HOOKED_pos);
+  atomicAdd(histogram[clamp(int(c.r * 63.0), 0, 63)], 1u);
+  atomicAdd(total, 1u);
+  if (pos == ivec2(0)) {
+    imageStore(pooled, ivec2(0), c);
+  }
+  imageStore(out_image, pos, c);
+}

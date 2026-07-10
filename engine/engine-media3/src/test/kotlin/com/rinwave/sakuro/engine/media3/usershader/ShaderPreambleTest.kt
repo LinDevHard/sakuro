@@ -74,7 +74,7 @@ class ShaderPreambleTest {
         )
         val fragment = ShaderPreamble.fragmentShader(
             pass("vec4 hook() { return vec4(intensity); }"),
-            params = params,
+            document = ShaderDocument.EMPTY.copy(params = params),
         )
         assertTrue(fragment.contains("const float intensity = 0.25;"))
         assertTrue(fragment.contains("const int taps = 3;"))

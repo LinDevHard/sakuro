@@ -113,9 +113,18 @@ re-plans on demand.
    (`glTexStorage2D`) as image load/store requires. Chains needing compute on an
    ES 3.0 context degrade to passthrough. *Acceptance: ravu-lite-r3
    (compute + LUT) plans to ×2 and its generated compute shader validates with
-   glslang alongside all 39 fixture shaders.* **Deferred to 5b:** `//!BUFFER`
-   SSBOs and `TEXTURE STORAGE` images (needed by histogram/stats-style shaders);
-   on-device compute execution check needs chain selection UI (phase 6).
+   glslang alongside all 39 fixture shaders.*
+   **5b** ✅ (2026-07-10) — `//!BUFFER` blocks (std430 SSBOs and std140 UBOs,
+   zero-initialized, persistent across frames, deterministic binding points via
+   `ShaderBindings`, sizes from `BufferLayout`) and `//!TEXTURE … STORAGE`
+   images (immutable, persistent, memory qualifiers derived from how each pass
+   body uses the image — ES 3.1 demands `readonly`/`writeonly` except `r32f`).
+   Both are compute-pass-only, matching the ES 3.1 stage guarantees; fragment
+   or ES 3.0 use degrades honestly. nnedi3 (2× compute doublings with half-texel
+   offsets) and a synthetic stats fixture (SSBO histogram + pooled storage
+   image) plan and validate; **45 generated shaders** across 8 fixtures are
+   glslang-clean. *Known gap kept deliberately: 3D `//!TEXTURE` (no known user
+   shaders use it; Media3's `GlProgram` cannot bind `sampler3D`).*
 6. ✅ **User-facing** (2026-07-10) — `.glsl`/`.hook` import via SAF into
    `filesDir/shaders/user` (shared by both engines), validated at import time by
    `UserShaderValidator` with the rejection reason shown in the UI;

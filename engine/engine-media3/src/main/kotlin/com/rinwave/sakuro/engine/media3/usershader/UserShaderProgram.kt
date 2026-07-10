@@ -45,10 +45,16 @@ internal class UserShaderProgram(
         class Compute(val programId: Int, val layout: ComputeLayout) : PassProgram
     }
 
+    private data class BoundBuffer(val target: Int, val binding: Int, val id: Int)
+
     private var plan: GraphPlan = GraphPlan(emptyList(), 0, 0, emptyList())
     private var passPrograms: List<PassProgram> = emptyList()
     private var targets: List<Target> = emptyList()
     private var lutTextures: Map<String, TexRef> = emptyMap()
+    private var storageImages: Map<String, TexRef> = emptyMap()
+    private var bufferObjects: List<BoundBuffer> = emptyList()
+    private val bufferNames = document.buffers.map { it.name }.toSet()
+    private val storageNames = document.textures.filter { it.storage }.map { it.name }.toSet()
     private lateinit var presentProgram: GlProgram
 
     private var inputWidth = 0
@@ -78,10 +84,10 @@ internal class UserShaderProgram(
             passPrograms = plan.passes.map { planned ->
                 val compute = planned.pass.compute
                 if (compute != null) {
-                    val source = ShaderPreamble.computeShader(planned.pass, planned.hook, document.params)
+                    val source = ShaderPreamble.computeShader(planned.pass, planned.hook, document)
                     PassProgram.Compute(compileComputeProgram(planned.pass.desc, source), compute)
                 } else {
-                    val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params, caps)
+                    val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document, caps)
                     PassProgram.Fragment(
                         GlProgram(ShaderPreamble.VERTEX_SHADER, fragment).apply {
                             setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
@@ -91,6 +97,8 @@ internal class UserShaderProgram(
             }
             targets = plan.passes.map { createFp16Target(it.outWidth, it.outHeight) }
             lutTextures = uploadLutTextures()
+            storageImages = createStorageImages()
+            bufferObjects = createBuffers()
             degraded = false
         } catch (e: GlUtil.GlException) {
             degradeToPassthrough(e)
@@ -135,6 +143,9 @@ internal class UserShaderProgram(
         current.putAll(lutTextures)
         current[MAIN] = TexRef(inputTexId, inputWidth, inputHeight)
 
+        // //!BUFFER blocks live at fixed binding points for the whole graph.
+        bufferObjects.forEach { GLES30.glBindBufferBase(it.target, it.binding, it.id) }
+
         plan.passes.forEachIndexed { i, planned ->
             // The post-scale slot starts as the final MAIN (our kernel is the identity).
             if (planned.stage == ShaderStages.POST && ShaderStages.POST !in current) {
@@ -178,7 +189,11 @@ internal class UserShaderProgram(
         // so we set them through GlProgram (not around it) but gated by activity.
         val programId = IntArray(1)
         GLES20.glGetIntegerv(GLES20.GL_CURRENT_PROGRAM, programId, 0)
-        planned.pass.binds.distinct().forEachIndexed { unit, bind ->
+        val sampled = planned.pass.binds.distinct().filterNot {
+            val name = ShaderGraphPlanner.canonicalStage(it, planned.stage)
+            name in bufferNames || name in storageNames
+        }
+        sampled.forEachIndexed { unit, bind ->
             val ref = resolveBind(planned, bind, current)
             val sampler = ShaderPreamble.samplerUniform(bind)
             if (isActive(programId[0], sampler)) program.setSamplerTexIdUniform(sampler, ref.texId, unit)
@@ -204,19 +219,32 @@ internal class UserShaderProgram(
         current: Map<String, TexRef>,
     ) {
         GLES31.glUseProgram(program.programId)
-        planned.pass.binds.distinct().forEachIndexed { unit, bind ->
-            val ref = resolveBind(planned, bind, current)
-            val sampler = GLES31.glGetUniformLocation(program.programId, ShaderPreamble.samplerUniform(bind))
-            if (sampler >= 0) {
-                GLES31.glActiveTexture(GLES31.GL_TEXTURE0 + unit)
-                GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, ref.texId)
-                GLES31.glUniform1i(sampler, unit)
+        var unit = 0
+        planned.pass.binds.distinct().forEach { bind ->
+            val name = ShaderGraphPlanner.canonicalStage(bind, planned.stage)
+            when {
+                name in bufferNames -> Unit // bound via glBindBufferBase for the whole graph
+                name in storageNames -> bindStorageImage(program.programId, planned, name)
+                else -> {
+                    val ref = resolveBind(planned, bind, current)
+                    val sampler =
+                        GLES31.glGetUniformLocation(program.programId, ShaderPreamble.samplerUniform(bind))
+                    if (sampler >= 0) {
+                        GLES31.glActiveTexture(GLES31.GL_TEXTURE0 + unit)
+                        GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, ref.texId)
+                        GLES31.glUniform1i(sampler, unit)
+                    }
+                    setVec2IfActive(
+                        program.programId, ShaderPreamble.sizeUniform(bind),
+                        ref.width.toFloat(), ref.height.toFloat(),
+                    )
+                    setVec2IfActive(
+                        program.programId, ShaderPreamble.pointUniform(bind),
+                        1f / ref.width, 1f / ref.height,
+                    )
+                    unit++
+                }
             }
-            setVec2IfActive(
-                program.programId, ShaderPreamble.sizeUniform(bind),
-                ref.width.toFloat(), ref.height.toFloat(),
-            )
-            setVec2IfActive(program.programId, ShaderPreamble.pointUniform(bind), 1f / ref.width, 1f / ref.height)
         }
         setComputeGlobals(program.programId)
         GLES31.glBindImageTexture(
@@ -233,6 +261,28 @@ internal class UserShaderProgram(
         )
         GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
         GlUtil.checkGlError()
+    }
+
+    /** Binds a `//!TEXTURE … STORAGE` image with the access mode its body uses. */
+    private fun bindStorageImage(programId: Int, planned: PlannedPass, name: String) {
+        val ref = storageImages.getValue(name)
+        val access = when (ShaderBindings.imageAccess(planned.pass.body, name)) {
+            ShaderBindings.ImageAccess.READ -> GLES31.GL_READ_ONLY
+            ShaderBindings.ImageAccess.WRITE -> GLES31.GL_WRITE_ONLY
+            ShaderBindings.ImageAccess.READ_WRITE -> GLES31.GL_READ_WRITE
+        }
+        GLES31.glBindImageTexture(
+            ShaderBindings.imageUnit(document, name), ref.texId, 0, false, 0,
+            access, storageFormat(name),
+        )
+        setVec2IfActive(programId, ShaderPreamble.sizeUniform(name), ref.width.toFloat(), ref.height.toFloat())
+        setVec2IfActive(programId, ShaderPreamble.pointUniform(name), 1f / ref.width, 1f / ref.height)
+    }
+
+    /** GL internal format of a storage image, mirroring the preamble's layout qualifier. */
+    private fun storageFormat(name: String): Int {
+        val texture = document.textures.first { it.name == name }
+        return checkNotNull(ShaderTextureFormats.parse(texture.format)).internalFormat
     }
 
     private fun resolveBind(planned: PlannedPass, bind: String, current: Map<String, TexRef>): TexRef =
@@ -347,14 +397,60 @@ internal class UserShaderProgram(
         targets = emptyList()
         lutTextures.values.forEach { GLES30.glDeleteTextures(1, intArrayOf(it.texId), 0) }
         lutTextures = emptyMap()
+        storageImages.values.forEach { GLES30.glDeleteTextures(1, intArrayOf(it.texId), 0) }
+        storageImages = emptyMap()
+        bufferObjects.forEach { GLES30.glDeleteBuffers(1, intArrayOf(it.id), 0) }
+        bufferObjects = emptyList()
     }
+
+    /** All texture/buffer names the planned passes actually bind. */
+    private fun boundNames(): Set<String> = plan.passes
+        .flatMap { planned -> planned.pass.binds.map { ShaderGraphPlanner.canonicalStage(it, planned.stage) } }
+        .toSet()
 
     /** Uploads the `//!TEXTURE` blocks referenced by the planned passes as static LUTs. */
     private fun uploadLutTextures(): Map<String, TexRef> {
-        val bound = plan.passes
-            .flatMap { planned -> planned.pass.binds.map { ShaderGraphPlanner.canonicalStage(it, planned.stage) } }
-            .toSet()
-        return document.textures.filter { it.name in bound }.associate { it.name to uploadLut(it) }
+        val bound = boundNames()
+        return document.textures
+            .filter { !it.storage && it.name in bound }
+            .associate { it.name to uploadLut(it) }
+    }
+
+    /** Creates the bound `//!TEXTURE … STORAGE` images (persist across frames). */
+    private fun createStorageImages(): Map<String, TexRef> {
+        val bound = boundNames()
+        return document.textures.filter { it.storage && it.name in bound }.associate { texture ->
+            val format = ShaderTextureFormats.validate(texture)
+            val height = texture.height ?: 1
+            val tex = IntArray(1)
+            GLES30.glGenTextures(1, tex, 0)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[0])
+            GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, format.internalFormat, texture.width, height)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+            GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+            GlUtil.checkGlError()
+            texture.name to TexRef(tex[0], texture.width, height)
+        }
+    }
+
+    /** Allocates zero-initialized `//!BUFFER` blocks bound to their layout points. */
+    private fun createBuffers(): List<BoundBuffer> {
+        val bound = boundNames()
+        return document.buffers.filter { it.name in bound }.map { buffer ->
+            val size = BufferLayout.sizeOf(buffer)
+            val target = if (buffer.storage) GLES31.GL_SHADER_STORAGE_BUFFER else GLES30.GL_UNIFORM_BUFFER
+            val binding = if (buffer.storage) {
+                ShaderBindings.ssboBinding(document, buffer.name)
+            } else {
+                ShaderBindings.uboBinding(document, buffer.name)
+            }
+            val id = IntArray(1)
+            GLES30.glGenBuffers(1, id, 0)
+            GLES30.glBindBuffer(target, id[0])
+            GLES30.glBufferData(target, size, ByteBuffer.allocateDirect(size), GLES30.GL_DYNAMIC_COPY)
+            GlUtil.checkGlError()
+            BoundBuffer(target, binding, id[0])
+        }
     }
 
     private fun uploadLut(texture: ShaderTexture): TexRef {

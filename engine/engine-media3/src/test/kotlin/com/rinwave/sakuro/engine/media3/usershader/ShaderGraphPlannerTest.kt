@@ -413,15 +413,59 @@ class ShaderGraphPlannerTest {
         assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }
     }
 
+    private fun bufferDocument(compute: ComputeLayout?) = ShaderDocument(
+        passes = listOf(
+            pass("stats-read", binds = listOf("MAIN", "stats"), save = "MAIN", compute = compute),
+        ),
+        textures = emptyList(),
+        buffers = listOf(ShaderBuffer("stats", listOf(BufferVar("uint", "n")), storage = true)),
+        params = emptyList(),
+    )
+
     @Test
-    fun `a BUFFER bind still fails the plan`() {
+    fun `a BUFFER bind fails the plan on a baseline context`() {
+        assertFailsWith<UserShaderException> {
+            ShaderGraphPlanner.plan(bufferDocument(ComputeLayout(16, 16, 16, 16)), 640, 360, 1920, 1080)
+        }
+    }
+
+    @Test
+    fun `a BUFFER bind from a fragment pass fails even on ES 3-1`() {
+        assertFailsWith<UserShaderException> {
+            ShaderGraphPlanner.plan(bufferDocument(compute = null), 640, 360, 1920, 1080, RuntimeCapabilities.ES31)
+        }
+    }
+
+    @Test
+    fun `a BUFFER bind from a compute pass plans on ES 3-1`() {
+        val plan = ShaderGraphPlanner.plan(
+            bufferDocument(ComputeLayout(16, 16, 16, 16)), 640, 360, 1920, 1080, RuntimeCapabilities.ES31,
+        )
+        assertEquals(1, plan.passes.size)
+    }
+
+    @Test
+    fun `a STORAGE texture bind follows the same compute-only gating`() {
+        val storage = ShaderTexture(
+            name = "pooled", width = 1, height = 1, depth = null, format = "rgba16f",
+            filterLinear = false, border = "CLAMP", storage = true, data = null,
+        )
         val document = ShaderDocument(
-            passes = listOf(pass("stats-read", binds = listOf("MAIN", "stats"), save = "MAIN")),
-            textures = emptyList(),
-            buffers = listOf(ShaderBuffer("stats", listOf(BufferVar("uint", "n")), storage = true)),
+            passes = listOf(
+                pass(
+                    "pool", binds = listOf("MAIN", "pooled"), save = "MAIN",
+                    compute = ComputeLayout(16, 16, 16, 16),
+                ),
+            ),
+            textures = listOf(storage),
+            buffers = emptyList(),
             params = emptyList(),
         )
-        assertFailsWith<UserShaderException> { ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080) }
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080, RuntimeCapabilities.ES31)
+        assertEquals(1, plan.passes.size)
+        assertFailsWith<UserShaderException> {
+            ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080)
+        }
     }
 
     @Test

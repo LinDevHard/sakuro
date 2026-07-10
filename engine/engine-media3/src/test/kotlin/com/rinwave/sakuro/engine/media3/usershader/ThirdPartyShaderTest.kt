@@ -37,7 +37,7 @@ class ThirdPartyShaderTest {
         assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
         assertTrue(plan.skipped.isEmpty())
 
-        val fragment = ShaderPreamble.fragmentShader(pass, hook = "OUTPUT", params = document.params)
+        val fragment = ShaderPreamble.fragmentShader(pass, hook = "OUTPUT", document = document)
         assertTrue(fragment.contains("vec4 hook()"))
         assertTrue(fragment.contains("vec4 HOOKED_tex("))
     }
@@ -62,7 +62,7 @@ class ThirdPartyShaderTest {
         assertEquals(640 to 360, plan.outputWidth to plan.outputHeight)
 
         for (planned in plan.passes) {
-            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document)
             assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
         }
     }
@@ -91,7 +91,7 @@ class ThirdPartyShaderTest {
         assertEquals("MAIN", plan.presentSlot)
 
         for (planned in plan.passes) {
-            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document)
             assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
         }
     }
@@ -123,7 +123,7 @@ class ThirdPartyShaderTest {
         assertEquals(-0.5f to -0.5f, plan.offsetX to plan.offsetY)
 
         for (planned in plan.passes) {
-            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document)
             assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
         }
     }
@@ -144,13 +144,49 @@ class ThirdPartyShaderTest {
         // The compute pass doubles LUMA in place → the merged MAIN is ×2.
         assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
 
-        val source = ShaderPreamble.computeShader(pass, "LUMA", document.params)
+        val source = ShaderPreamble.computeShader(pass, "LUMA", document)
         assertTrue(source.contains("layout(local_size_x = 32, local_size_y = 8"))
         assertTrue(source.contains("shared float inp[432];"))
 
         // Without ES 3.1 the whole chain honestly degrades.
         assertFailsWith<UserShaderException> {
             ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4)
+        }
+    }
+
+    @Test
+    fun `nnedi3 plans two compute doublings with the accumulated half-texel offset`() {
+        val document = document("nnedi3-nns32-win8x4.hook")
+        assertEquals(2, document.passes.size)
+        assertTrue(document.passes.all { it.compute != null && it.hooks == listOf("LUMA") })
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4, RuntimeCapabilities.ES31)
+        assertTrue(plan.skipped.isEmpty(), "skipped: ${plan.skipped}")
+        // double_y then double_x, each in place on LUMA → merged MAIN is ×2.
+        assertEquals(1280 to 720, plan.outputWidth to plan.outputHeight)
+        assertEquals(-0.5f to -0.5f, plan.offsetX to plan.offsetY)
+    }
+
+    @Test
+    fun `the synthetic stats shader plans its SSBO and storage image on ES 3-1`() {
+        val document = document("synthetic-stats.hook")
+        assertEquals(1, document.buffers.size)
+        assertTrue(document.textures.single().storage)
+
+        val plan = ShaderGraphPlanner.plan(document, 640, 360, 640, 360, RuntimeCapabilities.ES31)
+        val pass = plan.passes.single()
+        val source = ShaderPreamble.computeShader(pass.pass, pass.hook, document)
+        assertTrue(source.contains("layout(std430, binding = 0) coherent buffer stats {"), source)
+        assertTrue(source.contains("uint histogram[64];"))
+        // The body only writes `pooled`, so ES 3.1 gets its required qualifier.
+        assertTrue(
+            source.contains("layout(rgba16f, binding = 1) uniform coherent writeonly highp image2D pooled;"),
+            source,
+        )
+
+        // Without ES 3.1 (or from a fragment pass) the chain degrades honestly.
+        assertFailsWith<UserShaderException> {
+            ShaderGraphPlanner.plan(document, 640, 360, 640, 360)
         }
     }
 
@@ -177,7 +213,7 @@ class ThirdPartyShaderTest {
         assertEquals(0f to 0f, plan.offsetX to plan.offsetY)
 
         for (planned in plan.passes) {
-            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params)
+            val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document)
             assertTrue(fragment.contains("void main()"), "'${planned.pass.desc}': no main()")
         }
     }

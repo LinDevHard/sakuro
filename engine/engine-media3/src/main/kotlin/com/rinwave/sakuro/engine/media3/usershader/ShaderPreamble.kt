@@ -65,7 +65,7 @@ void main() {
     fun fragmentShader(
         pass: UserShaderPass,
         hook: String = pass.hooks.first(),
-        params: List<ShaderParam> = emptyList(),
+        document: ShaderDocument = ShaderDocument.EMPTY,
         caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
         isFinal: Boolean = false,
     ): String = buildString {
@@ -75,10 +75,10 @@ void main() {
         appendLine("in vec2 v_texcoord;")
         appendLine("out vec4 frag_out;")
         appendGlobals()
-        appendParams(params)
+        appendParams(document.params)
         val binds = pass.binds.distinct()
         for (bind in binds) {
-            appendBindSymbols(bind, posExpression = "v_texcoord", gather = caps.gather)
+            appendBind(bind, document, pass.body, posExpression = "v_texcoord", gather = caps.gather)
         }
         appendStageAlias(binds, MpvUserShaderParser.HOOKED, hook, gather = caps.gather)
         appendLine()
@@ -101,7 +101,7 @@ void main() {
     fun computeShader(
         pass: UserShaderPass,
         hook: String = pass.hooks.first(),
-        params: List<ShaderParam> = emptyList(),
+        document: ShaderDocument = ShaderDocument.EMPTY,
     ): String = buildString {
         val layout = requireNotNull(pass.compute) { "not a compute pass: '${pass.desc}'" }
         appendLine("#version 310 es")
@@ -114,11 +114,13 @@ void main() {
         )
         appendLine("layout(rgba16f, binding = 0) uniform writeonly highp image2D out_image;")
         appendGlobals()
-        appendParams(params)
+        appendParams(document.params)
         val binds = pass.binds.distinct()
         for (bind in binds) {
-            appendBindSymbols(
+            appendBind(
                 bind,
+                document,
+                pass.body,
                 posExpression = "${bind}_map(ivec2(gl_GlobalInvocationID.xy))",
                 gather = true,
             )
@@ -166,6 +168,63 @@ void main() {
         "int" -> default.toFloatOrNull()?.toInt()?.toString() ?: default
         "uint" -> (default.toFloatOrNull()?.toInt()?.toString() ?: default) + "u"
         else -> (default.toFloatOrNull() ?: 0f).toString()
+    }
+
+    /** A bind is a buffer block, a storage image, or an ordinary sampled texture. */
+    private fun StringBuilder.appendBind(
+        bind: String,
+        document: ShaderDocument,
+        body: String,
+        posExpression: String,
+        gather: Boolean,
+    ) {
+        val buffer = document.buffers.firstOrNull { it.name == bind }
+        if (buffer != null) {
+            appendBufferBlock(buffer, document)
+            return
+        }
+        val texture = document.textures.firstOrNull { it.name == bind }
+        if (texture?.storage == true) {
+            appendStorageImage(texture, document, body)
+            return
+        }
+        appendBindSymbols(bind, posExpression, gather)
+    }
+
+    /** A `//!BUFFER` block: std430 SSBO when `STORAGE`, std140 UBO otherwise. */
+    private fun StringBuilder.appendBufferBlock(buffer: ShaderBuffer, document: ShaderDocument) {
+        val declaration = if (buffer.storage) {
+            "layout(std430, binding = ${ShaderBindings.ssboBinding(document, buffer.name)}) coherent buffer"
+        } else {
+            "layout(std140, binding = ${ShaderBindings.uboBinding(document, buffer.name)}) uniform"
+        }
+        appendLine("$declaration ${buffer.name} {")
+        buffer.vars.forEach { appendLine("  ${it.type} ${it.name};") }
+        appendLine("};")
+    }
+
+    /**
+     * A `//!TEXTURE … STORAGE` image with the size symbols. ES 3.1 requires a
+     * `readonly`/`writeonly` qualifier for formats other than `r32f`, so the
+     * access mode is derived from how the pass body uses the image.
+     */
+    private fun StringBuilder.appendStorageImage(
+        texture: ShaderTexture,
+        document: ShaderDocument,
+        body: String,
+    ) {
+        val qualifier = checkNotNull(ShaderTextureFormats.imageFormatQualifier(texture.format))
+        val unit = ShaderBindings.imageUnit(document, texture.name)
+        val access = when (ShaderBindings.imageAccess(body, texture.name)) {
+            ShaderBindings.ImageAccess.READ -> "readonly "
+            ShaderBindings.ImageAccess.WRITE -> "writeonly "
+            ShaderBindings.ImageAccess.READ_WRITE -> ""
+        }
+        appendLine(
+            "layout($qualifier, binding = $unit) uniform coherent ${access}highp image2D ${texture.name};",
+        )
+        appendLine("uniform vec2 ${sizeUniform(texture.name)};")
+        appendLine("uniform vec2 ${pointUniform(texture.name)};")
     }
 
     /** The full per-bind symbol set of the spec on top of one `sampler2D`. */

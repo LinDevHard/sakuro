@@ -29,6 +29,8 @@ class FragmentDumpTest {
             "KrigBilateral.glsl",
             "ravu-r3.hook",
             "ravu-lite-r3.hook",
+            "nnedi3-nns32-win8x4.hook",
+            "synthetic-stats.hook",
         )
         val caps = RuntimeCapabilities.ES31
         for (fixture in fixtures) {
@@ -40,11 +42,11 @@ class FragmentDumpTest {
                 val name = fixture.substringBeforeLast('.') + "_$i" +
                     "_" + planned.pass.desc.replace(Regex("[^A-Za-z0-9]+"), "-")
                 if (planned.pass.compute != null) {
-                    val compute = ShaderPreamble.computeShader(planned.pass, planned.hook, document.params)
+                    val compute = ShaderPreamble.computeShader(planned.pass, planned.hook, document)
                     File(dir, "$name.comp").writeText(compute)
                 } else {
                     val fragment =
-                        ShaderPreamble.fragmentShader(planned.pass, planned.hook, document.params, caps)
+                        ShaderPreamble.fragmentShader(planned.pass, planned.hook, document, caps)
                     File(dir, "$name.frag").writeText(fragment)
                 }
             }
