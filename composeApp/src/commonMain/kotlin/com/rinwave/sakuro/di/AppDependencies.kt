@@ -6,9 +6,11 @@ import com.rinwave.sakuro.core.media.MediaLibrary
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
+import com.rinwave.sakuro.core.upscale.NoopUserShaderStore
 import com.rinwave.sakuro.core.upscale.PinnedPresetStore
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.UserPresetStore
+import com.rinwave.sakuro.core.upscale.UserShaderStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -21,15 +23,18 @@ class AppDependencies(
     val deviceStatusMonitor: DeviceStatusMonitor,
     val contentClassifier: ContentClassifier,
     val presetStores: PresetStores,
+    val userShaderStore: UserShaderStore,
 )
 
 /** Builds the DI graph: platform implementations come from outside, the rest is built here. */
+@Suppress("LongParameterList")
 fun appModule(
     settings: SakuroSettings,
     mediaLibrary: MediaLibrary,
     engineRegistry: EngineRegistry,
     deviceStatusMonitor: DeviceStatusMonitor,
     contentClassifier: ContentClassifier,
+    userShaderStore: UserShaderStore = NoopUserShaderStore(),
 ): Module = module {
     single { settings }
     single { mediaLibrary }
@@ -38,5 +43,6 @@ fun appModule(
     single { deviceStatusMonitor }
     single { contentClassifier }
     single { PresetStores(user = UserPresetStore(), pinned = PinnedPresetStore()) }
-    single { AppDependencies(get(), get(), get(), get(), get(), get(), get()) }
+    single { userShaderStore }
+    single { AppDependencies(get(), get(), get(), get(), get(), get(), get(), get()) }
 }

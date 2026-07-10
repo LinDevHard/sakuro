@@ -5,21 +5,31 @@ import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.core.upscale.UserShaderStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-/** Upscale tab: the default preset plus management of user presets. */
+/** Upscale tab: the default preset plus management of user presets and shaders. */
 class UpscaleSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     presetStores: PresetStores,
+    private val userShaderStore: UserShaderStore,
 ) : ComponentContext by componentContext {
 
     private val userPresets = presetStores.user
     private val pinnedPresets = presetStores.pinned
     private val scope = componentScope()
+
+    /** Imported `.glsl`/`.hook` files usable as preset shader chains. */
+    val userShaders: StateFlow<List<String>> = userShaderStore.shaders
+
+    fun importShader(fileName: String, content: String): Result<String> =
+        userShaderStore.import(fileName, content)
+
+    fun deleteShader(name: String) = userShaderStore.delete(name)
 
     val presetId: StateFlow<String> = settings.presetId
 

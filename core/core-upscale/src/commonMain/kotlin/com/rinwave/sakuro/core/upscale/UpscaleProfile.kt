@@ -18,8 +18,15 @@ data class UpscaleProfile(
     val passes: List<UpscalePass> = emptyList(),
     /** Built-in presets cannot be deleted/overwritten. */
     val builtIn: Boolean = false,
+    /**
+     * An explicit mpv user-shader chain: ordered file names from the imported
+     * shader store (FEATURES.md §2). When non-empty it replaces the engine's
+     * own shader selection; [passes] still drive the scaler properties and
+     * the adaptive controller.
+     */
+    val shaderChain: List<String> = emptyList(),
 ) {
-    val isEnabled: Boolean get() = passes.isNotEmpty()
+    val isEnabled: Boolean get() = passes.isNotEmpty() || shaderChain.isNotEmpty()
 }
 
 @Serializable

@@ -118,7 +118,8 @@ fun UpscaleProfile.displayDescription(): String = when (id) {
     "anime-hd" -> stringResource(Res.string.preset_anime_hd_desc)
     "live-light" -> stringResource(Res.string.preset_live_light_desc)
     "auto" -> stringResource(Res.string.preset_auto_desc)
-    else -> passesSummary(passes)
+    // A custom shader chain replaces the pass processing — show its files.
+    else -> if (shaderChain.isNotEmpty()) shaderChain.joinToString(" → ") else passesSummary(passes)
 }
 
 /** Localized "upscale ×2 · sharpness 80%" summary of a preset's passes. */

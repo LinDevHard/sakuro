@@ -16,6 +16,7 @@ import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.core.upscale.UserShaderStore
 import com.rinwave.sakuro.core.upscale.describe
 import dev.jdtech.mpv.MPVLib
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
+import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Frame scaling mode for mpv; the UI maps its ScaleMode here (pinch gesture, FEATURES.md §3.1). */
@@ -345,16 +347,29 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
     private fun applyUpscaleProperties() {
         if (released.get()) return
         var config = buildMpvRenderConfig(currentProfile)
-        val shaderPaths = shaderStore.resolve(config.shaders)
+        val shaderPaths = if (config.userShaders.isNotEmpty()) {
+            resolveUserShaders(config.userShaders)
+        } else {
+            shaderStore.resolve(config.shaders)
+        }
         if (shaderPaths == null) {
             // Shaders did not deploy — degrade to the properties-only path
             // (as for non-anime content) so that Sharpen is not lost.
-            config = buildMpvRenderConfig(currentProfile.copy(contentClass = ContentClass.UNKNOWN))
+            config = buildMpvRenderConfig(
+                currentProfile.copy(contentClass = ContentClass.UNKNOWN, shaderChain = emptyList()),
+            )
         }
         mpv.setPropertyString("glsl-shaders", shaderPaths.orEmpty().joinToString(":"))
         config.properties.forEach { (name, value) ->
             mpv.setPropertyString(name, value)
         }
+    }
+
+    /** Imported chain files (shared with Media3); null if any file is missing. */
+    private fun resolveUserShaders(names: List<String>): List<String>? {
+        val dir = File(context.filesDir, UserShaderStore.RELATIVE_DIR)
+        val files = names.map { File(dir, it) }
+        return if (files.all { it.isFile }) files.map { it.absolutePath } else null
     }
 
     private fun buildStats(): DebugStats {

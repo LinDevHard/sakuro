@@ -32,6 +32,10 @@ object UpscaleEffectChain {
     const val MAX_TARGET_HEIGHT = 2160
 
     fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): List<Effect> {
+        // An explicit user-shader chain overrides the engine's own selection.
+        UserShaderChain.load(context, profile)?.let { custom ->
+            if (custom.passes.isNotEmpty()) return listOf(UserShaderGlEffect(custom))
+        }
         val anime4kChain = Anime4KChain.load(context, profile)
         if (anime4kChain.passes.isNotEmpty()) return listOf(UserShaderGlEffect(anime4kChain))
         return buildLegacyChain(profile, sourceHeight)

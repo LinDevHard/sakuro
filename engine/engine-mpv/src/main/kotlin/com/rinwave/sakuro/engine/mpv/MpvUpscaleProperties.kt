@@ -9,10 +9,13 @@ import kotlin.math.roundToInt
  * mpv render configuration for a preset: properties + a user-shader chain.
  * [shaders] — file names from assets/anime4k; into the `glsl-shaders` property
  * the engine substitutes absolute paths (see [MpvShaderStore]).
+ * [userShaders] — file names from the imported shader store; when non-empty
+ * they replace [shaders] entirely (the preset owns its chain).
  */
 internal data class MpvRenderConfig(
     val properties: List<Pair<String, String>>,
     val shaders: List<String>,
+    val userShaders: List<String> = emptyList(),
 )
 
 /**
@@ -32,14 +35,16 @@ internal data class MpvRenderConfig(
  * Everything is applied on the fly, without re-prepare — unlike Media3.
  */
 internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
-    val shaders = buildAnime4kChain(profile)
+    // An explicit user chain replaces the engine's own shader selection.
+    val userShaders = profile.shaderChain
+    val shaders = if (userShaders.isEmpty()) buildAnime4kChain(profile) else emptyList()
     var scale = "bilinear"
     var sharpen = 0f
     for (pass in profile.passes) {
         when (pass) {
             is UpscalePass.Upscale -> scale = "ewa_lanczossharp"
-            // Restore_CNN handles anime sharpening — the property would duplicate the effect.
-            is UpscalePass.Sharpen -> if (shaders.isEmpty()) sharpen = pass.strength
+            // Shader chains own the look — the property would duplicate the effect.
+            is UpscalePass.Sharpen -> if (shaders.isEmpty() && userShaders.isEmpty()) sharpen = pass.strength
             is UpscalePass.Denoise -> Unit
         }
     }
@@ -50,6 +55,7 @@ internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
             "sharpen" to sharpen.fmt(),
         ),
         shaders = shaders,
+        userShaders = userShaders,
     )
 }
 

@@ -113,4 +113,22 @@ class MpvUpscalePropertiesTest {
 
         assertEquals("0.25", props(profile)["sharpen"])
     }
+
+    @Test
+    fun `an explicit shader chain replaces the anime4k selection and mutes sharpen`() {
+        val profile = UpscaleProfile(
+            id = "user-1",
+            name = "FSRCNNX",
+            contentClass = ContentClass.ANIME,
+            passes = listOf(UpscalePass.Upscale(2f), UpscalePass.Sharpen(0.8f)),
+            shaderChain = listOf("FSRCNNX_x2_8-0-4-1.glsl", "KrigBilateral.glsl"),
+        )
+        val config = buildMpvRenderConfig(profile)
+        assertEquals(listOf("FSRCNNX_x2_8-0-4-1.glsl", "KrigBilateral.glsl"), config.userShaders)
+        assertEquals(emptyList(), config.shaders)
+        // The chain owns the look; upscale still selects the good scaler.
+        val properties = config.properties.toMap()
+        assertEquals("ewa_lanczossharp", properties["scale"])
+        assertEquals("0.0", properties["sharpen"])
+    }
 }

@@ -573,7 +573,11 @@ private fun PlayerControls(
     onTracksClick: () -> Unit,
 ) {
     val state by component.engine.state.collectAsState()
-    val activePreset = BuiltInPresets.byId(state.activeUpscaleProfileId) ?: BuiltInPresets.OFF
+    val presets by component.presets.collectAsState()
+    // User presets are looked up too — a custom chain must not read as "Off".
+    val activePreset = presets.firstOrNull { it.id == state.activeUpscaleProfileId }
+        ?: BuiltInPresets.byId(state.activeUpscaleProfileId)
+        ?: BuiltInPresets.OFF
     val upscaleActive = activePreset.isEnabled
 
     Box(Modifier.fillMaxSize()) {

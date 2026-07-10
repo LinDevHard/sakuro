@@ -75,6 +75,7 @@ class RootComponent(
                 settings = deps.settings,
                 engineRegistry = deps.engineRegistry,
                 presetStores = deps.presetStores,
+                userShaderStore = deps.userShaderStore,
                 onBack = navigation::pop,
             ),
         )

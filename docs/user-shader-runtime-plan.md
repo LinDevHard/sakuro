@@ -116,10 +116,17 @@ re-plans on demand.
    glslang alongside all 39 fixture shaders.* **Deferred to 5b:** `//!BUFFER`
    SSBOs and `TEXTURE STORAGE` images (needed by histogram/stats-style shaders);
    on-device compute execution check needs chain selection UI (phase 6).
-6. **User-facing** — `//!PARAM` (+ settings UI for tunables), import of arbitrary `.glsl`
-   via SAF into `MpvShaderStore` (shared with engine-mpv so both engines eat the same
-   files), custom chains in presets (ordered shader list per content class), validation
-   errors surfaced in UI instead of silent passthrough.
+6. ✅ **User-facing** (2026-07-10) — `.glsl`/`.hook` import via SAF into
+   `filesDir/shaders/user` (shared by both engines), validated at import time by
+   `UserShaderValidator` with the rejection reason shown in the UI;
+   `UpscaleProfile.shaderChain` (ordered file names) with an ordered chip picker
+   in the preset editor; Media3 loads the chain through the generic runtime,
+   mpv gets the same files as `glsl-shaders` paths. *Verified end-to-end on the
+   emulator: FSRCNNX imported through the system picker, chained into a preset,
+   14 passes load and render (pixel-diff vs Off: 23% of the video band).*
+   **Deferred:** live `//!PARAM` tunables UI (params run at defaults); the debug
+   overlay's target size ignores chains (shows the pass-derived size only);
+   mpv-engine chain run not exercised on the emulator (mpv eats the files natively).
 7. **Perf & adaptivity** — early FP16/3.1 probing, RTT budget per chain,
    `AdaptiveController` degradation (drop passes like mpv never does — our advantage),
    profiling on real hardware.

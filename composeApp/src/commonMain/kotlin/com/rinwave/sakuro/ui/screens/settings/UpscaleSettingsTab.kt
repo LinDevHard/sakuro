@@ -45,6 +45,7 @@ import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ClipboardPaste
 import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.Folder
+import com.composables.icons.lucide.Layers
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Plus
@@ -60,6 +61,7 @@ import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.formatMultiplier
 import com.rinwave.sakuro.ui.formatPercent
 import com.rinwave.sakuro.ui.label
+import com.rinwave.sakuro.ui.rememberShaderFilePicker
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
@@ -69,23 +71,30 @@ import sakuro.composeapp.generated.resources.action_delete
 import sakuro.composeapp.generated.resources.action_edit
 import sakuro.composeapp.generated.resources.action_export_clipboard
 import sakuro.composeapp.generated.resources.action_from_clipboard
+import sakuro.composeapp.generated.resources.action_import_file
 import sakuro.composeapp.generated.resources.action_save
 import sakuro.composeapp.generated.resources.msg_copied
 import sakuro.composeapp.generated.resources.msg_deleted
 import sakuro.composeapp.generated.resources.msg_imported
 import sakuro.composeapp.generated.resources.msg_invalid_preset
 import sakuro.composeapp.generated.resources.msg_saved
+import sakuro.composeapp.generated.resources.msg_shader_imported
+import sakuro.composeapp.generated.resources.msg_shader_rejected
 import sakuro.composeapp.generated.resources.preset_content_class
 import sakuro.composeapp.generated.resources.preset_content_class_hint
 import sakuro.composeapp.generated.resources.preset_denoise
 import sakuro.composeapp.generated.resources.preset_edit
 import sakuro.composeapp.generated.resources.preset_name
 import sakuro.composeapp.generated.resources.preset_new
+import sakuro.composeapp.generated.resources.preset_shader_chain
+import sakuro.composeapp.generated.resources.preset_shader_chain_hint
 import sakuro.composeapp.generated.resources.preset_sharpness
 import sakuro.composeapp.generated.resources.preset_upscale
 import sakuro.composeapp.generated.resources.settings_custom_presets
 import sakuro.composeapp.generated.resources.settings_custom_presets_empty
 import sakuro.composeapp.generated.resources.settings_default_preset
+import sakuro.composeapp.generated.resources.settings_shaders
+import sakuro.composeapp.generated.resources.settings_shaders_empty
 import sakuro.composeapp.generated.resources.value_off
 
 /** A pending status message shown under the custom-presets section, resolved to text in composition. */
@@ -95,6 +104,8 @@ private sealed interface PresetMessage {
     data class Deleted(val name: String) : PresetMessage
     data class Saved(val name: String) : PresetMessage
     data object Invalid : PresetMessage
+    data class ShaderImported(val name: String) : PresetMessage
+    data class ShaderRejected(val reason: String) : PresetMessage
 }
 
 @Composable
@@ -104,6 +115,8 @@ private fun PresetMessage.text(): String = when (this) {
     is PresetMessage.Deleted -> stringResource(Res.string.msg_deleted, name)
     is PresetMessage.Saved -> stringResource(Res.string.msg_saved, name)
     PresetMessage.Invalid -> stringResource(Res.string.msg_invalid_preset)
+    is PresetMessage.ShaderImported -> stringResource(Res.string.msg_shader_imported, name)
+    is PresetMessage.ShaderRejected -> stringResource(Res.string.msg_shader_rejected, reason)
 }
 
 @Composable
@@ -111,6 +124,7 @@ internal fun UpscaleSettingsTab(component: UpscaleSettingsComponent) {
     val presetId by component.presetId.collectAsState()
     val presets by component.presets.collectAsState()
     val userPresets by component.userPresetList.collectAsState()
+    val userShaders by component.userShaders.collectAsState()
 
     val clipboard = LocalClipboardManager.current
     var editorInitial by remember { mutableStateOf<UpscaleProfile?>(null) }
@@ -154,10 +168,23 @@ internal fun UpscaleSettingsTab(component: UpscaleSettingsComponent) {
             presetMessage = PresetMessage.Deleted(preset.name)
         },
     )
+    var shaderMessage by remember { mutableStateOf<PresetMessage?>(null) }
+    UserShadersPanel(
+        shaders = userShaders,
+        message = shaderMessage,
+        onImport = { name, content ->
+            shaderMessage = component.importShader(name, content).fold(
+                onSuccess = { PresetMessage.ShaderImported(it) },
+                onFailure = { PresetMessage.ShaderRejected(it.message.orEmpty()) },
+            )
+        },
+        onDelete = { component.deleteShader(it) },
+    )
 
     if (editorVisible) {
         PresetEditorDialog(
             initial = editorInitial,
+            availableShaders = userShaders,
             onSave = { profile ->
                 val saved = component.saveUserPreset(profile)
                 presetMessage = PresetMessage.Saved(saved.name)
@@ -267,6 +294,72 @@ private fun CustomPresetsPanel(
     }
 }
 
+/** Imported mpv user-shader files: list, delete, and SAF import. */
+@Composable
+private fun UserShadersPanel(
+    shaders: List<String>,
+    message: PresetMessage?,
+    onImport: (name: String, content: String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    val pickShader = rememberShaderFilePicker(onImport)
+    SettingsPanel(
+        title = stringResource(Res.string.settings_shaders),
+        icon = Lucide.Layers,
+        accent = SakuroColors.AccentLavender,
+    ) {
+        if (shaders.isEmpty()) {
+            Text(
+                stringResource(Res.string.settings_shaders_empty),
+                color = SakuroColors.TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        shaders.forEach { name ->
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    name,
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { onDelete(name) }) {
+                    Icon(
+                        Lucide.Trash2,
+                        stringResource(Res.string.action_delete),
+                        Modifier.size(18.dp),
+                        tint = SakuroColors.TextMuted,
+                    )
+                }
+            }
+        }
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
+            TextButton(
+                onClick = pickShader,
+                colors = ButtonDefaults.textButtonColors(contentColor = SakuroColors.AccentSakura),
+            ) {
+                Icon(Lucide.Plus, null, Modifier.size(16.dp))
+                Spacer(Modifier.size(6.dp))
+                Text(stringResource(Res.string.action_import_file))
+            }
+        }
+        message?.let {
+            Text(
+                it.text(),
+                color = SakuroColors.AccentLavender,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun UserPresetRow(
     preset: UpscaleProfile,
@@ -317,6 +410,7 @@ private fun UserPresetRow(
 @Composable
 private fun PresetEditorDialog(
     initial: UpscaleProfile?,
+    availableShaders: List<String>,
     onSave: (UpscaleProfile) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -334,6 +428,7 @@ private fun PresetEditorDialog(
     var denoise by remember {
         mutableStateOf(initial?.passes?.filterIsInstance<UpscalePass.Denoise>()?.firstOrNull()?.strength ?: 0f)
     }
+    var shaderChain by remember { mutableStateOf(initial?.shaderChain ?: emptyList()) }
     val offLabel = stringResource(Res.string.value_off)
 
     Dialog(onDismissRequest = onDismiss) {
@@ -422,6 +517,16 @@ private fun PresetEditorDialog(
                     onChange = { denoise = it },
                 )
 
+                if (availableShaders.isNotEmpty() || shaderChain.isNotEmpty()) {
+                    ShaderChainEditor(
+                        availableShaders = availableShaders,
+                        chain = shaderChain,
+                        onToggle = { name ->
+                            shaderChain = if (name in shaderChain) shaderChain - name else shaderChain + name
+                        },
+                    )
+                }
+
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
                         Text(stringResource(Res.string.action_cancel), color = SakuroColors.TextMuted)
@@ -437,9 +542,10 @@ private fun PresetEditorDialog(
                                 UpscaleProfile(
                                     id = initial?.id.orEmpty(),
                                     name = name,
-                                    description = chainSummary(passes),
+                                    description = chainSummary(passes, shaderChain),
                                     contentClass = contentClass,
                                     passes = passes,
+                                    shaderChain = shaderChain,
                                 ),
                             )
                         },
@@ -450,6 +556,46 @@ private fun PresetEditorDialog(
             }
         }
     }
+}
+
+/** Ordered selection of imported shaders: a tap appends/removes, the badge shows the order. */
+@Composable
+private fun ShaderChainEditor(
+    availableShaders: List<String>,
+    chain: List<String>,
+    onToggle: (String) -> Unit,
+) {
+    Text(
+        stringResource(Res.string.preset_shader_chain),
+        style = MaterialTheme.typography.labelLarge,
+        color = SakuroColors.AccentLavender,
+        modifier = Modifier.padding(top = 16.dp),
+    )
+    // Deleted files referenced by the preset stay visible so they can be unpicked.
+    val names = (availableShaders + chain.filterNot { it in availableShaders })
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        names.forEach { name ->
+            val index = chain.indexOf(name)
+            FilterChip(
+                selected = index >= 0,
+                onClick = { onToggle(name) },
+                label = { Text(if (index >= 0) "${index + 1}. $name" else name) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
+                    selectedLabelColor = SakuroColors.TextPrimary,
+                    labelColor = SakuroColors.TextMuted,
+                ),
+            )
+        }
+    }
+    Text(
+        stringResource(Res.string.preset_shader_chain_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = SakuroColors.TextMuted,
+    )
 }
 
 @Composable
@@ -486,8 +632,9 @@ private fun EditorSlider(
 }
 
 /** Stored (non-localized) technical summary used for export; the UI shows [displayDescription]. */
-private fun chainSummary(passes: List<UpscalePass>): String =
-    if (passes.isEmpty()) {
+private fun chainSummary(passes: List<UpscalePass>, shaderChain: List<String> = emptyList()): String {
+    if (shaderChain.isNotEmpty()) return shaderChain.joinToString(" → ")
+    return if (passes.isEmpty()) {
         "none"
     } else {
         passes.joinToString(" · ") { pass ->
@@ -498,6 +645,7 @@ private fun chainSummary(passes: List<UpscalePass>): String =
             }
         }
     }
+}
 
 // 1x..4x with a 0.25 step gives 11 intermediate slider ticks.
 private const val UPSCALE_SLIDER_STEPS = 11

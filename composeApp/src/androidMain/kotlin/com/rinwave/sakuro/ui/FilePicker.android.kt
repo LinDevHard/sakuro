@@ -24,6 +24,24 @@ actual fun rememberSubtitleFilePicker(onPicked: (uri: String, title: String) -> 
 }
 
 @Composable
+actual fun rememberShaderFilePicker(onPicked: (name: String, content: String) -> Unit): () -> Unit {
+    val context = LocalContext.current
+    val callback = rememberUpdatedState(onPicked)
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            runCatching {
+                val content = context.contentResolver.openInputStream(uri)!!
+                    .bufferedReader().use { it.readText() }
+                callback.value(context.displayName(uri) ?: "shader.glsl", content)
+            }
+        }
+    }
+    return { launcher.launch(arrayOf("*/*")) }
+}
+
+@Composable
 private fun rememberDocumentPicker(
     mimeTypes: Array<String>,
     fallbackTitle: String,

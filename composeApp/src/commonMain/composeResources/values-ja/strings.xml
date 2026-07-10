@@ -42,6 +42,13 @@
     <string name="settings_default_preset">既定のアップスケールプリセット</string>
     <string name="settings_custom_presets">カスタムプリセット</string>
     <string name="settings_custom_presets_empty">カスタムプリセットはまだありません。新規作成するか、クリップボードから貼り付けてください。</string>
+    <string name="settings_shaders">シェーダー (.glsl)</string>
+    <string name="settings_shaders_empty">mpvユーザーシェーダー（FSRCNNX、ravu、KrigBilateralなど）をインポートしてプリセットのチェーンを組めます。</string>
+    <string name="action_import_file">ファイルをインポート</string>
+    <string name="msg_shader_imported">シェーダーをインポートしました: %1$s</string>
+    <string name="msg_shader_rejected">シェーダーを拒否しました: %1$s</string>
+    <string name="preset_shader_chain">シェーダーチェーン</string>
+    <string name="preset_shader_chain_hint">インポート済みシェーダーの順序付きチェーン。内蔵処理を置き換えます</string>
     <string name="settings_controls">操作</string>
     <string name="settings_player_gestures">プレーヤーのジェスチャー</string>
     <string name="settings_player_gestures_desc">スワイプとピンチの一括スイッチ</string>

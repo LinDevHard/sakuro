@@ -11,3 +11,7 @@ expect fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Uni
 
 @Composable
 expect fun rememberSubtitleFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit
+
+/** Picks an mpv user-shader file and reads its text content. */
+@Composable
+expect fun rememberShaderFilePicker(onPicked: (name: String, content: String) -> Unit): () -> Unit

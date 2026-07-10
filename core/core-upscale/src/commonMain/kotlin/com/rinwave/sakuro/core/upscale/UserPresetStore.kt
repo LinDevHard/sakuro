@@ -84,6 +84,11 @@ class UserPresetStore(private val settings: Settings = Settings()) {
                 is UpscalePass.Denoise -> UpscalePass.Denoise(pass.strength.coerceIn(0f, 1f))
             }
         },
+        // Chain entries are file names inside the shader store — never paths.
+        shaderChain = shaderChain
+            .map { UserShaderStore.sanitizeName(it) }
+            .distinct()
+            .take(UserShaderStore.MAX_CHAIN),
     )
 
     companion object {

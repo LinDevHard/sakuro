@@ -41,6 +41,13 @@
     <string name="settings_default_preset">Пресет апскейла по умолчанию</string>
     <string name="settings_custom_presets">Свои пресеты</string>
     <string name="settings_custom_presets_empty">Пока нет своих пресетов — создайте новый или вставьте из буфера обмена.</string>
+    <string name="settings_shaders">Шейдеры (.glsl)</string>
+    <string name="settings_shaders_empty">Импортируйте user-шейдеры mpv (FSRCNNX, ravu, KrigBilateral…) и собирайте из них цепочки в пресетах.</string>
+    <string name="action_import_file">Импорт файла</string>
+    <string name="msg_shader_imported">Шейдер импортирован: %1$s</string>
+    <string name="msg_shader_rejected">Шейдер отклонён: %1$s</string>
+    <string name="preset_shader_chain">Цепочка шейдеров</string>
+    <string name="preset_shader_chain_hint">Упорядоченная цепочка импортированных шейдеров; заменяет встроенную обработку</string>
     <string name="settings_controls">Управление</string>
     <string name="settings_player_gestures">Жесты в плеере</string>
     <string name="settings_player_gestures_desc">Общий выключатель свайпов и пинча</string>
