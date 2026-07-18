@@ -85,6 +85,11 @@ internal data class ShaderParam(
 ) {
     /** Numeric default for RPN evaluation (0 when the default is not a number). */
     val defaultValue: Float get() = default.toFloatOrNull() ?: 0f
+
+    /** The value the runtime uses: the override clamped to `//!MINIMUM`/`//!MAXIMUM`, or the default. */
+    fun effective(override: Float?): Float = override
+        ?.coerceIn(minimum ?: Float.NEGATIVE_INFINITY, maximum ?: Float.POSITIVE_INFINITY)
+        ?: defaultValue
 }
 
 /** `//!OFFSET <x y | ALIGN>` — output position shift relative to the hooked stage. */

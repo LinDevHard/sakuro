@@ -82,6 +82,35 @@ class ShaderPreambleTest {
     }
 
     @Test
+    fun `param overrides replace the defaults and clamp to the bounds`() {
+        val params = listOf(
+            ShaderParam(
+                name = "intensity", desc = "", type = "float", define = false, dynamic = false,
+                constant = false, enum = false, minimum = 0f, maximum = 10f, default = "0.25",
+            ),
+            ShaderParam(
+                name = "taps", desc = "", type = "int", define = false, dynamic = false,
+                constant = true, enum = false, minimum = 1f, maximum = 5f, default = "3",
+            ),
+            ShaderParam(
+                name = "MODE", desc = "", type = "", define = true, dynamic = false,
+                constant = false, enum = true, minimum = null, maximum = null, default = "0",
+            ),
+        )
+        val fragment = ShaderPreamble.fragmentShader(
+            pass("vec4 hook() { return vec4(intensity); }"),
+            document = ShaderDocument.EMPTY.copy(params = params),
+            paramValues = mapOf("intensity" to 2.5f, "taps" to 99f, "MODE" to 1f),
+        )
+        assertTrue(fragment.contains("const float intensity = 2.5;"))
+        // 99 clamps to MAXIMUM=5.
+        assertTrue(fragment.contains("const int taps = 5;"))
+        // An ENUM define formats as an int even without an explicit type token.
+        assertTrue(fragment.contains("#define MODE 1"))
+        assertTrue(!fragment.contains("#define MODE 1.0"))
+    }
+
+    @Test
     fun `gather symbols and version 310 appear only with the capability`() {
         val body = "vec4 hook() { return HOOKED_gather(HOOKED_pos, 0); }"
         val baseline = ShaderPreamble.fragmentShader(pass(body))

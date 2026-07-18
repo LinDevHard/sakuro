@@ -34,6 +34,13 @@ internal class UserShaderProgram(
     private val document: ShaderDocument,
     /** Target-size multiplier for gating `//!WHEN` (upscale larger than the input). */
     private val outputGateScale: Int = OUTPUT_GATE_SCALE,
+    /**
+     * `//!PARAM` overrides by name (clamped to the params' bounds). Fixed for the
+     * program's lifetime: they are baked into the generated GLSL and the plan,
+     * so a value change means a new effect — like mpv recompiling on a
+     * `glsl-shader-opts` change.
+     */
+    private val paramValues: Map<String, Float> = emptyMap(),
 ) : BaseGlShaderProgram(HIGH_PRECISION, TEXTURE_POOL_CAPACITY) {
 
     private data class TexRef(val texId: Int, val width: Int, val height: Int)
@@ -79,15 +86,18 @@ internal class UserShaderProgram(
                 inputWidth * outputGateScale,
                 inputHeight * outputGateScale,
                 caps,
+                paramValues,
             )
             plan.skipped.forEach { Log.i(TAG, "pass '$it' skipped: its hooks never fire in this pipeline") }
             passPrograms = plan.passes.map { planned ->
                 val compute = planned.pass.compute
                 if (compute != null) {
-                    val source = ShaderPreamble.computeShader(planned.pass, planned.hook, document)
+                    val source = ShaderPreamble.computeShader(planned.pass, planned.hook, document, paramValues)
                     PassProgram.Compute(compileComputeProgram(planned.pass.desc, source), compute)
                 } else {
-                    val fragment = ShaderPreamble.fragmentShader(planned.pass, planned.hook, document, caps)
+                    val fragment = ShaderPreamble.fragmentShader(
+                        planned.pass, planned.hook, document, caps, paramValues = paramValues,
+                    )
                     PassProgram.Fragment(
                         GlProgram(ShaderPreamble.VERTEX_SHADER, fragment).apply {
                             setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)

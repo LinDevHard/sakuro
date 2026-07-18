@@ -499,4 +499,42 @@ class ShaderGraphPlannerTest {
         val passes = listOf(pass("broken", binds = listOf("NOPE"), save = "MAIN"))
         assertFailsWith<UserShaderException> { plan(passes, 640, 360, 1920, 1080) }
     }
+
+    @Test
+    fun `a PARAM override flips a WHEN gate and is clamped to the bounds`() {
+        val document = ShaderDocument(
+            passes = listOf(
+                pass("gated", binds = listOf("MAIN"), save = "MAIN", whenExpr = "strength 0.5 >"),
+            ),
+            textures = emptyList(),
+            buffers = emptyList(),
+            params = listOf(
+                ShaderParam(
+                    name = "strength", desc = "", type = "float", define = false, dynamic = false,
+                    constant = false, enum = false, minimum = 0f, maximum = 1f, default = "0.0",
+                ),
+            ),
+        )
+        // Default 0.0 → the gate is false, the pass is cut.
+        val cut = ShaderGraphPlanner.plan(document, 640, 360, 1920, 1080)
+        assertTrue(cut.passes.isEmpty())
+        // Override 0.8 → the gate opens.
+        val kept = ShaderGraphPlanner.plan(
+            document, 640, 360, 1920, 1080,
+            paramValues = mapOf("strength" to 0.8f),
+        )
+        assertEquals(1, kept.passes.size)
+        // An out-of-range override clamps to MAXIMUM=1: a "strength 1.5 >" gate
+        // stays false even for an override of 5.
+        val strict = document.copy(
+            passes = listOf(
+                pass("gated", binds = listOf("MAIN"), save = "MAIN", whenExpr = "strength 1.5 >"),
+            ),
+        )
+        val clamped = ShaderGraphPlanner.plan(
+            strict, 640, 360, 1920, 1080,
+            paramValues = mapOf("strength" to 5f),
+        )
+        assertTrue(clamped.passes.isEmpty())
+    }
 }

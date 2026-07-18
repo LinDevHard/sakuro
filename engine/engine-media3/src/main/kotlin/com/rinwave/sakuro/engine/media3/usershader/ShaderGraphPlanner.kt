@@ -44,7 +44,9 @@ internal data class GraphPlan(
  *
  * `OUTPUT` in RPN expressions is the target-size pseudo-texture (for gating
  * `//!WHEN`); hooking `OUTPUT` runs on the post-scale slot. Bare `//!PARAM`
- * names in expressions resolve to their default values.
+ * names in expressions resolve to their effective values ([plan]'s
+ * `paramValues` overrides clamped to the params' bounds, defaults otherwise),
+ * so a `//!WHEN`-gated pass is re-decided whenever a value change re-plans.
  *
  * `//!TEXTURE` blocks are sized statically and validated at bind time (see
  * [ShaderTextureFormats]); the program uploads them as LUTs, creates
@@ -63,8 +65,9 @@ internal object ShaderGraphPlanner {
         outputWidth: Int,
         outputHeight: Int,
         caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
+        paramValues: Map<String, Float> = emptyMap(),
     ): GraphPlan {
-        val builder = Builder(document, inputWidth, inputHeight, outputWidth, outputHeight, caps)
+        val builder = Builder(document, inputWidth, inputHeight, outputWidth, outputHeight, caps, paramValues)
         val skipped = mutableListOf<String>()
         for (firing in expandFirings(document.passes, skipped, caps)) {
             builder.add(firing)
@@ -110,13 +113,14 @@ internal object ShaderGraphPlanner {
         outputWidth: Int,
         outputHeight: Int,
         private val caps: RuntimeCapabilities,
+        paramValues: Map<String, Float>,
     ) {
         private val sizes = hashMapOf(
             ShaderStages.MAIN to (inputWidth to inputHeight),
             ShaderStages.OUTPUT_REF to (outputWidth to outputHeight),
             ShaderStages.NATIVE_CROPPED_REF to (inputWidth to inputHeight),
         )
-        private val params = document.params.associate { it.name to it.defaultValue }
+        private val params = document.params.associate { it.name to it.effective(paramValues[it.name]) }
         private val customTextures = document.textures.associateBy { it.name }
         private val buffersByName = document.buffers.associateBy { it.name }
 

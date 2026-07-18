@@ -56,18 +56,23 @@ void main() {
      * Assembles the full fragment shader for pass [pass].
      * [hook] — the hook point the pass actually fired on (its `HOOKED`); a pass
      * with several `//!HOOK`s builds a separate program per firing.
-     * [params] — the document's `//!PARAM` blocks, injected as compile-time
-     * constants/defines with their default values (runtime tunability is phase 6).
+     * The document's `//!PARAM` blocks are injected as compile-time
+     * constants/defines with their effective values: [paramValues] overrides
+     * clamped to the params' bounds, defaults otherwise. Values are fixed per
+     * program — changing one rebuilds the effect, like mpv recompiles on a
+     * `glsl-shader-opts` change.
      * [caps] — gather symbols and `#version 310 es` are emitted only when available.
      * [isFinal] — the last pass of the graph: we write into the Media3 output texture
      * with alpha=1 (intermediate passes keep all 4 channels as-is).
      */
+    @Suppress("LongParameterList")
     fun fragmentShader(
         pass: UserShaderPass,
         hook: String = pass.hooks.first(),
         document: ShaderDocument = ShaderDocument.EMPTY,
         caps: RuntimeCapabilities = RuntimeCapabilities.BASELINE,
         isFinal: Boolean = false,
+        paramValues: Map<String, Float> = emptyMap(),
     ): String = buildString {
         appendLine(if (caps.gather) "#version 310 es" else "#version 300 es")
         appendLine("precision highp float;")
@@ -75,7 +80,7 @@ void main() {
         appendLine("in vec2 v_texcoord;")
         appendLine("out vec4 frag_out;")
         appendGlobals()
-        appendParams(document.params)
+        appendParams(document.params, paramValues)
         val binds = pass.binds.distinct()
         for (bind in binds) {
             appendBind(bind, document, pass.body, posExpression = "v_texcoord", gather = caps.gather)
@@ -102,6 +107,7 @@ void main() {
         pass: UserShaderPass,
         hook: String = pass.hooks.first(),
         document: ShaderDocument = ShaderDocument.EMPTY,
+        paramValues: Map<String, Float> = emptyMap(),
     ): String = buildString {
         val layout = requireNotNull(pass.compute) { "not a compute pass: '${pass.desc}'" }
         appendLine("#version 310 es")
@@ -114,7 +120,7 @@ void main() {
         )
         appendLine("layout(rgba16f, binding = 0) uniform writeonly highp image2D out_image;")
         appendGlobals()
-        appendParams(document.params)
+        appendParams(document.params, paramValues)
         val binds = pass.binds.distinct()
         for (bind in binds) {
             appendBind(
@@ -151,23 +157,31 @@ void main() {
         )
     }
 
-    /** `//!PARAM` blocks as compile-time constants (defaults) — phase 6 makes them live. */
-    private fun StringBuilder.appendParams(params: List<ShaderParam>) {
+    /** `//!PARAM` blocks as compile-time constants/defines with their effective values. */
+    private fun StringBuilder.appendParams(params: List<ShaderParam>, values: Map<String, Float>) {
         for (param in params) {
+            val override = values[param.name]
+            // ENUM params carry int semantics even without an explicit type token.
+            val typeToken = if (param.enum && param.type.isEmpty()) "int" else param.type
             if (param.define) {
-                appendLine("#define ${param.name} ${param.default}")
+                // A define default may be non-numeric (e.g. an identifier) — only a
+                // numeric override replaces it.
+                val value = override?.let { typeToken.glslLiteral(param.effective(it).toString()) }
+                    ?: param.default
+                appendLine("#define ${param.name} $value")
             } else {
-                val type = param.type.ifEmpty { "float" }
-                appendLine("const $type ${param.name} = ${param.type.glslLiteral(param.default)};")
+                val type = typeToken.ifEmpty { "float" }
+                val raw = override?.let { param.effective(it).toString() } ?: param.default
+                appendLine("const $type ${param.name} = ${typeToken.glslLiteral(raw)};")
             }
         }
     }
 
-    /** Formats a `//!PARAM` default as a literal of its GLSL type. */
-    private fun String.glslLiteral(default: String): String = when (this) {
-        "int" -> default.toFloatOrNull()?.toInt()?.toString() ?: default
-        "uint" -> (default.toFloatOrNull()?.toInt()?.toString() ?: default) + "u"
-        else -> (default.toFloatOrNull() ?: 0f).toString()
+    /** Formats a `//!PARAM` value as a literal of its GLSL type. */
+    private fun String.glslLiteral(value: String): String = when (this) {
+        "int" -> value.toFloatOrNull()?.toInt()?.toString() ?: value
+        "uint" -> (value.toFloatOrNull()?.toInt()?.toString() ?: value) + "u"
+        else -> (value.toFloatOrNull() ?: 0f).toString()
     }
 
     /** A bind is a buffer block, a storage image, or an ordinary sampled texture. */
