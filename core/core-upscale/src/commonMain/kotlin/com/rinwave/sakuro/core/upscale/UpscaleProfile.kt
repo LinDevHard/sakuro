@@ -19,10 +19,10 @@ data class UpscaleProfile(
     /** Built-in presets cannot be deleted/overwritten. */
     val builtIn: Boolean = false,
     /**
-     * An explicit mpv user-shader chain: ordered file names from the imported
-     * shader store (FEATURES.md §2). When non-empty it replaces the engine's
-     * own shader selection; [passes] still drive the scaler properties and
-     * the adaptive controller.
+     * An explicit mpv user-shader chain: ordered file names, each an imported
+     * shader or a vendored [BundledShaders] entry (an import shadows a bundled
+     * name). When non-empty it replaces the engine's own shader selection;
+     * [passes] still drive the scaler properties and the adaptive controller.
      */
     val shaderChain: List<String> = emptyList(),
 ) {

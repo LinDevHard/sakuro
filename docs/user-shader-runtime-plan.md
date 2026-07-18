@@ -25,8 +25,8 @@ runtime becomes the seed of the generic one.
 | `//!TEXTURE` blocks (`SIZE FORMAT FILTER BORDER DATA`) | ✓ | ignored | 4 |
 | `//!COMPUTE` (compute shaders, `out_image`) | ✓ | ignored | 5 |
 | `//!BUFFER` blocks (UBO/SSBO, `VAR`, `STORAGE`) | ✓ | ignored | 5 |
-| `//!PARAM` blocks (tunables, ENUM/DYNAMIC/CONSTANT/DEFINE) | ✓ | ignored | 6 |
-| User shader files (not just vendored assets) | `glsl-shaders=` | assets only | 6 |
+| `//!PARAM` blocks (tunables, ENUM/DYNAMIC/CONSTANT/DEFINE) | ✓ | ✓ (baked per effect, 6b) | — |
+| User shader files (not just vendored assets) | `glsl-shaders=` | ✓ (import + bundled registry) | — |
 
 ## Architecture decisions
 
@@ -133,9 +133,39 @@ re-plans on demand.
    mpv gets the same files as `glsl-shaders` paths. *Verified end-to-end on the
    emulator: FSRCNNX imported through the system picker, chained into a preset,
    14 passes load and render (pixel-diff vs Off: 23% of the video band).*
-   **Deferred:** live `//!PARAM` tunables UI (params run at defaults); the debug
-   overlay's target size ignores chains (shows the pass-derived size only);
-   mpv-engine chain run not exercised on the emulator (mpv eats the files natively).
+   **Deferred:** live `//!PARAM` tunables UI (the runtime landed in 6b; values
+   come from presets); the debug overlay's target size ignores chains (shows
+   the pass-derived size only); mpv-engine chain run not exercised on the
+   emulator (mpv eats the files natively).
+   **6b** ✅ **`//!PARAM` runtime** (2026-07-11) — effective values (overrides
+   clamped to `//!MINIMUM`/`//!MAXIMUM`, defaults otherwise) are baked into the
+   generated GLSL as constants/defines and feed the planner's RPN resolver, so
+   `//!WHEN` gates react to values; values are fixed per effect instance —
+   changing one rebuilds the effect, like mpv recompiling on a
+   `glsl-shader-opts` change (`UserShaderGlEffect(document, paramValues)`).
+   engine-mpv runs classic `vo=gpu`, which predates `//!PARAM`:
+   `MpvShaderMaterializer` strips the blocks and bakes per-pass `#define`s with
+   the same clamped values, so one canonical `.glsl` serves both engines (and
+   imported `//!PARAM` shaders now work on mpv at all). A live tunables UI
+   remains deferred (values currently come from presets, see 6c).
+   **6c** ✅ **Bundled shader registry + parametric passes** (2026-07-11) —
+   `BundledShaders` (core-upscale): vendored shaders addressable in
+   `shaderChain` by file name next to imports (an import shadows a bundled
+   name); registry rows carry role/cost/ES-tier/`strengthParam`. Vendored:
+   AMD FidelityFX CAS (MIT, modified: no-scale `//!WHEN` gates removed,
+   `SHARPENING` → `//!PARAM`), ravu-r3 + ravu-lite-r3 (LGPL-3.0, unmodified),
+   Sakuro_Denoise_Bilateral (own, `//!PARAM intensity`), plus the Anime4K set
+   exposed for manual chains. The abstract Denoise/Upscale/Sharpen passes now
+   resolve through `ParametricChain` (one table for both engines): denoise →
+   Sakuro bilateral, upscale → ravu-r3 ×2 (+`Presentation` trim to the exact
+   factor on Media3), sharpen → CAS; slider strengths map 1:1 onto `//!PARAM`s,
+   so the sliders finally change the picture continuously and identically on
+   both engines. The legacy single-pass ES 1.00 Sharpen/Denoise effects and the
+   mpv `sharpen` property path are gone (the property survives only in the
+   shaders-unavailable degrade path). *Verified: unit tests across core-upscale
+   (`ParametricChainTest`), engine-media3 (`BundledShaderAssetTest`, planner
+   param gates), engine-mpv (materializer, render config); on-device visual
+   check pending phase 8 benching.*
 7. **Perf & adaptivity** — early FP16/3.1 probing, RTT budget per chain,
    `AdaptiveController` degradation (drop passes like mpv never does — our advantage),
    profiling on real hardware.

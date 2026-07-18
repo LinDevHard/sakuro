@@ -65,26 +65,56 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `live-action does not touch Anime4K and works via properties`() {
+    fun `live-action maps Sharpen onto the bundled CAS and mutes the property`() {
         val light = BuiltInPresets.LIVE_ACTION_LIGHT
+        val config = buildMpvRenderConfig(light)
 
-        assertTrue(shaders(light).isEmpty())
-        assertEquals("0.25", props(light)["sharpen"])
-        assertEquals("bilinear", props(light)["scale"])
+        assertTrue(config.shaders.isEmpty())
+        assertEquals(listOf("CAS.glsl"), config.userShaders)
+        assertEquals(mapOf("CAS.glsl" to mapOf("SHARPENING" to 0.25f)), config.userShaderParams)
+        assertEquals("0.0", config.properties.toMap()["sharpen"])
+        assertEquals("bilinear", config.properties.toMap()["scale"])
     }
 
     @Test
-    fun `Denoise outside anime degrades — vf is not set`() {
+    fun `a non-anime parametric chain follows the canonical order with baked params`() {
         val profile = UpscaleProfile(
             id = "t",
             name = "t",
             contentClass = ContentClass.LIVE_ACTION,
-            passes = listOf(UpscalePass.Denoise(0.5f)),
+            passes = listOf(
+                UpscalePass.Sharpen(0.5f),
+                UpscalePass.Denoise(0.4f),
+                UpscalePass.Upscale(2f),
+            ),
         )
         val config = buildMpvRenderConfig(profile)
 
+        // Denoise → Upscale → Sharpen regardless of the preset's pass order.
+        assertEquals(
+            listOf("Sakuro_Denoise_Bilateral.glsl", "ravu-r3.hook", "CAS.glsl"),
+            config.userShaders,
+        )
+        assertEquals(mapOf("intensity" to 0.4f), config.userShaderParams["Sakuro_Denoise_Bilateral.glsl"])
+        assertEquals(mapOf("SHARPENING" to 0.5f), config.userShaderParams["CAS.glsl"])
+        assertFalse("ravu-r3.hook" in config.userShaderParams)
+        assertEquals("ewa_lanczossharp", config.properties.toMap()["scale"])
+    }
+
+    @Test
+    fun `without deployable shaders the config degrades to properties only`() {
+        val profile = UpscaleProfile(
+            id = "t",
+            name = "t",
+            contentClass = ContentClass.LIVE_ACTION,
+            passes = listOf(UpscalePass.Sharpen(0.25f), UpscalePass.Denoise(0.5f)),
+        )
+        val config = buildMpvRenderConfig(profile, shadersAvailable = false)
+
         assertTrue(config.shaders.isEmpty())
-        assertFalse("vf" in config.properties.toMap())
+        assertTrue(config.userShaders.isEmpty())
+        // Sharpen survives as the property; Denoise degrades (the contract).
+        assertEquals("0.25", config.properties.toMap()["sharpen"])
     }
 
     @Test
@@ -111,7 +141,9 @@ class MpvUpscalePropertiesTest {
             passes = listOf(UpscalePass.Sharpen(0.25f)),
         )
 
-        assertEquals("0.25", props(profile)["sharpen"])
+        // The properties-only path — the parametric chain otherwise mutes `sharpen`.
+        val properties = buildMpvRenderConfig(profile, shadersAvailable = false).properties.toMap()
+        assertEquals("0.25", properties["sharpen"])
     }
 
     @Test

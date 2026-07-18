@@ -1,0 +1,4 @@
+ravu prescalers (assets/shaders_bundled/ravu-r3.hook, ravu-lite-r3.hook).
+Copyright (c) bjin (https://github.com/bjin/mpv-prescalers).
+Licensed under the GNU Lesser General Public License v3.0 (see LICENSE.txt).
+Vendored unmodified.

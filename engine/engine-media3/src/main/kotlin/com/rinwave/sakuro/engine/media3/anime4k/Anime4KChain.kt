@@ -64,8 +64,9 @@ internal object Anime4KChain {
                 },
             )
         } catch (e: IOException) {
-            // Anime4K assets are not in this build (no engine-mpv module) — fall back to the legacy chain.
-            Log.w(TAG, "Anime4K assets unavailable, falling back to legacy: ${e.message}")
+            // Anime4K assets are not in this build (no engine-mpv module) —
+            // the caller falls back to the parametric bundled chain.
+            Log.w(TAG, "Anime4K assets unavailable, falling back to the parametric chain: ${e.message}")
             ShaderDocument.EMPTY
         }
     }

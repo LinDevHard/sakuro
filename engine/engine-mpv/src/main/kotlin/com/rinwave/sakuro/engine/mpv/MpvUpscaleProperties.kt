@@ -1,6 +1,7 @@
 package com.rinwave.sakuro.engine.mpv
 
 import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.upscale.ParametricChain
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlin.math.roundToInt
@@ -9,42 +10,55 @@ import kotlin.math.roundToInt
  * mpv render configuration for a preset: properties + a user-shader chain.
  * [shaders] — file names from assets/anime4k; into the `glsl-shaders` property
  * the engine substitutes absolute paths (see [MpvShaderStore]).
- * [userShaders] — file names from the imported shader store; when non-empty
- * they replace [shaders] entirely (the preset owns its chain).
+ * [userShaders] — chain file names (imported or bundled, see [MpvChainStore]);
+ * when non-empty they replace [shaders] entirely. [userShaderParams] —
+ * per-file `//!PARAM` overrides baked in by [MpvShaderMaterializer].
  */
 internal data class MpvRenderConfig(
     val properties: List<Pair<String, String>>,
     val shaders: List<String>,
     val userShaders: List<String> = emptyList(),
+    val userShaderParams: Map<String, Map<String, Float>> = emptyMap(),
 )
 
 /**
  * Translates the abstract [UpscalePass] chain into an mpv configuration (ARCHITECTURE.md §4).
  *
- * For anime/animation the passes are translated into native Anime4K `.glsl`
- * user-shaders (including Denoise — the bundled ffmpeg has no denoise filters, and the shader
- * does not need libavfilter). The chain order is the canonical Anime4K one
- * (Clamp → Denoise → Restore → Upscale), not the preset's pass order.
- * The CNN size (S/M) is chosen by the pass strength.
+ * Selection order mirrors Media3 exactly:
+ * 1. an explicit [UpscaleProfile.shaderChain] replaces everything;
+ * 2. anime/cartoon passes translate into the canonical Anime4K `.glsl` chain
+ *    (Clamp → Denoise → Restore → Upscale, CNN size by pass strength);
+ * 3. otherwise the passes map through [ParametricChain] onto the same bundled
+ *    shaders as on Media3, with slider strengths baked into their `//!PARAM`s.
  *
- * For other content Anime4K is not a fit by design — only mpv properties remain:
- * Upscale → a high-quality scaler (mpv always scales
- * to the surface size, so no factor is needed), Sharpen → `sharpen`, Denoise
- * degrades (the [UpscaleProfile] contract).
+ * Properties: Upscale keeps `ewa_lanczossharp` for the final fit to the surface
+ * (ravu is a ×2 prescaler). The `sharpen` property survives only for
+ * [shadersAvailable] = false — the engine's degrade path when shader files
+ * cannot be deployed; Denoise degrades there (the [UpscaleProfile] contract).
  *
  * Everything is applied on the fly, without re-prepare — unlike Media3.
  */
-internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
+internal fun buildMpvRenderConfig(
+    profile: UpscaleProfile,
+    shadersAvailable: Boolean = true,
+): MpvRenderConfig {
     // An explicit user chain replaces the engine's own shader selection.
-    val userShaders = profile.shaderChain
-    val shaders = if (userShaders.isEmpty()) buildAnime4kChain(profile) else emptyList()
+    val explicit = if (shadersAvailable) profile.shaderChain else emptyList()
+    val anime4k = if (shadersAvailable && explicit.isEmpty()) buildAnime4kChain(profile) else emptyList()
+    val parametric = if (shadersAvailable && explicit.isEmpty() && anime4k.isEmpty()) {
+        ParametricChain.forProfile(profile)
+    } else {
+        emptyList()
+    }
+    val userShaders = explicit.ifEmpty { parametric.map { it.shader.fileName } }
+
     var scale = "bilinear"
     var sharpen = 0f
     for (pass in profile.passes) {
         when (pass) {
             is UpscalePass.Upscale -> scale = "ewa_lanczossharp"
             // Shader chains own the look — the property would duplicate the effect.
-            is UpscalePass.Sharpen -> if (shaders.isEmpty() && userShaders.isEmpty()) sharpen = pass.strength
+            is UpscalePass.Sharpen -> if (anime4k.isEmpty() && userShaders.isEmpty()) sharpen = pass.strength
             is UpscalePass.Denoise -> Unit
         }
     }
@@ -54,8 +68,11 @@ internal fun buildMpvRenderConfig(profile: UpscaleProfile): MpvRenderConfig {
             "cscale" to scale,
             "sharpen" to sharpen.fmt(),
         ),
-        shaders = shaders,
+        shaders = anime4k,
         userShaders = userShaders,
+        userShaderParams = parametric
+            .filter { it.params.isNotEmpty() }
+            .associate { it.shader.fileName to it.params },
     )
 }
 
