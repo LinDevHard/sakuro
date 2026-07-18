@@ -48,7 +48,15 @@
     <string name="msg_shader_imported">シェーダーをインポートしました: %1$s</string>
     <string name="msg_shader_rejected">シェーダーを拒否しました: %1$s</string>
     <string name="preset_shader_chain">シェーダーチェーン</string>
-    <string name="preset_shader_chain_hint">インポート済みシェーダーの順序付きチェーン。内蔵処理を置き換えます</string>
+    <string name="preset_shader_chain_hint">内蔵およびインポート済みシェーダーの順序付きチェーン。内蔵処理を置き換えます</string>
+    <string name="shader_role_upscale">アップスケール</string>
+    <string name="shader_role_sharpen">シャープ化</string>
+    <string name="shader_role_denoise">ノイズ除去</string>
+    <string name="shader_role_utility">ユーティリティ</string>
+    <string name="shader_cost_low">軽量</string>
+    <string name="shader_cost_medium">中負荷</string>
+    <string name="shader_cost_high">高負荷</string>
+    <string name="shader_imported">インポート済み</string>
     <string name="settings_controls">操作</string>
     <string name="settings_player_gestures">プレーヤーのジェスチャー</string>
     <string name="settings_player_gestures_desc">スワイプとピンチの一括スイッチ</string>

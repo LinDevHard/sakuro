@@ -6,9 +6,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -51,6 +54,8 @@ import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Trash2
+import com.rinwave.sakuro.core.upscale.BundledShader
+import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
@@ -95,6 +100,7 @@ import sakuro.composeapp.generated.resources.settings_custom_presets_empty
 import sakuro.composeapp.generated.resources.settings_default_preset
 import sakuro.composeapp.generated.resources.settings_shaders
 import sakuro.composeapp.generated.resources.settings_shaders_empty
+import sakuro.composeapp.generated.resources.shader_imported
 import sakuro.composeapp.generated.resources.value_off
 
 /** A pending status message shown under the custom-presets section, resolved to text in composition. */
@@ -184,7 +190,7 @@ internal fun UpscaleSettingsTab(component: UpscaleSettingsComponent) {
     if (editorVisible) {
         PresetEditorDialog(
             initial = editorInitial,
-            availableShaders = userShaders,
+            importedShaders = userShaders,
             onSave = { profile ->
                 val saved = component.saveUserPreset(profile)
                 presetMessage = PresetMessage.Saved(saved.name)
@@ -410,7 +416,7 @@ private fun UserPresetRow(
 @Composable
 private fun PresetEditorDialog(
     initial: UpscaleProfile?,
-    availableShaders: List<String>,
+    importedShaders: List<String>,
     onSave: (UpscaleProfile) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -517,15 +523,13 @@ private fun PresetEditorDialog(
                     onChange = { denoise = it },
                 )
 
-                if (availableShaders.isNotEmpty() || shaderChain.isNotEmpty()) {
-                    ShaderChainEditor(
-                        availableShaders = availableShaders,
-                        chain = shaderChain,
-                        onToggle = { name ->
-                            shaderChain = if (name in shaderChain) shaderChain - name else shaderChain + name
-                        },
-                    )
-                }
+                ShaderChainEditor(
+                    importedShaders = importedShaders,
+                    chain = shaderChain,
+                    onToggle = { name ->
+                        shaderChain = if (name in shaderChain) shaderChain - name else shaderChain + name
+                    },
+                )
 
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
@@ -558,10 +562,11 @@ private fun PresetEditorDialog(
     }
 }
 
-/** Ordered selection of imported shaders: a tap appends/removes, the badge shows the order. */
+/** Ordered selection of bundled and imported shaders: a tap appends/removes, the number shows the order. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ShaderChainEditor(
-    availableShaders: List<String>,
+    importedShaders: List<String>,
     chain: List<String>,
     onToggle: (String) -> Unit,
 ) {
@@ -571,23 +576,20 @@ private fun ShaderChainEditor(
         color = SakuroColors.AccentLavender,
         modifier = Modifier.padding(top = 16.dp),
     )
-    // Deleted files referenced by the preset stay visible so they can be unpicked.
-    val names = (availableShaders + chain.filterNot { it in availableShaders })
-    Row(
-        Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // Imports first (an import shadows a bundled name), then the vendored set;
+    // deleted files referenced by the preset stay visible so they can be unpicked.
+    val bundled = BundledShaders.all.map { it.fileName }
+    val names = importedShaders +
+        bundled.filterNot { it in importedShaders } +
+        chain.filterNot { it in importedShaders || it in bundled }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         names.forEach { name ->
-            val index = chain.indexOf(name)
-            FilterChip(
-                selected = index >= 0,
-                onClick = { onToggle(name) },
-                label = { Text(if (index >= 0) "${index + 1}. $name" else name) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
-                    selectedLabelColor = SakuroColors.TextPrimary,
-                    labelColor = SakuroColors.TextMuted,
-                ),
+            ShaderChip(
+                name = name,
+                order = chain.indexOf(name),
+                // An import shadows the bundled shader — its badges would lie.
+                bundled = if (name in importedShaders) null else BundledShaders.byFileName(name),
+                onToggle = onToggle,
             )
         }
     }
@@ -595,6 +597,50 @@ private fun ShaderChainEditor(
         stringResource(Res.string.preset_shader_chain_hint),
         style = MaterialTheme.typography.bodySmall,
         color = SakuroColors.TextMuted,
+    )
+}
+
+/** A two-line chip: the shader name over its badges (role · cost · content · ES tier). */
+@Composable
+private fun ShaderChip(
+    name: String,
+    order: Int,
+    bundled: BundledShader?,
+    onToggle: (String) -> Unit,
+) {
+    val title = bundled?.displayName ?: name
+    val badges = if (bundled == null) {
+        stringResource(Res.string.shader_imported)
+    } else {
+        buildList {
+            add(bundled.role.label())
+            add(bundled.cost.label())
+            bundled.contentClasses?.firstOrNull()?.let { add(it.label()) }
+            if (bundled.requiresEs31) add("ES 3.1")
+        }.joinToString(" · ")
+    }
+    FilterChip(
+        selected = order >= 0,
+        onClick = { onToggle(name) },
+        modifier = Modifier.height(52.dp),
+        label = {
+            Column(Modifier.padding(vertical = 6.dp)) {
+                Text(
+                    if (order >= 0) "${order + 1}. $title" else title,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    badges,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SakuroColors.TextMuted,
+                )
+            }
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
+            selectedLabelColor = SakuroColors.TextPrimary,
+            labelColor = SakuroColors.TextMuted,
+        ),
     )
 }
 

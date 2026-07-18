@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import com.rinwave.sakuro.core.media.DateBucket
 import com.rinwave.sakuro.core.media.LibrarySort
 import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.upscale.BundledShaderRole
 import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.upscale.ShaderCost
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import org.jetbrains.compose.resources.stringResource
@@ -38,6 +40,13 @@ import sakuro.composeapp.generated.resources.section_this_month
 import sakuro.composeapp.generated.resources.section_this_week
 import sakuro.composeapp.generated.resources.section_today
 import sakuro.composeapp.generated.resources.section_yesterday
+import sakuro.composeapp.generated.resources.shader_cost_high
+import sakuro.composeapp.generated.resources.shader_cost_low
+import sakuro.composeapp.generated.resources.shader_cost_medium
+import sakuro.composeapp.generated.resources.shader_role_denoise
+import sakuro.composeapp.generated.resources.shader_role_sharpen
+import sakuro.composeapp.generated.resources.shader_role_upscale
+import sakuro.composeapp.generated.resources.shader_role_utility
 import sakuro.composeapp.generated.resources.sort_field_date_added
 import sakuro.composeapp.generated.resources.sort_field_duration
 import sakuro.composeapp.generated.resources.sort_field_name
@@ -78,6 +87,25 @@ fun ContentClass.label(): String = stringResource(
         ContentClass.CARTOON -> Res.string.content_cartoon
         ContentClass.LIVE_ACTION -> Res.string.content_live_action
         ContentClass.UNKNOWN -> Res.string.content_any
+    },
+)
+
+@Composable
+fun BundledShaderRole.label(): String = stringResource(
+    when (this) {
+        BundledShaderRole.UPSCALE -> Res.string.shader_role_upscale
+        BundledShaderRole.SHARPEN -> Res.string.shader_role_sharpen
+        BundledShaderRole.DENOISE -> Res.string.shader_role_denoise
+        BundledShaderRole.UTILITY -> Res.string.shader_role_utility
+    },
+)
+
+@Composable
+fun ShaderCost.label(): String = stringResource(
+    when (this) {
+        ShaderCost.LOW -> Res.string.shader_cost_low
+        ShaderCost.MEDIUM -> Res.string.shader_cost_medium
+        ShaderCost.HIGH -> Res.string.shader_cost_high
     },
 )
 

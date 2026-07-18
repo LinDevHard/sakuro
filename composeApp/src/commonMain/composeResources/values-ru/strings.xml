@@ -47,7 +47,15 @@
     <string name="msg_shader_imported">Шейдер импортирован: %1$s</string>
     <string name="msg_shader_rejected">Шейдер отклонён: %1$s</string>
     <string name="preset_shader_chain">Цепочка шейдеров</string>
-    <string name="preset_shader_chain_hint">Упорядоченная цепочка импортированных шейдеров; заменяет встроенную обработку</string>
+    <string name="preset_shader_chain_hint">Упорядоченная цепочка встроенных и импортированных шейдеров; заменяет встроенную обработку</string>
+    <string name="shader_role_upscale">апскейл</string>
+    <string name="shader_role_sharpen">резкость</string>
+    <string name="shader_role_denoise">шумодав</string>
+    <string name="shader_role_utility">служебный</string>
+    <string name="shader_cost_low">лёгкий</string>
+    <string name="shader_cost_medium">средний</string>
+    <string name="shader_cost_high">тяжёлый</string>
+    <string name="shader_imported">импортирован</string>
     <string name="settings_controls">Управление</string>
     <string name="settings_player_gestures">Жесты в плеере</string>
     <string name="settings_player_gestures_desc">Общий выключатель свайпов и пинча</string>
