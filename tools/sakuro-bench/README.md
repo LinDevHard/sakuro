@@ -25,10 +25,46 @@ a chart entry, and a visual comparison item.
 
 ## Scenarios
 
-### 1. Device Capture Comparison
+### 1. In-App Benchmark Bundle (recommended)
 
-This is the most important scenario because it measures the real app path:
-decoder, engine, GPU precision, shaders, scale mode, and Android display output.
+Sakuro can benchmark itself. In the app: **Settings → Advanced → Benchmark**,
+pick a video, pick the engines and presets, press Run. The app renders the video
+through every engine × preset combination on an offscreen 1920×1080 surface,
+measures startup/first-frame latency, sustained render FPS, dropped frames, CPU,
+memory and thermal state, captures the same frames from every mode, and packs
+everything into one zip.
+
+Share that zip to your machine and feed it to the tool as a single file:
+
+```bash
+cd tools/sakuro-bench
+./sakuro-bench device-bundle --bundle sakuro-bench_Pixel-9a_20260816-004500.zip --out report
+```
+
+The report folder gets `index.html` (device info, the performance table, links),
+`performance.csv`, and one full quality sub-report per capture point
+(`t0/index.html`, `t1/…`) with the usual NR metrics, diffs and 1:1 zoom.
+
+Useful options:
+
+```bash
+./sakuro-bench device-bundle --bundle bundle.zip --baseline media3_off
+./sakuro-bench device-bundle --bundle bundle.zip --ref-dir masters --out report
+```
+
+`--baseline` picks the alignment anchor (by default the `*_off` mode). `--ref-dir`
+enables full-reference metrics: put ground-truth frames named `t0.png`, `t1.png`,
+… — one per capture point — into that folder. A bundle folder that is already
+unpacked works in place of the zip.
+
+This scenario supersedes manual screenshotting: the frames are pixel-stable
+across devices (no display cutouts, scaling, or HW-overlay black frames), and
+quality and performance land in the same report.
+
+### 2. Device Capture Comparison (manual)
+
+Use this when you need frames the in-app benchmark cannot produce — a specific
+scene, another player, or a device where the app cannot run the bench.
 
 Capture several modes on the same frame:
 
@@ -79,7 +115,7 @@ letterbox/pillarbox borders are trimmed. `--expand-range` converts limited-range
 captures, approximately 16..235, to full 0..255 when the screenshot pipeline
 produced TV-range output.
 
-### 2. Synthetic Baseline Test
+### 3. Synthetic Baseline Test
 
 The `synth` command is a controlled self-test for baseline scalers. It starts
 from a high-resolution master frame, creates a lower-resolution input, upscales
@@ -101,7 +137,7 @@ does not exercise Sakuro engines.
 `--degrade clean` performs a clean downscale. `--degrade realistic` applies
 blur and noise before downscaling to better approximate a low-quality source.
 
-### 3. Offline mpv + Anime4K
+### 4. Offline mpv + Anime4K
 
 The `synth-mpv` command renders through desktop `mpv --vo=gpu-next` using the
 same vendored Anime4K shader files that Sakuro ships for `engine-mpv`.
@@ -129,6 +165,12 @@ different precision or texture formats. Treat `synth-mpv` as a fast ranking
 tool; use real device captures for final numbers.
 
 ## How The Pipeline Works
+
+For `device-bundle`, the tool unpacks the zip, reads `manifest.json` (device,
+video, capture timestamps, per-mode performance metrics), and turns every capture
+point into its own comparison group — the modes of one `t<i>` are exactly the
+inputs `capture-compare` would get. Performance metrics come from the manifest,
+not from the images.
 
 For `capture-compare`, the tool loads every image in `--captures`. The filename
 without extension becomes the mode name. Files named `ref`, `reference`,
@@ -287,6 +329,8 @@ python -m sakuro_bench --help
 ## Commands
 
 ```bash
+./sakuro-bench device-bundle --bundle bundle.zip --out report
+./sakuro-bench device-bundle --bundle bundle.zip --ref-dir masters --out report
 ./sakuro-bench capture-compare --captures caps --out report
 ./sakuro-bench capture-compare --captures caps --ref master_1080p.png --baseline off --out report
 ./sakuro-bench synth --master master_1080p.png --scale 2 --degrade realistic --out report
@@ -296,6 +340,9 @@ python -m sakuro_bench --help
 ## Limitations
 
 - It works on frames, not full video sequences.
+- Bundle performance numbers describe one uninterrupted run on one device: a
+  thermally throttled phone ranks modes differently from a cold one, so compare
+  within a bundle, not across bundles.
 - It does not measure playback FPS, dropped frames, power use, or thermals.
 - Single-frame VMAF lacks temporal motion features.
 - Alignment is integer-only and assumes the same frame geometry.

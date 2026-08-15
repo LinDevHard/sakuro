@@ -237,7 +237,9 @@ def _slider(mode, original_b64, enhanced_b64) -> str:
 
 # ============================ output ============================
 def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta,
-                  zoom_series=None, zoom_aspect=1.777) -> Path:
+                  zoom_series=None, zoom_aspect=1.777, extra_html="", extra_json=None) -> Path:
+    """`extra_html` is injected above the metric tables (device perf, links);
+    `extra_json` is merged into metrics.json under its own keys."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     has_fr = any(fr_rows.values())
@@ -252,16 +254,23 @@ def write_reports(out_dir, modes, fr_rows, nr_rows, thumbs, heatmaps, originals,
                         *[_fmt(nr_rows.get(m, {}).get(k, float("nan"))) for k in nr.NR_KEYS]])
 
     (out_dir / "metrics.json").write_text(
-        json.dumps({"meta": meta, "fr": fr_rows, "nr": nr_rows}, indent=2, ensure_ascii=False))
+        json.dumps({"meta": meta, "fr": fr_rows, "nr": nr_rows, **(extra_json or {})},
+                   indent=2, ensure_ascii=False))
 
     index = out_dir / "index.html"
     index.write_text(_render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta,
-                                  has_fr, zoom_series or [], zoom_aspect), encoding="utf-8")
+                                  has_fr, zoom_series or [], zoom_aspect, extra_html),
+                     encoding="utf-8")
     return index
 
 
+def perf_table(modes, perf_rows, keys, labels, higher_better, note) -> str:
+    """Device performance table; same look as the metric tables."""
+    return _table(modes, perf_rows, keys, labels, higher_better, note)
+
+
 def _render_html(modes, fr_rows, nr_rows, thumbs, heatmaps, originals, meta, has_fr,
-                 zoom_series, zoom_aspect) -> str:
+                 zoom_series, zoom_aspect, extra_html="") -> str:
     fr_html = ""
     if has_fr:
         fr_html = "<h2>Full-reference (reference known)</h2>" + _table(
@@ -357,6 +366,7 @@ image-rendering:pixelated}}
 <p class=sub>{meta.get('scenario','')} · {meta.get('generated','')}</p>
 <ul class=meta>{meta_html}</ul>
 {_legend(modes)}
+{extra_html}
 {zoom_html}
 <h2>Infographics</h2>
 {charts}

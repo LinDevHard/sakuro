@@ -1,17 +1,19 @@
 """CLI: sakuro-bench <command>.
 
-  capture-compare  — compare device screenshots of the modes (the main scenario).
+  device-bundle    — one zip from the app's in-app benchmark (the main scenario).
+  capture-compare  — compare hand-made device screenshots of the modes.
   synth            — synthetic downscale->upscale test (self-test + baseline scalers).
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-from . import __version__, fr, images, mpv_backend, nr, report
+from . import __version__, device_bundle, fr, images, mpv_backend, nr, report
 
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 _REF_NAMES = {"ref", "reference", "master", "gt", "ground_truth"}
@@ -71,14 +73,7 @@ def cmd_capture_compare(args) -> int:
     if baseline not in frames:
         raise SystemExit(f"--baseline '{baseline}' is not among the modes: {sorted(frames)}")
     base = frames[baseline]
-    # bring all modes onto the common baseline grid
-    aligned = {baseline: base}
-    for m, f in frames.items():
-        if m == baseline:
-            continue
-        af, shift = images.align_translation(base, f)
-        aligned[m] = af
-    modes = [baseline] + sorted(m for m in aligned if m != baseline)
+    modes, aligned = _align_group(frames, baseline)
 
     # reference
     ref_frame = None
@@ -118,6 +113,157 @@ def cmd_capture_compare(args) -> int:
     print(f"OK · report: {index}")
     print(f"     CSV:   {out / 'metrics.csv'}")
     return 0
+
+
+def _align_group(frames: dict[str, images.Frame], baseline: str) -> tuple[list[str], dict[str, images.Frame]]:
+    """Brings every mode onto the baseline's pixel grid; returns (ordered modes, aligned)."""
+    base = frames[baseline]
+    aligned = {baseline: base}
+    for mode, frame in frames.items():
+        if mode == baseline:
+            continue
+        aligned[mode], _ = images.align_translation(base, frame)
+    return [baseline] + sorted(m for m in aligned if m != baseline), aligned
+
+
+def cmd_device_bundle(args) -> int:
+    out = Path(args.out)
+    with tempfile.TemporaryDirectory() as td:
+        bundle = device_bundle.extract(args.bundle, Path(td) / "bundle")
+        modes_all = bundle.modes
+        timestamps = bundle.timestamps or [0]
+        perf_rows = bundle.perf_rows()
+        print(f"bundle: {len(modes_all)} modes · {len(timestamps)} capture points")
+        for warning in bundle.warnings():
+            print(f"  ! {warning}")
+
+        group_links = []
+        for index, ts in enumerate(timestamps):
+            files = bundle.captures_at(index)
+            if not files:
+                print(f"  · t{index}: no captures, skipped")
+                continue
+            frames = {mode: images.load(str(path), mode) for mode, path in files.items()}
+            baseline = args.baseline if args.baseline in frames else _default_baseline(frames)
+            modes, aligned = _align_group(frames, baseline)
+
+            ref_frame = None
+            ref_path = _ref_for(args.ref_dir, index)
+            if ref_path:
+                fr.ensure_ffmpeg()
+                rf = images.load(str(ref_path), "ref")
+                rf = images.resize_to(rf, aligned[baseline].size)
+                rf, _ = images.align_translation(aligned[baseline], rf)
+                ref_frame = rf
+
+            rows_fr, rows_nr, thumbs, heatmaps, originals = {}, {}, {}, {}, {}
+            _collect(rows_fr, rows_nr, thumbs, heatmaps, originals, modes, aligned, ref_frame)
+
+            geometry = aligned[baseline].size
+            meta = {
+                "scenario": f"device bundle · capture t{index} @ {ts} ms"
+                            + ("  (FR+NR)" if ref_frame else "  (NR only)"),
+                "generated": report.now_iso(),
+                **bundle.describe(),
+                "reference": str(ref_path) if ref_path else "none — no-reference only",
+                "baseline/grid": baseline,
+                "geometry": f"{geometry[0]}×{geometry[1]}",
+                "sakuro-bench": __version__,
+            }
+            zoom_series = ([("reference", report.rgb_b64(ref_frame.rgb, 1500))] if ref_frame else []) + \
+                [(m, report.rgb_b64(aligned[m].rgb, 1500)) for m in modes]
+
+            group_dir = out / f"t{index}"
+            index_path = report.write_reports(
+                group_dir, modes, rows_fr, rows_nr, thumbs, heatmaps, originals, meta,
+                zoom_series=zoom_series, zoom_aspect=geometry[0] / geometry[1],
+                extra_html=device_bundle.perf_html(modes, perf_rows),
+                extra_json={"perf": perf_rows, "manifest": bundle.manifest},
+            )
+            group_links.append((f"t{index} @ {ts} ms", f"t{index}/index.html", index_path))
+            print(f"  · t{index}: {len(modes)} modes → {index_path}")
+
+        if not group_links:
+            raise SystemExit("the bundle contains no usable captures")
+
+        summary = _write_bundle_summary(out, bundle, perf_rows, group_links)
+
+    print(f"OK · summary: {summary}")
+    for label, _, path in group_links:
+        print(f"     {label}: {path}")
+    return 0
+
+
+def _default_baseline(frames: dict[str, images.Frame]) -> str:
+    """Prefer an Off mode — that is the bundle's intended baseline."""
+    for mode in sorted(frames):
+        if mode.endswith("_off"):
+            return mode
+    return sorted(frames)[0]
+
+
+def _ref_for(ref_dir: str | None, index: int) -> Path | None:
+    """A ground-truth frame for capture t<index>, if the user supplied a folder."""
+    if not ref_dir:
+        return None
+    for ext in _IMG_EXT:
+        candidate = Path(ref_dir) / f"t{index}{ext}"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _write_bundle_summary(out: Path, bundle, perf_rows, group_links) -> Path:
+    """A landing page: device/video info, the perf table, links to each capture group."""
+    out.mkdir(parents=True, exist_ok=True)
+    modes = bundle.modes
+    meta_html = "".join(f"<li><b>{k}:</b> {v}</li>" for k, v in bundle.describe().items())
+    links_html = "".join(f"<li><a href='{href}'>{label}</a></li>" for label, href, _ in group_links)
+    warnings = bundle.warnings()
+    warn_html = ("<h2>Warnings</h2><ul class='meta'>"
+                 + "".join(f"<li>{w}</li>" for w in warnings) + "</ul>") if warnings else ""
+    html = f"""<!doctype html><html lang=en><head><meta charset=utf-8>
+<title>sakuro-bench · device bundle</title>
+<style>
+body{{background:#12101a;color:#efe9f5;font:14px/1.55 system-ui,sans-serif;margin:0;padding:28px 22px;
+max-width:1100px;margin-inline:auto}}
+h1{{font-size:22px;margin:0 0 4px}} h2{{font-size:16px;margin:26px 0 10px;color:#e0559b}}
+.sub{{color:#9a90ad;margin:0 0 18px}}
+ul.meta{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px}}
+ul.meta li{{background:#1b1826;border:1px solid #2b2738;border-radius:9px;padding:7px 11px}}
+b{{color:#9a90ad;font-weight:600}}
+table{{border-collapse:collapse;width:100%;margin-top:6px}}
+th,td{{border:1px solid #2b2738;padding:6px 9px;text-align:right;font-variant-numeric:tabular-nums}}
+th{{color:#9a90ad;font-weight:600}} th.mode{{text-align:left;color:#efe9f5}}
+thead th{{background:#1b1826}} td.best{{background:rgba(224,85,155,.22);color:#fff;font-weight:600}}
+.note{{color:#9a90ad;font-size:12px;margin-top:6px}}
+.dot{{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}}
+.legend{{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}}
+.legend .li{{display:flex;align-items:center;gap:6px;color:#9a90ad;font-size:12px}}
+.legend i{{width:9px;height:9px;border-radius:50%;display:inline-block}}
+a{{color:#5bc8f5}}
+</style></head><body>
+<h1>sakuro-bench · device bundle</h1>
+<p class=sub>{report.now_iso()} · sakuro-bench {__version__}</p>
+<ul class=meta>{meta_html}</ul>
+{device_bundle.perf_html(modes, perf_rows)}
+<h2>Capture points</h2>
+<ul class='meta'>{links_html}</ul>
+{warn_html}
+</body></html>"""
+    path = out / "index.html"
+    path.write_text(html, encoding="utf-8")
+    _write_perf_csv(out / "performance.csv", modes, perf_rows)
+    return path
+
+
+def _write_perf_csv(path: Path, modes, perf_rows) -> None:
+    with path.open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["mode", *device_bundle.PERF_KEYS])
+        for mode in modes:
+            row = perf_rows.get(mode, {})
+            writer.writerow([mode, *[row.get(k, float("nan")) for k in device_bundle.PERF_KEYS]])
 
 
 _SWS = {
@@ -256,6 +402,13 @@ def main(argv=None) -> int:
     ap.add_argument("--version", action="version", version=f"sakuro-bench {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
+    db = sub.add_parser("device-bundle", help="report from the app's in-app benchmark bundle (zip)")
+    db.add_argument("--bundle", required=True, help="bundle zip exported by the app (or an unpacked folder)")
+    db.add_argument("--baseline", help="anchor mode for alignment (default: the *_off mode)")
+    db.add_argument("--ref-dir", help="folder with ground-truth frames t0.png, t1.png… for FR metrics")
+    db.add_argument("--out", default="report", help="report folder (default ./report)")
+    db.set_defaults(func=cmd_device_bundle)
+
     cc = sub.add_parser("capture-compare", help="compare device screenshots of the modes")
     cc.add_argument("--captures", required=True, help="folder with screenshots (file name = mode)")
     cc.add_argument("--ref", help="reference master for FR (otherwise NR only; a ref.* file is also searched)")
@@ -286,7 +439,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     try:
         return args.func(args)
-    except (fr.FfmpegError, mpv_backend.MpvError, subprocess.CalledProcessError) as exc:
+    except (fr.FfmpegError, mpv_backend.MpvError, device_bundle.BundleError,
+            subprocess.CalledProcessError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
