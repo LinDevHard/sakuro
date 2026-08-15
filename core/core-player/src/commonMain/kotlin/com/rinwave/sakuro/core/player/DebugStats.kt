@@ -10,6 +10,12 @@ data class DebugStats(
     val videoFps: Float? = null,
     val droppedFrames: Int = 0,
     val renderedFrames: Int? = null,
+    /**
+     * Frames per second the engine is actually putting on screen right now, as
+     * reported by the engine itself (Media3: rendered-buffer delta, mpv:
+     * `estimated-vf-fps`). Null until the engine has enough samples.
+     */
+    val renderFps: Float? = null,
     val bitrateKbps: Int? = null,
     val colorInfo: String? = null,
     val audioCodec: String? = null,

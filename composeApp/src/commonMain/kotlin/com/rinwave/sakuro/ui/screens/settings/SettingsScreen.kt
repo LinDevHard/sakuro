@@ -36,6 +36,7 @@ import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.action_back
 import sakuro.composeapp.generated.resources.settings_about
+import sakuro.composeapp.generated.resources.settings_bench
 import sakuro.composeapp.generated.resources.settings_controls
 import sakuro.composeapp.generated.resources.settings_tab_advanced
 import sakuro.composeapp.generated.resources.settings_tab_playback
@@ -68,6 +69,11 @@ fun SettingsScreen(component: SettingsComponent) {
             is SettingsComponent.Child.Advanced ->
                 SettingsDetailScaffold(stringResource(Res.string.settings_tab_advanced), component::pop) {
                     AdvancedSettingsTab(instance.component)
+                }
+
+            is SettingsComponent.Child.Bench ->
+                SettingsDetailScaffold(stringResource(Res.string.settings_bench), component::pop) {
+                    BenchScreen(instance.component)
                 }
 
             is SettingsComponent.Child.About ->

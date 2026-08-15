@@ -206,6 +206,16 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         mpv.command(arrayOf("seek", (positionMs / MS_IN_SECOND).toString(), "absolute"))
     }
 
+    /**
+     * Frame-exact seeks (`hr-seek`) for capture/benchmark flows, where both
+     * engines must land on the same frame; the default keyframe seeking is
+     * kept for interactive scrubbing.
+     */
+    fun setExactSeeking(enabled: Boolean) {
+        if (released.get()) return
+        mpv.setPropertyString("hr-seek", if (enabled) "yes" else "default")
+    }
+
     override fun setSpeed(speed: Float) {
         if (released.get()) return
         mpv.setPropertyDouble("speed", speed.toDouble())
@@ -374,6 +384,9 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
             outputResolution = mpv.getPropertyString("android-surface-size"),
             videoFps = mpv.getPropertyDouble("container-fps")?.toFloat(),
             droppedFrames = mpv.getPropertyInt("frame-drop-count") ?: 0,
+            // mpv counts what the filter chain actually outputs; Media3 derives
+            // the same quantity from its rendered-buffer counter.
+            renderFps = mpv.getPropertyDouble("estimated-vf-fps")?.toFloat()?.takeIf { it > 0f },
             bitrateKbps = mpv.getPropertyInt("video-bitrate")?.div(BITS_IN_KBIT),
             colorInfo = listOfNotNull(
                 mpv.getPropertyString("video-params/pixelformat"),

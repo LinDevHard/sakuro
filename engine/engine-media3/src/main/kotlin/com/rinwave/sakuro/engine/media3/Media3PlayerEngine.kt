@@ -2,6 +2,7 @@ package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
@@ -74,6 +75,9 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     private var videoDecoderName: String? = null
     private var audioDecoderName: String? = null
     private var droppedFrames = 0
+
+    /** (rendered buffers, elapsedRealtime) of the previous stats poll, for the FPS delta. */
+    private var lastRenderSample: Pair<Int, Long>? = null
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -179,6 +183,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         currentMedia = media
         externalSubtitles.clear()
         droppedFrames = 0
+        lastRenderSample = null
         _state.update { it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null) }
         setEffectsInternal()
         player.setMediaItem(media.toMediaItem())
@@ -292,6 +297,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             outputResolution = if (sourceHeight > 0) "${outputWidth}x$targetHeight" else null,
             videoFps = videoFormat?.frameRate?.takeIf { it > 0 },
             droppedFrames = droppedFrames,
+            renderedFrames = player.videoDecoderCounters?.renderedOutputBufferCount,
+            renderFps = sampleRenderFps(),
             bitrateKbps = videoFormat?.bitrateKbps(),
             colorInfo = videoFormat?.colorInfo?.toLogString(),
             audioCodec = audioFormat?.codecs ?: audioFormat?.sampleMimeType,
@@ -303,6 +310,23 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
                 audioDecoderName?.let { put("audio decoder", it) }
             },
         )
+    }
+
+    /**
+     * Output FPS from the rendered-buffer counter between two stats polls;
+     * null on the first poll and whenever the counter did not move forward
+     * (paused, or the decoder was reset).
+     */
+    private fun sampleRenderFps(): Float? {
+        val rendered = player.videoDecoderCounters?.renderedOutputBufferCount ?: return null
+        val now = SystemClock.elapsedRealtime()
+        val previous = lastRenderSample
+        lastRenderSample = rendered to now
+        if (previous == null) return null
+        val frames = rendered - previous.first
+        val elapsedMs = now - previous.second
+        if (frames < 0 || elapsedMs <= 0) return null
+        return frames * MS_IN_SECOND_F / elapsedMs
     }
 
     private fun Format.bitrateKbps(): Int? {
@@ -379,6 +403,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     private companion object {
         const val POSITION_POLL_MS = 250L
+        const val MS_IN_SECOND_F = 1000f
     }
 }
 

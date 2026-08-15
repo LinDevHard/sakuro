@@ -47,6 +47,9 @@ class SettingsComponent(
         data object Advanced : Config
 
         @Serializable
+        data object Bench : Config
+
+        @Serializable
         data object About : Config
     }
 
@@ -56,6 +59,7 @@ class SettingsComponent(
         class Upscale(val component: UpscaleSettingsComponent) : Child
         class Controls(val component: ControlsSettingsComponent) : Child
         class Advanced(val component: AdvancedSettingsComponent) : Child
+        class Bench(val component: BenchComponent) : Child
         class About(val component: AboutSettingsComponent) : Child
     }
 
@@ -88,7 +92,23 @@ class SettingsComponent(
         is Config.Upscale ->
             Child.Upscale(UpscaleSettingsComponent(componentContext, settings, presetStores, userShaderStore))
         is Config.Controls -> Child.Controls(ControlsSettingsComponent(componentContext, settings))
-        is Config.Advanced -> Child.Advanced(AdvancedSettingsComponent(componentContext, settings))
+        is Config.Advanced -> Child.Advanced(
+            AdvancedSettingsComponent(
+                componentContext = componentContext,
+                settings = settings,
+                onOpenBench = { navigation.push(Config.Bench) },
+            ),
+        )
+
+        is Config.Bench -> Child.Bench(
+            BenchComponent(
+                componentContext = componentContext,
+                engineRegistry = engineRegistry,
+                presetStores = presetStores,
+                onBack = ::pop,
+            ),
+        )
+
         is Config.About -> Child.About(AboutSettingsComponent(componentContext))
     }
 

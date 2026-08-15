@@ -4,10 +4,11 @@ import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import kotlinx.coroutines.flow.StateFlow
 
-/** Advanced tab: adaptive shader switching and the debug overlay. */
+/** Advanced tab: adaptive shader switching, the debug overlay and the benchmark. */
 class AdvancedSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
+    val onOpenBench: () -> Unit,
 ) : ComponentContext by componentContext {
 
     val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
