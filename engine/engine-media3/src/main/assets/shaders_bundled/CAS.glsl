@@ -17,8 +17,10 @@
 
 // FidelityFX CAS by AMD
 // ported to mpv by agyild
-// modified for Sakuro: the no-scale //!WHEN gates removed (the preset decides
-// when the pass applies), SHARPENING exposed as a tunable //!PARAM
+// modified for Sakuro: the no-scale WHEN gates removed (the preset decides when
+// the pass applies), SHARPENING exposed as a tunable PARAM block.
+// NOTE: never write a directive marker inside a comment here — classic mpv
+// vo=gpu scans for it anywhere in the line and rejects the whole shader.
 
 // Changelog
 // Optimized texture lookups for OpenGL 4.0+, DirectX 10+, and OpenGL ES 3.1+ (9 -> 4).

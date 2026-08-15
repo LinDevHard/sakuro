@@ -72,6 +72,22 @@ class BundledShaderAssetTest {
     }
 
     @Test
+    fun `no bundled shader hides a directive marker inside a comment`() {
+        // Classic mpv vo=gpu (what engine-mpv runs) scans for "//!" anywhere in
+        // a line, so a marker mentioned inside a comment is parsed as a real
+        // directive and the whole shader is rejected — silently, at render time.
+        val dir = File("src/main/assets/shaders_bundled")
+        for (file in dir.listFiles().orEmpty()) {
+            file.readLines().forEachIndexed { index, line ->
+                val marker = line.indexOf("//!")
+                if (marker > 0) {
+                    fail("${file.name}:${index + 1} mentions a directive marker mid-line: $line")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `the shipped ravu copies match the test fixtures`() {
         for (name in listOf("ravu-r3.hook", "ravu-lite-r3.hook")) {
             val shipped = File("src/main/assets/shaders_bundled/$name")
