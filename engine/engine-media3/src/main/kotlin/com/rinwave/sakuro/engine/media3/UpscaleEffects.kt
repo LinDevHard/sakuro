@@ -32,7 +32,15 @@ object UpscaleEffectChain {
     fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): List<Effect> {
         // An explicit user-shader chain overrides the engine's own selection.
         UserShaderChain.load(context, profile)?.let { custom ->
-            if (custom.passes.isNotEmpty()) return listOf(UserShaderGlEffect(custom))
+            // The runtime resolves params against the merged document, so the
+            // per-file overrides collapse into one map; a name declared by two
+            // shaders of the chain takes the value of the later one.
+            if (custom.passes.isNotEmpty()) {
+                val params = profile.shaderChain.fold(emptyMap<String, Float>()) { acc, file ->
+                    acc + profile.shaderParams[file].orEmpty()
+                }
+                return listOf(UserShaderGlEffect(custom, params))
+            }
         }
         val anime4kChain = Anime4KChain.load(context, profile)
         if (anime4kChain.passes.isNotEmpty()) return listOf(UserShaderGlEffect(anime4kChain))

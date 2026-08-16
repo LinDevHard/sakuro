@@ -65,6 +65,8 @@ class RootComponent(
                 deviceStatusMonitor = deps.deviceStatusMonitor,
                 contentClassifier = deps.contentClassifier,
                 presetStores = deps.presetStores,
+                userShaderStore = deps.userShaderStore,
+                shaderInspector = deps.shaderInspector,
                 onFinished = navigation::pop,
             ),
         )
@@ -76,6 +78,7 @@ class RootComponent(
                 engineRegistry = deps.engineRegistry,
                 presetStores = deps.presetStores,
                 userShaderStore = deps.userShaderStore,
+                shaderInspector = deps.shaderInspector,
                 onBack = navigation::pop,
             ),
         )

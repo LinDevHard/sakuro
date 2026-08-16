@@ -12,6 +12,7 @@ import com.rinwave.sakuro.AppInfo
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.PresetStores
+import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UserShaderStore
 import kotlinx.serialization.Serializable
 
@@ -26,6 +27,7 @@ class SettingsComponent(
     private val engineRegistry: EngineRegistry,
     private val presetStores: PresetStores,
     private val userShaderStore: UserShaderStore,
+    private val shaderInspector: ShaderInspector,
     val onBack: () -> Unit,
 ) : ComponentContext by componentContext {
 
@@ -90,7 +92,15 @@ class SettingsComponent(
 
         is Config.Playback -> Child.Playback(PlaybackSettingsComponent(componentContext, settings, engineRegistry))
         is Config.Upscale ->
-            Child.Upscale(UpscaleSettingsComponent(componentContext, settings, presetStores, userShaderStore))
+            Child.Upscale(
+                UpscaleSettingsComponent(
+                    componentContext = componentContext,
+                    settings = settings,
+                    presetStores = presetStores,
+                    userShaderStore = userShaderStore,
+                    shaderInspector = shaderInspector,
+                ),
+            )
         is Config.Controls -> Child.Controls(ControlsSettingsComponent(componentContext, settings))
         is Config.Advanced -> Child.Advanced(
             AdvancedSettingsComponent(

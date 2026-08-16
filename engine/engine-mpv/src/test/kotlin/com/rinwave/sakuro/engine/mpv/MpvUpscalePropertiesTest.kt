@@ -147,6 +147,25 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
+    fun `an explicit chain carries the profile's own PARAM values`() {
+        val profile = UpscaleProfile(
+            id = "user-2",
+            name = "Sharp",
+            passes = emptyList(),
+            shaderChain = listOf("CAS.glsl"),
+            shaderParams = mapOf(
+                "CAS.glsl" to mapOf("SHARPENING" to 0.8f),
+                // A shader that is not in the chain must not leak into the config.
+                "ravu-r3.hook" to mapOf("X" to 1f),
+            ),
+        )
+        val config = buildMpvRenderConfig(profile)
+
+        assertEquals(listOf("CAS.glsl"), config.userShaders)
+        assertEquals(mapOf("CAS.glsl" to mapOf("SHARPENING" to 0.8f)), config.userShaderParams)
+    }
+
+    @Test
     fun `an explicit shader chain replaces the anime4k selection and mutes sharpen`() {
         val profile = UpscaleProfile(
             id = "user-1",

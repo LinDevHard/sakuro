@@ -14,11 +14,14 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.DeviceStatus
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
 import com.rinwave.sakuro.core.upscale.PlaybackHealth
 import com.rinwave.sakuro.core.upscale.PresetStores
+import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.core.upscale.UserShaderStore
 import com.rinwave.sakuro.ui.isInPipNow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,8 +30,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Suppress("LongParameterList")
 class PlayerComponent(
     componentContext: ComponentContext,
     val media: MediaSource,
@@ -37,6 +42,8 @@ class PlayerComponent(
     deviceStatusMonitor: DeviceStatusMonitor,
     contentClassifier: ContentClassifier,
     presetStores: PresetStores,
+    userShaderStore: UserShaderStore,
+    val shaderInspector: ShaderInspector,
     private val onFinished: () -> Unit,
 ) : ComponentContext by componentContext {
 
@@ -77,6 +84,29 @@ class PlayerComponent(
     val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
 
     /**
+     * A shader applied straight from the player, without saving a preset:
+     * the chain is a single file and its `//!PARAM` values can be moved while
+     * the video plays. Null — the selected preset is in charge.
+     */
+    private val _liveShader = MutableStateFlow<LiveShader?>(null)
+    val liveShader: StateFlow<LiveShader?> = _liveShader.asStateFlow()
+
+    /** What the user picked: a live shader wins over the preset while it is set. */
+    private data class Selection(val presetId: String, val live: LiveShader?)
+
+    private val selection = combine(_selectedPresetId, _liveShader) { id, live -> Selection(id, live) }
+
+    /** Shaders that can be applied live: imported files plus the bundled registry. */
+    val shaderFiles: StateFlow<List<String>> = userShaderStore.shaders
+        .map { imported -> imported + BundledShaders.all.map { it.fileName }.filterNot { it in imported } }
+        .stateIn(
+            scope,
+            SharingStarted.Eagerly,
+            userShaderStore.shaders.value +
+                BundledShaders.all.map { it.fileName }.filterNot { it in userShaderStore.shaders.value },
+        )
+
+    /**
      * The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin,
      * not the global default.
      */
@@ -97,7 +127,7 @@ class PlayerComponent(
     private var viewportHeight = 0
 
     init {
-        appliedProfile = resolveUserProfile(_selectedPresetId.value, _detection.value)
+        appliedProfile = resolveUserProfile(Selection(_selectedPresetId.value, null), _detection.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
         // In PiP the activity is "paused", but the video must keep playing.
@@ -114,11 +144,11 @@ class PlayerComponent(
             combine(
                 engine.debugStats,
                 deviceStatusMonitor.status,
-                _selectedPresetId,
+                selection,
                 _detection,
                 userPresets.presets,
-            ) { stats, device, selectedId, detection, _ ->
-                AdaptiveInputs(resolveUserProfile(selectedId, detection), device, healthTracker.update(stats))
+            ) { stats, device, current, detection, _ ->
+                AdaptiveInputs(resolveUserProfile(current, detection), device, healthTracker.update(stats))
             }.combine(settings.adaptiveEnabled) { inputs, adaptive ->
                 if (adaptive) {
                     adaptiveController.update(inputs.user, inputs.device, inputs.health)
@@ -141,11 +171,13 @@ class PlayerComponent(
         }
     }
 
-    private fun resolveUserProfile(selectedId: String, detection: ContentDetection): UpscaleProfile =
-        when (selectedId) {
+    private fun resolveUserProfile(selection: Selection, detection: ContentDetection): UpscaleProfile {
+        selection.live?.let { return it.toProfile() }
+        return when (val selectedId = selection.presetId) {
             AUTO_PRESET_ID -> BuiltInPresets.forContentClass(detection.contentClass)
             else -> BuiltInPresets.byId(selectedId) ?: userPresets.byId(selectedId) ?: BuiltInPresets.OFF
         }
+    }
 
     /** A file-pinned preset takes priority over the global default; a broken pin is cleared. */
     private fun initialPresetId(): String {
@@ -160,8 +192,31 @@ class PlayerComponent(
 
     fun applyPreset(id: String) {
         if (!isKnownPreset(id)) return
+        // Choosing a preset ends the live-shader experiment.
+        _liveShader.value = null
         if (isPinned.value) pinnedPresets.pin(media.uri, id) else settings.setPresetId(id)
         _selectedPresetId.value = id
+    }
+
+    /**
+     * Applies a single shader right away, without saving a preset. Null returns
+     * control to the selected preset. Values start at the shader's defaults;
+     * [setShaderParam] moves them while playing.
+     */
+    fun applyShader(fileName: String?) {
+        _liveShader.value = fileName?.let { LiveShader(it) }
+    }
+
+    /** Live `//!PARAM` change; null restores that param's default. */
+    fun setShaderParam(name: String, value: Float?) {
+        _liveShader.update { current ->
+            if (current == null) {
+                null
+            } else {
+                val params = if (value == null) current.params - name else current.params + (name to value)
+                current.copy(params = params)
+            }
+        }
     }
 
     /** Unpinning does not touch the current choice — the global default returns on next open. */
@@ -224,3 +279,20 @@ private data class AdaptiveInputs(
     val device: DeviceStatus,
     val health: PlaybackHealth,
 )
+
+/**
+ * A shader applied straight from the player: one-file chain plus the
+ * `//!PARAM` values being tuned. It never reaches the preset store — closing
+ * the player forgets it.
+ */
+data class LiveShader(
+    val fileName: String,
+    val params: Map<String, Float> = emptyMap(),
+) {
+    fun toProfile(): UpscaleProfile = UpscaleProfile(
+        id = "live-$fileName",
+        name = BundledShaders.byFileName(fileName)?.displayName ?: fileName,
+        shaderChain = listOf(fileName),
+        shaderParams = if (params.isEmpty()) emptyMap() else mapOf(fileName to params),
+    )
+}

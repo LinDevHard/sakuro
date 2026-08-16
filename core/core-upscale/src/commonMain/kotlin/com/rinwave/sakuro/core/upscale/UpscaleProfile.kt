@@ -25,6 +25,12 @@ data class UpscaleProfile(
      * [passes] still drive the scaler properties and the adaptive controller.
      */
     val shaderChain: List<String> = emptyList(),
+    /**
+     * `//!PARAM` overrides for the chain, by shader file name then param name.
+     * Only values the user changed are stored; everything else runs at the
+     * shader's own default (see [ShaderTunable]).
+     */
+    val shaderParams: Map<String, Map<String, Float>> = emptyMap(),
 ) {
     val isEnabled: Boolean get() = passes.isNotEmpty() || shaderChain.isNotEmpty()
 }

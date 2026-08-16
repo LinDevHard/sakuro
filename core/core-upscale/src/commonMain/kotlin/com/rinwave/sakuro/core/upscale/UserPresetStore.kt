@@ -89,6 +89,10 @@ class UserPresetStore(private val settings: Settings = Settings()) {
             .map { UserShaderStore.sanitizeName(it) }
             .distinct()
             .take(UserShaderStore.MAX_CHAIN),
+        // Overrides for shaders no longer in the chain would linger invisibly.
+        shaderParams = shaderParams.filterKeys { file ->
+            shaderChain.any { UserShaderStore.sanitizeName(it) == file }
+        },
     )
 
     companion object {

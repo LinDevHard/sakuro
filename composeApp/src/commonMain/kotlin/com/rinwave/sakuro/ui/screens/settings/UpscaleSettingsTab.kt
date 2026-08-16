@@ -57,6 +57,7 @@ import com.composables.icons.lucide.Trash2
 import com.rinwave.sakuro.core.upscale.BundledShader
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserPresetStore
@@ -191,6 +192,7 @@ internal fun UpscaleSettingsTab(component: UpscaleSettingsComponent) {
         PresetEditorDialog(
             initial = editorInitial,
             importedShaders = userShaders,
+            inspector = component.shaderInspector,
             onSave = { profile ->
                 val saved = component.saveUserPreset(profile)
                 presetMessage = PresetMessage.Saved(saved.name)
@@ -417,6 +419,7 @@ private fun UserPresetRow(
 private fun PresetEditorDialog(
     initial: UpscaleProfile?,
     importedShaders: List<String>,
+    inspector: ShaderInspector,
     onSave: (UpscaleProfile) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -435,6 +438,7 @@ private fun PresetEditorDialog(
         mutableStateOf(initial?.passes?.filterIsInstance<UpscalePass.Denoise>()?.firstOrNull()?.strength ?: 0f)
     }
     var shaderChain by remember { mutableStateOf(initial?.shaderChain ?: emptyList()) }
+    var shaderParams by remember { mutableStateOf(initial?.shaderParams ?: emptyMap()) }
     val offLabel = stringResource(Res.string.value_off)
 
     Dialog(onDismissRequest = onDismiss) {
@@ -528,6 +532,22 @@ private fun PresetEditorDialog(
                     chain = shaderChain,
                     onToggle = { name ->
                         shaderChain = if (name in shaderChain) shaderChain - name else shaderChain + name
+                        // Dropping a shader drops the values that belonged to it.
+                        if (name !in shaderChain) shaderParams = shaderParams - name
+                    },
+                )
+                ShaderTunablesEditor(
+                    chain = shaderChain,
+                    inspector = inspector,
+                    values = shaderParams,
+                    onChange = { file, param, value ->
+                        val current = shaderParams[file].orEmpty()
+                        val updated = if (value == null) current - param else current + (param to value)
+                        shaderParams = if (updated.isEmpty()) {
+                            shaderParams - file
+                        } else {
+                            shaderParams + (file to updated)
+                        }
                     },
                 )
 
@@ -550,6 +570,7 @@ private fun PresetEditorDialog(
                                     contentClass = contentClass,
                                     passes = passes,
                                     shaderChain = shaderChain,
+                                    shaderParams = shaderParams,
                                 ),
                             )
                         },

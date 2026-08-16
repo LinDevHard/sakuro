@@ -47,6 +47,11 @@
     <string name="msg_shader_imported">Шейдер импортирован: %1$s</string>
     <string name="msg_shader_rejected">Шейдер отклонён: %1$s</string>
     <string name="preset_shader_chain">Цепочка шейдеров</string>
+    <string name="player_shader_direct">Шейдер без пресета</string>
+    <string name="player_shader_none">Нет</string>
+    <string name="preset_shader_tunables">Параметры шейдеров</string>
+    <string name="preset_shader_tunables_hint">Значения, которые шейдеры отдают наружу; нетронутые остаются по умолчанию</string>
+    <string name="preset_shader_reset">Сбросить</string>
     <string name="preset_shader_chain_hint">Упорядоченная цепочка встроенных и импортированных шейдеров; заменяет встроенную обработку</string>
     <string name="shader_role_upscale">апскейл</string>
     <string name="shader_role_sharpen">резкость</string>

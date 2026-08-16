@@ -11,6 +11,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -27,9 +29,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -72,6 +78,9 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.BundledShaders
+import com.rinwave.sakuro.core.upscale.ShaderTunable
+import com.rinwave.sakuro.navigation.LiveShader
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
@@ -105,6 +114,8 @@ import sakuro.composeapp.generated.resources.player_pin_title
 import sakuro.composeapp.generated.resources.player_playback_speed
 import sakuro.composeapp.generated.resources.player_seek_back
 import sakuro.composeapp.generated.resources.player_seek_forward
+import sakuro.composeapp.generated.resources.player_shader_direct
+import sakuro.composeapp.generated.resources.player_shader_none
 import sakuro.composeapp.generated.resources.player_stats_for_nerds
 import sakuro.composeapp.generated.resources.player_subtitle_tracks
 import sakuro.composeapp.generated.resources.player_subtitles_off
@@ -1012,6 +1023,7 @@ private fun PresetSheet(
     onDismiss: () -> Unit,
 ) {
     val presets by component.presets.collectAsState()
+    val live by component.liveShader.collectAsState()
     Surface(
         color = SakuroColors.SurfaceElevated,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -1052,11 +1064,12 @@ private fun PresetSheet(
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    if (preset.id == activePresetId) {
+                    if (preset.id == activePresetId && live == null) {
                         Icon(Lucide.Check, null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
                     }
                 }
             }
+            LiveShaderSection(component, live)
             PinRow(component)
         }
     }
@@ -1102,3 +1115,92 @@ private fun PinRow(component: PlayerComponent) {
         )
     }
 }
+
+/**
+ * Applies a shader straight from the player, no preset needed, and exposes its
+ * `//!PARAM` values as live sliders. Handy for judging a shader (or a value)
+ * by eye before committing it to a preset.
+ *
+ * A change re-applies the chain; on Media3 that re-prepares the item, so the
+ * picture blinks — mpv swaps it in place.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LiveShaderSection(component: PlayerComponent, live: LiveShader?) {
+    val files by component.shaderFiles.collectAsState()
+    if (files.isEmpty()) return
+    val tunables = remember(live?.fileName) {
+        live?.let { component.shaderInspector.tunables(it.fileName) }.orEmpty()
+    }
+
+    Text(
+        stringResource(Res.string.player_shader_direct),
+        style = MaterialTheme.typography.titleSmall,
+        color = SakuroColors.AccentLavender,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+    )
+    FlowRow(
+        Modifier.padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = live == null,
+            onClick = { component.applyShader(null) },
+            label = { Text(stringResource(Res.string.player_shader_none)) },
+            colors = playerChipColors(),
+        )
+        files.forEach { file ->
+            FilterChip(
+                selected = live?.fileName == file,
+                onClick = { component.applyShader(file) },
+                label = { Text(BundledShaders.byFileName(file)?.displayName ?: file) },
+                colors = playerChipColors(),
+            )
+        }
+    }
+    for (tunable in tunables) {
+        val value = live?.params?.get(tunable.name) ?: tunable.default
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    tunable.name,
+                    color = SakuroColors.TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    formatTunable(tunable, value),
+                    color = SakuroColors.AccentSakura,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            Slider(
+                value = value,
+                onValueChange = { component.setShaderParam(tunable.name, tunable.clamp(it)) },
+                valueRange = tunable.range,
+                steps = tunable.steps,
+                colors = SliderDefaults.colors(
+                    thumbColor = SakuroColors.AccentSakura,
+                    activeTrackColor = SakuroColors.GlowMagenta,
+                    inactiveTrackColor = SakuroColors.Twilight.copy(alpha = 0.5f),
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun playerChipColors() = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
+    selectedLabelColor = SakuroColors.TextPrimary,
+    labelColor = SakuroColors.TextMuted,
+)
+
+private fun formatTunable(tunable: ShaderTunable, value: Float): String =
+    if (tunable.integral) {
+        value.roundToInt().toString()
+    } else {
+        ((value * TUNABLE_ROUND).roundToInt() / TUNABLE_ROUND).toString()
+    }
+
+private const val TUNABLE_ROUND = 100f

@@ -48,6 +48,11 @@
     <string name="msg_shader_imported">シェーダーをインポートしました: %1$s</string>
     <string name="msg_shader_rejected">シェーダーを拒否しました: %1$s</string>
     <string name="preset_shader_chain">シェーダーチェーン</string>
+    <string name="player_shader_direct">プリセットなしのシェーダー</string>
+    <string name="player_shader_none">なし</string>
+    <string name="preset_shader_tunables">シェーダーパラメーター</string>
+    <string name="preset_shader_tunables_hint">シェーダーが公開する値。変更しなければ既定値のままです</string>
+    <string name="preset_shader_reset">リセット</string>
     <string name="preset_shader_chain_hint">内蔵およびインポート済みシェーダーの順序付きチェーン。内蔵処理を置き換えます</string>
     <string name="shader_role_upscale">アップスケール</string>
     <string name="shader_role_sharpen">シャープ化</string>

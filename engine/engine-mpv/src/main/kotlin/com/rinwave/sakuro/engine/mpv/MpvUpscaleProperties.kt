@@ -70,9 +70,13 @@ internal fun buildMpvRenderConfig(
         ),
         shaders = anime4k,
         userShaders = userShaders,
-        userShaderParams = parametric
-            .filter { it.params.isNotEmpty() }
-            .associate { it.shader.fileName to it.params },
+        // An explicit chain carries the user's own //!PARAM values; a parametric
+        // chain derives them from the preset's pass strengths.
+        userShaderParams = if (explicit.isNotEmpty()) {
+            profile.shaderParams.filterKeys { it in explicit }
+        } else {
+            parametric.filter { it.params.isNotEmpty() }.associate { it.shader.fileName to it.params }
+        },
     )
 }
 
