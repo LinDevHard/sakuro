@@ -9,14 +9,20 @@ import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
-/** One benchmarked configuration: an engine rendering a preset. */
+/** One benchmarked configuration: an engine rendering a preset or a single shader. */
 data class BenchConfigItem(
     val engine: EngineType,
     val profile: UpscaleProfile,
 ) {
-    /** Mode name used for capture files and report rows, e.g. `media3_anime-sd`. */
-    val mode: String get() = "${engine.name.lowercase()}_${profile.id}"
+    /**
+     * Mode name used for capture files and report rows, e.g. `media3_anime-sd`.
+     * It becomes a path inside the bundle, so anything unusual in a preset id
+     * (user presets and synthetic shader profiles) is folded to `_`.
+     */
+    val mode: String get() = "${engine.name.lowercase()}_${profile.id}".replace(UNSAFE_IN_PATH, "_")
 }
+
+private val UNSAFE_IN_PATH = Regex("[^A-Za-z0-9._-]+")
 
 /** Stage of the currently benchmarked configuration. */
 enum class BenchStage { STARTING, PLAYING, CAPTURING, PACKING }

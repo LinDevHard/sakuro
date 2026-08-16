@@ -105,6 +105,7 @@ class SettingsComponent(
                 componentContext = componentContext,
                 engineRegistry = engineRegistry,
                 presetStores = presetStores,
+                userShaderStore = userShaderStore,
                 onBack = ::pop,
             ),
         )

@@ -63,6 +63,10 @@
     <string name="bench_engines">Движки</string>
     <string name="bench_presets">Пресеты</string>
     <string name="bench_presets_hint">Off всегда замеряется как базовая линия</string>
+    <string name="bench_shaders">Цепочки шейдеров</string>
+    <string name="bench_shaders_hint">Каждый выбранный шейдер замеряется отдельно, в этом порядке</string>
+    <string name="bench_shaders_all">Перебрать все</string>
+    <string name="bench_shaders_imported">импортирован</string>
     <string name="bench_run">Запустить бенчмарк</string>
     <string name="bench_cancel">Отменить</string>
     <string name="bench_estimate">%1$d конфигураций, примерно %2$d мин</string>

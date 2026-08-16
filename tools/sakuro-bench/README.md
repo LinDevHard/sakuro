@@ -28,11 +28,18 @@ a chart entry, and a visual comparison item.
 ### 1. In-App Benchmark Bundle (recommended)
 
 Sakuro can benchmark itself. In the app: **Settings → Advanced → Benchmark**,
-pick a video, pick the engines and presets, press Run. The app renders the video
-through every engine × preset combination on an offscreen 1920×1080 surface,
-measures startup/first-frame latency, sustained render FPS, dropped frames, CPU,
-memory and thermal state, captures the same frames from every mode, and packs
-everything into one zip.
+pick a video, pick what to measure, press Run. Two kinds of subject can be
+selected side by side:
+
+- **presets** — their passes and any shader chain they carry;
+- **shader chains** — every bundled and imported shader, each measured on its
+  own as a one-shader chain. "Sweep all" selects the whole registry, so the
+  shaders are enumerated in order without building a preset for each one.
+
+The app then renders the video through every engine × subject combination on a
+1920×1080 surface, measures startup/first-frame latency, sustained render FPS,
+dropped frames, CPU, memory and thermal state, captures the same frames from
+every mode, and packs everything into one zip.
 
 Share that zip to your machine and feed it to the tool as a single file:
 

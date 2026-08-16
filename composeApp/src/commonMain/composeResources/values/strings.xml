@@ -63,6 +63,10 @@
     <string name="bench_engines">Engines</string>
     <string name="bench_presets">Presets</string>
     <string name="bench_presets_hint">Off is always measured as the baseline</string>
+    <string name="bench_shaders">Shader chains</string>
+    <string name="bench_shaders_hint">Each selected shader is measured on its own, in this order</string>
+    <string name="bench_shaders_all">Sweep all</string>
+    <string name="bench_shaders_imported">imported</string>
     <string name="bench_run">Run benchmark</string>
     <string name="bench_cancel">Cancel</string>
     <string name="bench_estimate">%1$d configurations, about %2$d min</string>

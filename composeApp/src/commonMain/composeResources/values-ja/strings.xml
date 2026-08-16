@@ -64,6 +64,10 @@
     <string name="bench_engines">エンジン</string>
     <string name="bench_presets">プリセット</string>
     <string name="bench_presets_hint">Off は基準として常に計測されます</string>
+    <string name="bench_shaders">シェーダーチェーン</string>
+    <string name="bench_shaders_hint">選択した各シェーダーをこの順に個別計測します</string>
+    <string name="bench_shaders_all">すべて計測</string>
+    <string name="bench_shaders_imported">インポート済み</string>
     <string name="bench_run">ベンチマークを実行</string>
     <string name="bench_cancel">キャンセル</string>
     <string name="bench_estimate">%1$d 構成、約 %2$d 分</string>

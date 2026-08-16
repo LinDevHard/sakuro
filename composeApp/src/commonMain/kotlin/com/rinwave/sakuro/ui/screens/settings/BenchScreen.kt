@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Cpu
 import com.composables.icons.lucide.Film
+import com.composables.icons.lucide.Layers
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
 import com.rinwave.sakuro.bench.BenchStage
@@ -52,6 +54,10 @@ import sakuro.composeapp.generated.resources.bench_presets
 import sakuro.composeapp.generated.resources.bench_presets_hint
 import sakuro.composeapp.generated.resources.bench_progress
 import sakuro.composeapp.generated.resources.bench_run
+import sakuro.composeapp.generated.resources.bench_shaders
+import sakuro.composeapp.generated.resources.bench_shaders_all
+import sakuro.composeapp.generated.resources.bench_shaders_hint
+import sakuro.composeapp.generated.resources.bench_shaders_imported
 import sakuro.composeapp.generated.resources.bench_share
 import sakuro.composeapp.generated.resources.bench_stage_capturing
 import sakuro.composeapp.generated.resources.bench_stage_packing
@@ -82,6 +88,9 @@ internal fun BenchScreen(component: BenchComponent) {
     val presets by component.presets.collectAsState()
     val selectedEngines by component.selectedEngines.collectAsState()
     val selectedPresets by component.selectedPresets.collectAsState()
+    val shaders by component.shaders.collectAsState()
+    val selectedShaders by component.selectedShaders.collectAsState()
+    val allShadersSelected by component.allShadersSelected.collectAsState()
     val pickVideo = rememberVideoFilePicker(component::setVideo)
     val running = state is BenchState.Running
 
@@ -139,7 +148,33 @@ internal fun BenchScreen(component: BenchComponent) {
         }
     }
 
-    val configCount = selectedEngines.size * selectedPresets.size
+    SettingsPanel(
+        title = stringResource(Res.string.bench_shaders),
+        icon = Lucide.Layers,
+        subtitle = stringResource(Res.string.bench_shaders_hint),
+    ) {
+        ChipFlow(Modifier.padding(horizontal = 16.dp)) {
+            BenchChip(
+                label = stringResource(Res.string.bench_shaders_all),
+                selected = allShadersSelected,
+                enabled = !running && shaders.isNotEmpty(),
+                onClick = component::toggleAllShaders,
+            )
+            shaders.forEach { option ->
+                val bundled = option.bundled
+                BenchChip(
+                    label = bundled?.displayName ?: option.fileName,
+                    detail = bundled?.let { "${it.role.label()} · ${it.cost.label()}" }
+                        ?: stringResource(Res.string.bench_shaders_imported),
+                    selected = option.fileName in selectedShaders,
+                    enabled = !running,
+                    onClick = { component.toggleShader(option.fileName) },
+                )
+            }
+        }
+    }
+
+    val configCount = selectedEngines.size * (selectedPresets.size + selectedShaders.size)
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         when (val current = state) {
             is BenchState.Running -> RunningRow(current, onCancel = runner::cancel)
@@ -224,13 +259,30 @@ private fun ChipFlow(modifier: Modifier = Modifier, content: @Composable () -> U
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }
 
+/** A chip; with [detail] it grows a muted second line (shader role and cost). */
 @Composable
-private fun BenchChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun BenchChip(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    detail: String? = null,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
         enabled = enabled,
-        label = { Text(label) },
+        modifier = if (detail == null) Modifier else Modifier.height(52.dp),
+        label = {
+            if (detail == null) {
+                Text(label)
+            } else {
+                Column(Modifier.padding(vertical = 6.dp)) {
+                    Text(label, style = MaterialTheme.typography.labelLarge)
+                    Text(detail, style = MaterialTheme.typography.labelSmall, color = SakuroColors.TextMuted)
+                }
+            }
+        },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.4f),
             selectedLabelColor = SakuroColors.TextPrimary,
