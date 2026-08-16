@@ -133,10 +133,8 @@ re-plans on demand.
    mpv gets the same files as `glsl-shaders` paths. *Verified end-to-end on the
    emulator: FSRCNNX imported through the system picker, chained into a preset,
    14 passes load and render (pixel-diff vs Off: 23% of the video band).*
-   **Deferred:** live `//!PARAM` tunables UI (the runtime landed in 6b; values
-   come from presets); the debug overlay's target size ignores chains (shows
-   the pass-derived size only); mpv-engine chain run not exercised on the
-   emulator (mpv eats the files natively).
+   **Deferred:** the debug overlay's target size ignores chains (shows the
+   pass-derived size only).
    **6b** ✅ **`//!PARAM` runtime** (2026-07-11) — effective values (overrides
    clamped to `//!MINIMUM`/`//!MAXIMUM`, defaults otherwise) are baked into the
    generated GLSL as constants/defines and feed the planner's RPN resolver, so
@@ -166,6 +164,15 @@ re-plans on demand.
    (`ParametricChainTest`), engine-media3 (`BundledShaderAssetTest`, planner
    param gates), engine-mpv (materializer, render config); on-device visual
    check pending phase 8 benching.*
+   **6d** ✅ **Tunables UI + shader without a preset** (2026-08-16) —
+   `ShaderInspector` (core contract, implemented by `Media3ShaderInspector`
+   over the same parser the runtime uses) reports each shader's `//!PARAM`
+   blocks; `UpscaleProfile.shaderParams` stores per-shader overrides and both
+   engines bake them in. The preset editor draws a slider per tunable of the
+   chain; the player's preset sheet can apply a single shader with no preset
+   at all and move its values while the video plays. *Verified on the
+   emulator end to end: a slider at 0.68 reached the mpv-deployed file as
+   `#define SHARPENING 0.6771589`.*
 7. **Perf & adaptivity** — early FP16/3.1 probing, RTT budget per chain,
    `AdaptiveController` degradation (drop passes like mpv never does — our advantage),
    profiling on real hardware.
