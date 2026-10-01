@@ -6,6 +6,12 @@
 *.iws
 .vscode/
 
+# Local Claude Code configuration
+/.claude/
+/CLAUDE.md
+/CLAUDE.local.md
+/.mcp.json
+
 # Gradle / Kotlin
 .gradle/
 .kotlin/
