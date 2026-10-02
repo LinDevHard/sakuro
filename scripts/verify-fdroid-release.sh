@@ -13,7 +13,7 @@ dependencies_file="$(mktemp)"
 archive_file="$(mktemp)"
 trap 'rm -f "$dependencies_file" "$archive_file"' EXIT
 
-"$repo_root/gradlew" -q :composeApp:dependencies \
+"$repo_root/gradlew" -q -p "$repo_root" :composeApp:dependencies \
   --configuration androidFossReleaseRuntimeClasspath >"$dependencies_file"
 
 if grep -Eiq 'dev\.jdtech\.mpv|com\.google\.firebase|com\.google\.android\.gms|play-services|crashlytics' "$dependencies_file"; then
