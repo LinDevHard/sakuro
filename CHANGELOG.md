@@ -13,6 +13,7 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ### Changed
 
+- New app icon: eclipse ring, play button and sakura blossom, with a matching monochrome variant for Android 13+ themed icons. All icon assets are generated from one script (`tools/branding/generate_app_icon.py`).
 - Public README now reflects the current Android-first Media3/mpv architecture and links to benchmark methodology.
 - Internal worklog/research notes are excluded from the public repository surface.
 

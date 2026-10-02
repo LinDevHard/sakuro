@@ -61,5 +61,6 @@ Rules: the base is always dark; accents are targeted; glow stays restrained.
 ## 6. Assets
 
 - Store key art and derivatives in `assets/branding/`.
-- App icon is based on the eclipse ring, sakura, gradient, and dark background.
+- App icon: an open eclipse ring around a rounded play triangle, with a five-petal sakura blossom sitting in the ring's gap (upper right), on a twilight-plum background with drifting petals. The ring uses the logo metallic gradient; the blossom uses `accentSakura` with a `glowMagenta` center.
+- The icon has three variants built from one geometry: full color (adaptive foreground + background), monochrome (Android 13+ themed icons: ring, play and blossom as solid shapes), and the SVG masters `sakuro-app-icon.svg` / `sakuro-app-icon-monochrome.svg`. Regenerate all of them with `python3 tools/branding/generate_app_icon.py`; never hand-edit the generated files.
 - All assets and fonts in the `foss` flavor must use free licenses.
