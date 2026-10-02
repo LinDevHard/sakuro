@@ -26,7 +26,8 @@ The Android app is the main product target. The Desktop/JVM target is kept as a 
 - Adaptive playback controller for thermal, battery, power-save, and dropped-frame conditions.
 - Gesture-first player controls: tap, double-tap seek, long-press speed, seek swipe, brightness/volume swipe, and pinch scale modes.
 - Settings backed by multiplatform settings: default preset, debug overlay, adaptive mode, gesture controls, and preset import/export.
-- `foss` and `full` Android flavors. They are currently equivalent and do not include proprietary SDKs.
+- `foss` and `full` Android flavors. `foss` is the FLOSS-only F-Droid build;
+  `full` additionally contains the optional prebuilt libmpv reference engine.
 
 ## Project Status
 
@@ -57,6 +58,7 @@ Useful project documents:
 - [BRAND.md](BRAND.md) - name, voice, logo, palette, and asset rules.
 - [CHANGELOG.md](CHANGELOG.md) - notable changes by version.
 - [PRIVACY.md](PRIVACY.md) - local data handling and benchmark privacy notes.
+- [Release pipeline](docs/releasing.md) - versioning, licenses, signing, R8, and store artifacts.
 
 ## Build And Run
 
@@ -83,6 +85,15 @@ Build a release APK:
 ```bash
 ./gradlew :composeApp:assembleFossRelease
 ```
+
+Run the complete F-Droid quality and packaging pipeline:
+
+```bash
+bundle install
+bundle exec fastlane android ci
+```
+
+See [docs/fdroid.md](docs/fdroid.md) for metadata, tagging and submission details.
 
 Run the desktop UI sandbox:
 

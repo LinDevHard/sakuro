@@ -1,0 +1,137 @@
+default_platform(:android)
+
+require "digest"
+require "fileutils"
+
+project_root = File.expand_path("..", __dir__)
+gradle_wrapper = File.join(project_root, "gradlew")
+fdroid_apk = File.join(project_root, "composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk")
+play_apk = File.join(project_root, "composeApp/build/outputs/apk/foss/release/composeApp-foss-release.apk")
+play_aab = File.join(project_root, "composeApp/build/outputs/bundle/fossRelease/composeApp-foss-release.aab")
+release_staging = File.join(project_root, "release-staging")
+staged_fdroid_apk = File.join(release_staging, "sakuro-fdroid-unsigned.apk")
+staged_license_report = File.join(release_staging, "foss-release-licenses.tsv")
+
+def release_properties(root)
+  File.readlines(File.join(root, "gradle.properties"), chomp: true)
+      .reject { |line| line.empty? || line.start_with?("#") }
+      .map { |line| line.split("=", 2) }
+      .to_h
+end
+
+platform :android do
+  desc "Run unit tests and static analysis"
+  lane :quality do
+    gradle(
+      task: "test detekt",
+      gradle_path: gradle_wrapper,
+      project_dir: project_root
+    )
+    sh(File.join(project_root, "scripts/verify-release-licenses.sh"))
+  end
+
+  desc "Build and audit the unsigned F-Droid APK"
+  lane :fdroid do
+    gradle(
+      task: ":composeApp:assembleFossRelease",
+      gradle_path: gradle_wrapper,
+      project_dir: project_root,
+      properties: {
+        "sakuro.signing.enabled" => "false"
+      }
+    )
+    sh(File.join(project_root, "scripts/verify-fdroid-release.sh"), fdroid_apk)
+    FileUtils.mkdir_p(release_staging)
+    FileUtils.cp(fdroid_apk, staged_fdroid_apk)
+    FileUtils.cp(File.join(project_root, "build/reports/licenses/foss-release.tsv"), staged_license_report)
+  end
+
+  desc "Build the developer/reference flavor with libmpv"
+  lane :full do
+    gradle(
+      task: ":composeApp:assembleFullRelease",
+      gradle_path: gradle_wrapper,
+      project_dir: project_root
+    )
+  end
+
+  desc "Build and verify signed Play APK/AAB; signing values come only from the environment"
+  lane :play do
+    %w[
+      SAKURO_UPLOAD_KEYSTORE_FILE
+      SAKURO_UPLOAD_KEYSTORE_PASSWORD
+      SAKURO_UPLOAD_KEY_ALIAS
+      SAKURO_UPLOAD_KEY_PASSWORD
+    ].each do |name|
+      UI.user_error!("Missing release secret: #{name}") if ENV[name].to_s.empty?
+    end
+
+    r8 = ENV.fetch("SAKURO_ENABLE_R8", release_properties(project_root).fetch("sakuro.enableR8"))
+    UI.user_error!("SAKURO_ENABLE_R8 must be true or false") unless %w[true false].include?(r8)
+    FileUtils.rm_f(File.join(project_root, "composeApp/build/outputs/mapping/fossRelease/mapping.txt"))
+
+    gradle(
+      task: ":composeApp:assembleFossRelease :composeApp:bundleFossRelease",
+      gradle_path: gradle_wrapper,
+      project_dir: project_root,
+      properties: {
+        "sakuro.signing.enabled" => "true",
+        "sakuro.enableR8" => r8
+      }
+    )
+    sh(
+      { "SAKURO_ENABLE_R8" => r8 },
+      File.join(project_root, "scripts/verify-play-release.sh"),
+      play_apk,
+      play_aab
+    )
+  end
+
+  desc "Collect release artifacts, R8 mapping (when present), license report and checksums"
+  lane :artifacts do
+    properties = release_properties(project_root)
+    output_dir = File.join(project_root, "dist", "v#{properties.fetch('sakuro.versionName')}")
+    FileUtils.rm_rf(output_dir)
+    FileUtils.mkdir_p(output_dir)
+
+    files = [staged_fdroid_apk, play_apk, play_aab, staged_license_report]
+    mapping = File.join(project_root, "composeApp/build/outputs/mapping/fossRelease/mapping.txt")
+    files << mapping if File.exist?(mapping)
+    files.each do |source|
+      UI.user_error!("Release artifact is missing: #{source}") unless File.exist?(source)
+      FileUtils.cp(source, output_dir)
+    end
+
+    checksums = Dir.glob(File.join(output_dir, "*")).sort.map do |path|
+      "#{Digest::SHA256.file(path).hexdigest}  #{File.basename(path)}"
+    end
+    File.write(File.join(output_dir, "SHA256SUMS"), checksums.join("\n") + "\n")
+    UI.success("Release bundle: #{output_dir}")
+  end
+
+  desc "CI entry point: quality gates plus the audited F-Droid artifact"
+  lane :ci do
+    quality
+    fdroid
+  end
+
+  desc "Validate a clean tag and build audited F-Droid plus signed Play artifacts"
+  lane :release do
+    ensure_git_status_clean
+    properties = release_properties(project_root)
+    version_name = properties.fetch("sakuro.versionName")
+    version_code = properties.fetch("sakuro.versionCode")
+    tag = sh("git", "describe", "--exact-match", "--tags", "HEAD").strip
+    UI.user_error!("Release tag must be v#{version_name}, got #{tag}") unless tag == "v#{version_name}"
+
+    Dir.glob(File.join(project_root, "fastlane/metadata/android/*")).select { |path| File.directory?(path) }.each do |locale|
+      changelog = File.join(locale, "changelogs", "#{version_code}.txt")
+      UI.user_error!("Missing localized changelog: #{changelog}") unless File.exist?(changelog)
+    end
+
+    quality
+    fdroid
+    play
+    artifacts
+  end
+end

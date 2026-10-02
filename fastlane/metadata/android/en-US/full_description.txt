@@ -1,0 +1,15 @@
+Sakuro is a privacy-friendly local video player for Android with real-time image enhancement.
+
+Features:
+* Browse videos stored on your device or open a file through the system picker
+* Hardware-accelerated playback based on AndroidX Media3
+* Configurable shader chains for upscaling, denoising and sharpening
+* Presets for anime, cartoons and live-action video
+* Automatic content classification and adaptive quality controls
+* Audio and subtitle track selection, external subtitles and playback speed controls
+* Gesture controls and picture-in-picture playback
+* Technical playback statistics and an on-device benchmark for advanced users
+
+Sakuro is local-first. It contains no accounts, advertising, analytics, tracking, cloud sync or crash-reporting SDKs. The F-Droid build does not request Internet access. Video library data, settings and presets stay on the device.
+
+The application is free software released under GNU GPL v3.0.

@@ -1,6 +1,17 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+val releaseVersionName = providers.gradleProperty("sakuro.versionName").get()
+val releaseVersionCode = providers.gradleProperty("sakuro.versionCode").get().toInt()
+val enableR8 = providers.gradleProperty("sakuro.enableR8").get().toBooleanStrict()
+val enableReleaseSigning = providers.gradleProperty("sakuro.signing.enabled")
+    .orNull
+    ?.toBooleanStrictOrNull()
+    ?: false
+
+fun signingSecret(name: String): String = providers.environmentVariable(name).orNull
+    ?: error("$name is required when -Psakuro.signing.enabled=true")
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -49,7 +60,6 @@ kotlin {
             implementation(libs.androidx.core.ktx)
             implementation(libs.kotlinx.coroutines.android)
             implementation(project(":engine:engine-media3"))
-            implementation(project(":engine:engine-mpv"))
             implementation(libs.media3.ui)
             // Preview thumbnails in the library (ARCHITECTURE.md: Coil 3).
             // androidMain only: desktop has no video decoder, so a placeholder is used there.
@@ -76,12 +86,12 @@ android {
         applicationId = "com.rinwave.sakuro"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
     }
 
-    // Two flavors (ARCHITECTURE.md §6): foss — F-Droid, full — Play Store.
-    // Neither has proprietary SDKs; differences will appear with opt-in crash reporting.
+    // Two flavors (ARCHITECTURE.md §6): foss — F-Droid, full — reference/benchmark.
+    // foss intentionally excludes the prebuilt libmpv AAR and all mpv-specific code.
     flavorDimensions += "distribution"
     productFlavors {
         create("foss") {
@@ -92,9 +102,28 @@ android {
         }
     }
 
+    signingConfigs {
+        if (enableReleaseSigning) {
+            create("release") {
+                storeFile = file(signingSecret("SAKURO_UPLOAD_KEYSTORE_FILE"))
+                storePassword = signingSecret("SAKURO_UPLOAD_KEYSTORE_PASSWORD")
+                keyAlias = signingSecret("SAKURO_UPLOAD_KEY_ALIAS")
+                keyPassword = signingSecret("SAKURO_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = enableR8
+            isShrinkResources = enableR8
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (enableReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -108,6 +137,23 @@ android {
     }
 }
 
+tasks.register("printReleaseInfo") {
+    group = "release"
+    description = "Prints non-secret release identity and build switches."
+    doLast {
+        println("versionName=$releaseVersionName")
+        println("versionCode=$releaseVersionCode")
+        println("r8=$enableR8")
+        println("signing=$enableReleaseSigning")
+    }
+}
+
+afterEvaluate {
+    // KMP creates this Android flavor bucket after the Android variants exist.
+    // The F-Droid runtime therefore never resolves the prebuilt libmpv AAR.
+    dependencies.add("androidFullImplementation", project(":engine:engine-mpv"))
+}
+
 compose.desktop {
     application {
         mainClass = "com.rinwave.sakuro.MainKt"
@@ -115,6 +161,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Sakuro"
+            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.0.
             packageVersion = "1.0.0"
         }
     }

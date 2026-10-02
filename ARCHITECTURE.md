@@ -27,8 +27,8 @@
 | Reference engine | **libmpv** is a developer/reference tool for shader comparison, capture, and parity testing |
 | Abstraction | A single `PlayerEngine` interface keeps Media3, fake, and reference implementations testable |
 | Upscaling | mpv-compatible shader families are evaluated with libmpv and ported into Media3 GLSL ES / `GlEffect` runtimes |
-| Flavors | `foss` for F-Droid and `full` for Play Store |
-| Distribution | Google Play Store + F-Droid |
+| Flavors | `foss` for F-Droid/product builds and `full` for developer/reference builds with libmpv |
+| Distribution | F-Droid first; any future Play build should reuse the Media3-only product dependency graph |
 | License | GPL while libmpv remains linked in the repository; product packaging should avoid shipping libmpv unless that tradeoff is accepted |
 | First phase | Local media only; no streaming or DRM |
 | Design | Premium media-player UI, strong typography, Lucide icons |
@@ -151,10 +151,10 @@ Recommended rollout:
 
 The Android app has two product flavors:
 
-- **`foss`** for F-Droid, with no Firebase, Crashlytics, Play Services, AdMob, or proprietary SDKs.
-- **`full`** for Play Store, optionally with opt-in crash reporting and no proprietary dependency in the core.
+- **`foss`** for F-Droid and normal product use, with no libmpv, Firebase, Crashlytics, Play Services, AdMob, or proprietary SDKs.
+- **`full`** for developer/reference benchmarking; it adds the prebuilt libmpv AAR and mpv-specific UI integration.
 
-F-Droid requirements are designed in from day one: FLOSS toolchain, reproducible build, dependency separation, and product packaging that can ship without libmpv if the app moves to a permissive Media3-only runtime.
+F-Droid requirements are designed in from day one: FLOSS toolchain, reproducible build, dependency separation, and Media3-only product packaging without libmpv/FFmpeg native libraries.
 
 ## 8. Licensing
 

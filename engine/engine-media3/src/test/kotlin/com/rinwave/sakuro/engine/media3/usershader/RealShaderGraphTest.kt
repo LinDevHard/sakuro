@@ -23,7 +23,7 @@ class RealShaderGraphTest {
         // Look for anime4k upward from the test's working directory (the module directory).
         var dir: File? = File("").absoluteFile
         while (dir != null) {
-            val candidate = File(dir, "engine/engine-mpv/src/main/assets/anime4k")
+            val candidate = File(dir, "engine/engine-media3/src/main/assets/anime4k")
             if (candidate.isDirectory) return candidate
             dir = dir.parentFile
         }

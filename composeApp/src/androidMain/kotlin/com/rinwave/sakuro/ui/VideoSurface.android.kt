@@ -1,7 +1,5 @@
 package com.rinwave.sakuro.ui
 
-import android.view.SurfaceHolder
-import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,15 +9,13 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
-import com.rinwave.sakuro.engine.mpv.MpvPlayerEngine
-import com.rinwave.sakuro.engine.mpv.MpvScaleMode
+import com.rinwave.sakuro.referenceVideoSurface
 
 @OptIn(UnstableApi::class)
 @Composable
 actual fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Modifier) {
+    if (referenceVideoSurface(engine, scaleMode, modifier)) return
     when (engine) {
-        is MpvPlayerEngine -> MpvVideoSurface(engine, scaleMode, modifier)
-
         is Media3PlayerEngine -> AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
@@ -38,50 +34,6 @@ actual fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Mo
 
         else -> FakeVideoSurface(engine, modifier)
     }
-}
-
-/**
- * mpv renders into a plain SurfaceView across the whole container:
- * letterbox (FIT), stretch (FILL) and crop (ZOOM) are done by the engine itself
- * via keepaspect/panscan — see [MpvPlayerEngine.setScaleMode].
- */
-@Composable
-private fun MpvVideoSurface(engine: MpvPlayerEngine, scaleMode: ScaleMode, modifier: Modifier) {
-    AndroidView(
-        factory = { context ->
-            SurfaceView(context).apply {
-                keepScreenOn = true
-                holder.addCallback(
-                    object : SurfaceHolder.Callback {
-                        override fun surfaceCreated(holder: SurfaceHolder) {
-                            engine.attachSurface(holder.surface)
-                        }
-
-                        override fun surfaceChanged(
-                            holder: SurfaceHolder,
-                            format: Int,
-                            width: Int,
-                            height: Int,
-                        ) {
-                            engine.resizeSurface(width, height)
-                        }
-
-                        override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            engine.detachSurface()
-                        }
-                    },
-                )
-            }
-        },
-        update = { engine.setScaleMode(scaleMode.toMpvScaleMode()) },
-        modifier = modifier,
-    )
-}
-
-private fun ScaleMode.toMpvScaleMode(): MpvScaleMode = when (this) {
-    ScaleMode.FIT -> MpvScaleMode.FIT
-    ScaleMode.FILL -> MpvScaleMode.FILL
-    ScaleMode.ZOOM -> MpvScaleMode.ZOOM
 }
 
 @UnstableApi

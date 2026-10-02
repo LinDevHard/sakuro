@@ -1,0 +1,17 @@
+# Group prefix	SPDX license	Upstream/license evidence
+androidx.	Apache-2.0	https://source.android.com/docs/setup/about/licenses
+co.touchlab	Apache-2.0	https://github.com/touchlab/Stately
+com.arkivanov	Apache-2.0	https://github.com/arkivanov/Decompose
+com.composables	ISC	https://github.com/lucide-icons/lucide/blob/main/LICENSE
+com.google.accompanist	Apache-2.0	https://github.com/google/accompanist
+com.google.guava	Apache-2.0	https://github.com/google/guava
+com.russhwolf	Apache-2.0	https://github.com/russhwolf/multiplatform-settings
+com.squareup.okio	Apache-2.0	https://github.com/square/okio
+io.coil-kt.coil3	Apache-2.0	https://github.com/coil-kt/coil
+io.insert-koin	Apache-2.0	https://github.com/InsertKoinIO/koin
+org.jetbrains.androidx	Apache-2.0	https://github.com/JetBrains/compose-multiplatform
+org.jetbrains.compose	Apache-2.0	https://github.com/JetBrains/compose-multiplatform
+org.jetbrains.kotlin	Apache-2.0	https://github.com/JetBrains/kotlin
+org.jetbrains.kotlinx	Apache-2.0	https://github.com/Kotlin/kotlinx.coroutines
+org.jetbrains	Apache-2.0	https://github.com/JetBrains/java-annotations
+org.jspecify	Apache-2.0	https://github.com/jspecify/jspecify

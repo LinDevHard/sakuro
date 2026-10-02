@@ -6,16 +6,20 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Added a gated release pipeline for unsigned F-Droid APKs and signed Play APK/AAB artifacts, including tag/version validation, dependency-license auditing, optional R8/resource shrinking, mapping retention, and SHA-256 manifests.
+
 ### Added
 
 - Open-source project documentation: license, contributing guide, security policy, code of conduct, issue templates, pull request template, privacy policy, funding metadata, and code ownership.
 - README badges and clearer public project status.
+- Fastlane quality/release lanes, localized F-Droid store metadata, and CI packaging checks.
 
 ### Changed
 
 - New app icon: eclipse ring, play button and sakura blossom, with a matching monochrome variant for Android 13+ themed icons. All icon assets are generated from one script (`tools/branding/generate_app_icon.py`).
 - Public README now reflects the current Android-first Media3/mpv architecture and links to benchmark methodology.
 - Internal worklog/research notes are excluded from the public repository surface.
+- The `foss` flavor excludes the prebuilt libmpv AAR and native mpv/FFmpeg libraries; the reference engine remains in `full` only.
 
 ## 0.1.0
 

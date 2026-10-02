@@ -62,6 +62,16 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# Ruby / Fastlane local output
+.bundle/
+vendor/bundle/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+dist/
+release-staging/
+
 # Local benchmark captures / generated reports
 tools/sakuro-bench/report/
 tools/sakuro-bench/caps/

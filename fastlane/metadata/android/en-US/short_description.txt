@@ -1,0 +1,1 @@
+Local video player with real-time, configurable upscaling

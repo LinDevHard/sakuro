@@ -1,0 +1,1 @@
+Initial alpha release with local Media3 playback, configurable shader upscaling, presets, subtitles, gestures, picture-in-picture, adaptive controls and technical playback statistics.

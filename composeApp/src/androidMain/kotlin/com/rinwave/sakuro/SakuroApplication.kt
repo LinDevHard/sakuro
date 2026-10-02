@@ -19,7 +19,6 @@ import com.rinwave.sakuro.di.appModule
 import com.rinwave.sakuro.engine.fake.FakeEngineFactory
 import com.rinwave.sakuro.engine.media3.Media3EngineFactory
 import com.rinwave.sakuro.engine.media3.Media3ShaderInspector
-import com.rinwave.sakuro.engine.mpv.MpvEngineFactory
 import org.koin.core.context.startKoin
 
 class SakuroApplication : Application(), SingletonImageLoader.Factory {
@@ -39,11 +38,11 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                     mediaLibrary = MediaStoreVideoLibrary(this@SakuroApplication),
                     // Media3 first — it is also the fallback when the preference is unavailable.
                     engineRegistry = EngineRegistry(
-                        listOf(
-                            Media3EngineFactory(this@SakuroApplication),
-                            MpvEngineFactory(this@SakuroApplication),
-                            FakeEngineFactory(),
-                        ),
+                        buildList {
+                            add(Media3EngineFactory(this@SakuroApplication))
+                            addAll(referenceEngineFactories(this@SakuroApplication))
+                            add(FakeEngineFactory())
+                        },
                     ),
                     deviceStatusMonitor = AndroidDeviceStatusMonitor(this@SakuroApplication),
                     // The file name answers instantly, frame analysis follows

@@ -14,8 +14,8 @@ import java.io.IOException
  *
  * The order and S/M model selection mirror the mpv engine:
  * Clamp→Denoise→Restore→Upscale, with CNN size selected by pass strength.
- * Assets come from `assets/anime4k/` (vendored by the engine-mpv module; in a built
- * app the modules' assets are merged into a single [android.content.res.AssetManager]).
+ * Assets come from this module's `assets/anime4k/`, so the Media3 product engine
+ * remains complete when the optional libmpv reference module is excluded.
  */
 internal object Anime4KChain {
 
@@ -64,8 +64,7 @@ internal object Anime4KChain {
                 },
             )
         } catch (e: IOException) {
-            // Anime4K assets are not in this build (no engine-mpv module) —
-            // the caller falls back to the parametric bundled chain.
+            // A damaged/incomplete package still degrades to the parametric chain.
             Log.w(TAG, "Anime4K assets unavailable, falling back to the parametric chain: ${e.message}")
             ShaderDocument.EMPTY
         }
