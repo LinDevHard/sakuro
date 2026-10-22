@@ -41,12 +41,16 @@ fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
         }
         add("preset    ${stats.upscaleProfile ?: "—"}")
         stats.upscalePasses.forEach { add("  pass    $it") }
+        add("effects   ${stats.upscaleRuntimeState.name.lowercase()}")
+        stats.upscaleRuntimeReason?.let { add("  reason  $it") }
         val confidencePercent = (detection.confidence * 100).toInt()
         add("detect    ${detection.contentClass.name.lowercase()} $confidencePercent% (${detection.source})")
         when {
             // The toggle is off — the preset is applied as-is (clean measurements).
             !adaptiveEnabled -> add("adaptive  off (preset as-is)")
-            else -> adaptive?.takeIf { it.level > 0 }?.let { add("adaptive  L${it.level} ${it.reason.orEmpty()}") }
+            else -> adaptive?.takeIf { it.level > 0 }?.let {
+                add("adaptive  L${it.level} ${it.reason?.technicalText().orEmpty()}")
+            }
         }
         stats.extras.forEach { (k, v) -> add("$k  $v") }
         add("status    ${state.status} speed=${state.speed}x")

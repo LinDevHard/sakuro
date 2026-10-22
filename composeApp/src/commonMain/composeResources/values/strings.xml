@@ -204,5 +204,18 @@
     <string name="player_pin_desc">The preset applies only to this video and does not change the global selection</string>
     <string name="scale_fit_to_screen">Fit to screen</string>
     <string name="scale_fill_screen">Fill screen</string>
+    <string name="player_processing_reduced">Adaptive L%1$d · quality reduced</string>
+    <string name="player_processing_disabled">Adaptive L%1$d · processing off</string>
+    <string name="player_processing_pending">Processing · applying effects</string>
+    <string name="player_processing_degraded">Processing · partially applied</string>
+    <string name="player_processing_unavailable">Processing · not applied</string>
+    <string name="player_processing_reason_thermal_light">Device is warming up</string>
+    <string name="player_processing_reason_thermal_moderate">Device temperature is elevated</string>
+    <string name="player_processing_reason_thermal_severe">Device is too hot</string>
+    <string name="player_processing_reason_thermal_critical">Critical device temperature</string>
+    <string name="player_processing_reason_frame_drops">Dropped frames: %1$d%%</string>
+    <string name="player_processing_reason_power_save">Battery saver is active</string>
+    <string name="player_processing_reason_low_battery">Low battery: %1$d%%</string>
+    <string name="player_processing_reason_unknown">The video engine did not report a reason</string>
     <string name="seek_seconds">%1$d s</string>
 </resources>

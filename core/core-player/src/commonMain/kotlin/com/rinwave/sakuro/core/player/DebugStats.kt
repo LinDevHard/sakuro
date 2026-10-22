@@ -1,5 +1,14 @@
 package com.rinwave.sakuro.core.player
 
+enum class UpscaleRuntimeState {
+    UNKNOWN,
+    INACTIVE,
+    PENDING,
+    APPLIED,
+    DEGRADED,
+    PASSTHROUGH,
+}
+
 /** Data for the "stats for nerds" debug overlay (FEATURES.md §4.1). */
 data class DebugStats(
     val engine: String = "",
@@ -23,6 +32,10 @@ data class DebugStats(
     val audioSampleRateHz: Int? = null,
     val upscaleProfile: String? = null,
     val upscalePasses: List<String> = emptyList(),
+    /** What the engine actually did with the requested video-effect chain. */
+    val upscaleRuntimeState: UpscaleRuntimeState = UpscaleRuntimeState.UNKNOWN,
+    /** Engine-provided technical cause when the chain degraded or became passthrough. */
+    val upscaleRuntimeReason: String? = null,
     /** Free-form engine pairs (container, surface, etc.). */
     val extras: Map<String, String> = emptyMap(),
 )

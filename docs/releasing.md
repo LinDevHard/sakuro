@@ -35,6 +35,10 @@ Never commit the upload keystore. Configure these GitHub Actions secrets:
 - `SAKURO_UPLOAD_KEY_ALIAS`
 - `SAKURO_UPLOAD_KEY_PASSWORD`
 
+After all four secrets are configured, set the GitHub Actions repository
+variable `SAKURO_PLAY_RELEASE_ENABLED=true`. Until then, tag builds verify and
+publish only the unsigned F-Droid artifact and the Play job stays skipped.
+
 For a local signed build, decode the keystore outside the repository and expose
 its path as `SAKURO_UPLOAD_KEYSTORE_FILE` together with the other three values.
 
@@ -43,14 +47,16 @@ its path as `SAKURO_UPLOAD_KEYSTORE_FILE` together with the other three values.
 ```bash
 bundle exec fastlane android quality  # tests, detekt, dependency/license gate
 bundle exec fastlane android fdroid   # unsigned audited APK
+bundle exec fastlane android fdroid_release # clean tag + F-Droid release gates
 bundle exec fastlane android play     # signed APK + AAB
 bundle exec fastlane android release  # clean exact tag, all gates + checksums
 ```
 
-`android release` requires `HEAD` to have the exact tag `v<versionName>` and a
-localized `<versionCode>.txt` changelog for every metadata locale. It creates
-`dist/v<versionName>/` with F-Droid and Play artifacts, the dependency license
-report, optional R8 mapping, and `SHA256SUMS`.
+Both release lanes require `HEAD` to have the exact tag `v<versionName>` and a
+localized `<versionCode>.txt` changelog for every metadata locale. The full
+`android release` lane creates `dist/v<versionName>/` with F-Droid and Play
+artifacts, the dependency license report, optional R8 mapping, and
+`SHA256SUMS`.
 
 ## Dependency and asset licenses
 
@@ -69,6 +75,8 @@ This is an engineering gate, not a substitute for legal review.
 2. Update the version and localized changelogs.
 3. Merge the clean release commit.
 4. Create and push the exact tag, for example `v0.1.0`.
-5. The tag job builds and verifies both store outputs and retains the artifact
-   bundle for 30 days. Publishing to Play and submitting to `fdroiddata` remain
-   explicit human-controlled steps.
+5. The required tag job builds and verifies the unsigned F-Droid output and
+   retains it with the license report for 30 days.
+6. When `SAKURO_PLAY_RELEASE_ENABLED=true`, a separate tag job also builds the
+   signed Play artifacts and retains their bundle for 30 days. Publishing to
+   Play and submitting to `fdroiddata` remain explicit human-controlled steps.

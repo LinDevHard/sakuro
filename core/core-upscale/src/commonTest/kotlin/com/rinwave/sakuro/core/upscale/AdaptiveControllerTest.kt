@@ -42,6 +42,7 @@ class AdaptiveControllerTest {
         assertEquals(1, decision.level)
         assertTrue(decision.effective.passes.none { it is UpscalePass.Denoise })
         assertTrue(decision.effective.passes.any { it is UpscalePass.Sharpen })
+        assertEquals(AdaptiveReason.Thermal(ThermalLevel.MODERATE), decision.reason)
     }
 
     @Test
@@ -65,6 +66,7 @@ class AdaptiveControllerTest {
             okHealth,
         )
         assertEquals(1, decision.level)
+        assertEquals(AdaptiveReason.PowerSave, decision.reason)
     }
 
     @Test
@@ -75,13 +77,76 @@ class AdaptiveControllerTest {
             okHealth,
         )
         assertEquals(1, decision.level)
+        assertEquals(AdaptiveReason.LowBattery(10), decision.reason)
     }
 
     @Test
     fun droppedFramesDegradeStepByStep() {
         val controller = AdaptiveController()
-        assertEquals(1, controller.update(user, okDevice, PlaybackHealth(droppedFramePercent = 7f)).level)
+        val first = controller.update(user, okDevice, PlaybackHealth(droppedFramePercent = 7f))
+        assertEquals(1, first.level)
+        assertEquals(AdaptiveReason.FrameDrops(7f), first.reason)
         assertEquals(2, controller.update(user, okDevice, PlaybackHealth(droppedFramePercent = 7f)).level)
+    }
+
+    @Test
+    fun levelOneDropsHeavyAndDenoiseShadersButKeepsSafeAndImportedEntries() {
+        val profile = UpscaleProfile(
+            id = "custom",
+            name = "Custom",
+            passes = listOf(UpscalePass.Upscale(2f)),
+            shaderChain = listOf(
+                "Anime4K_Restore_CNN_M.glsl",
+                "Anime4K_Denoise_Bilateral_Mode.glsl",
+                "ravu-r3.hook",
+                "imported.glsl",
+            ),
+            shaderParams = mapOf(
+                "Anime4K_Restore_CNN_M.glsl" to mapOf("strength" to 0.8f),
+                "ravu-r3.hook" to mapOf("sharpness" to 0.4f),
+                "imported.glsl" to mapOf("quality" to 1f),
+            ),
+        )
+
+        val effective = profile.degradedTo(1)
+
+        assertEquals(listOf("ravu-r3.hook", "imported.glsl"), effective.shaderChain)
+        assertEquals(
+            setOf("ravu-r3.hook", "imported.glsl"),
+            effective.shaderParams.keys,
+        )
+    }
+
+    @Test
+    fun levelTwoDisablesAnExplicitShaderGraphWithoutFallingBackToAbstractPasses() {
+        val profile = UpscaleProfile(
+            id = "custom",
+            name = "Custom",
+            passes = listOf(UpscalePass.Upscale(2f), UpscalePass.Sharpen(0.5f)),
+            shaderChain = listOf("ravu-r3.hook", "imported.glsl"),
+            shaderParams = mapOf("imported.glsl" to mapOf("quality" to 1f)),
+        )
+
+        val effective = profile.degradedTo(2)
+
+        assertTrue(effective.shaderChain.isEmpty())
+        assertTrue(effective.shaderParams.isEmpty())
+        assertTrue(effective.passes.isEmpty())
+    }
+
+    @Test
+    fun disablingAHeavyOnlyGraphCannotActivateAnAbstractFallback() {
+        val profile = UpscaleProfile(
+            id = "heavy",
+            name = "Heavy",
+            passes = listOf(UpscalePass.Upscale(2f)),
+            shaderChain = listOf("Anime4K_Upscale_CNN_x2_M.glsl"),
+        )
+
+        val effective = profile.degradedTo(1)
+
+        assertTrue(effective.shaderChain.isEmpty())
+        assertTrue(effective.passes.isEmpty())
     }
 
     @Test
@@ -96,9 +161,26 @@ class AdaptiveControllerTest {
         val controller = AdaptiveController(AdaptiveController.Config(recoverySamples = 3))
         controller.update(user, okDevice, PlaybackHealth(droppedFramePercent = 7f))
         repeat(2) {
-            assertEquals(1, controller.update(user, okDevice, okHealth).level)
+            val recovering = controller.update(user, okDevice, okHealth)
+            assertEquals(1, recovering.level)
+            assertEquals(AdaptiveReason.FrameDrops(7f), recovering.reason)
         }
         assertEquals(0, controller.update(user, okDevice, okHealth).level)
+    }
+
+    @Test
+    fun activePowerSaveReasonWinsOverHistoricalFrameDropsAtTheSameLevel() {
+        val controller = AdaptiveController()
+        controller.update(user, okDevice, PlaybackHealth(droppedFramePercent = 7f))
+
+        val decision = controller.update(
+            user,
+            DeviceStatus(powerSaveMode = true),
+            okHealth,
+        )
+
+        assertEquals(1, decision.level)
+        assertEquals(AdaptiveReason.PowerSave, decision.reason)
     }
 
     @Test

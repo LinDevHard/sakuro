@@ -205,5 +205,18 @@
     <string name="player_pin_desc">プリセットはこの動画にのみ適用され、全体の選択は変更されません</string>
     <string name="scale_fit_to_screen">画面に合わせる</string>
     <string name="scale_fill_screen">画面いっぱい</string>
+    <string name="player_processing_reduced">適応 L%1$d · 品質を低下</string>
+    <string name="player_processing_disabled">適応 L%1$d · 処理オフ</string>
+    <string name="player_processing_pending">処理 · エフェクトを適用中</string>
+    <string name="player_processing_degraded">処理 · 一部のみ適用</string>
+    <string name="player_processing_unavailable">処理 · 適用されていません</string>
+    <string name="player_processing_reason_thermal_light">端末が温まっています</string>
+    <string name="player_processing_reason_thermal_moderate">端末の温度が上昇しています</string>
+    <string name="player_processing_reason_thermal_severe">端末が過熱しています</string>
+    <string name="player_processing_reason_thermal_critical">端末温度が危険な状態です</string>
+    <string name="player_processing_reason_frame_drops">ドロップフレーム: %1$d%%</string>
+    <string name="player_processing_reason_power_save">省電力モードが有効です</string>
+    <string name="player_processing_reason_low_battery">バッテリー残量低下: %1$d%%</string>
+    <string name="player_processing_reason_unknown">エンジンから理由が報告されませんでした</string>
     <string name="seek_seconds">%1$d 秒</string>
 </resources>

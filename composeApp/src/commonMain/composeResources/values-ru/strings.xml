@@ -204,5 +204,18 @@
     <string name="player_pin_desc">Пресет применяется только к этому видео и не меняет общий выбор</string>
     <string name="scale_fit_to_screen">Вписать в экран</string>
     <string name="scale_fill_screen">Заполнить экран</string>
+    <string name="player_processing_reduced">Адаптация L%1$d · качество снижено</string>
+    <string name="player_processing_disabled">Адаптация L%1$d · обработка отключена</string>
+    <string name="player_processing_pending">Обработка · эффекты применяются</string>
+    <string name="player_processing_degraded">Обработка · применена частично</string>
+    <string name="player_processing_unavailable">Обработка · не применяется</string>
+    <string name="player_processing_reason_thermal_light">Устройство нагревается</string>
+    <string name="player_processing_reason_thermal_moderate">Температура устройства повышена</string>
+    <string name="player_processing_reason_thermal_severe">Устройство перегрелось</string>
+    <string name="player_processing_reason_thermal_critical">Критическая температура устройства</string>
+    <string name="player_processing_reason_frame_drops">Пропущено кадров: %1$d%%</string>
+    <string name="player_processing_reason_power_save">Включён режим энергосбережения</string>
+    <string name="player_processing_reason_low_battery">Низкий заряд: %1$d%%</string>
+    <string name="player_processing_reason_unknown">Движок не сообщил причину</string>
     <string name="seek_seconds">%1$d сек</string>
 </resources>

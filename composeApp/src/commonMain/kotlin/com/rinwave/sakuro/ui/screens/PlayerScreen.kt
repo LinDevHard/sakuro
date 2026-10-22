@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,6 +58,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,14 +74,18 @@ import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
+import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
+import com.rinwave.sakuro.core.player.UpscaleRuntimeState
+import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ShaderTunable
+import com.rinwave.sakuro.core.upscale.ThermalLevel
 import com.rinwave.sakuro.navigation.LiveShader
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode
@@ -99,6 +105,7 @@ import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
 import com.rinwave.sakuro.ui.gestures.PlayerGestureConfig
 import com.rinwave.sakuro.ui.gestures.SeekSwipeSession
 import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
+import com.rinwave.sakuro.ui.logProcessingStatus
 import com.rinwave.sakuro.ui.rememberIsInPip
 import com.rinwave.sakuro.ui.rememberPlayerSystemControls
 import com.rinwave.sakuro.ui.rememberSubtitleFilePicker
@@ -112,6 +119,19 @@ import sakuro.composeapp.generated.resources.player_audio_tracks
 import sakuro.composeapp.generated.resources.player_pin_desc
 import sakuro.composeapp.generated.resources.player_pin_title
 import sakuro.composeapp.generated.resources.player_playback_speed
+import sakuro.composeapp.generated.resources.player_processing_degraded
+import sakuro.composeapp.generated.resources.player_processing_disabled
+import sakuro.composeapp.generated.resources.player_processing_pending
+import sakuro.composeapp.generated.resources.player_processing_reason_frame_drops
+import sakuro.composeapp.generated.resources.player_processing_reason_low_battery
+import sakuro.composeapp.generated.resources.player_processing_reason_power_save
+import sakuro.composeapp.generated.resources.player_processing_reason_thermal_critical
+import sakuro.composeapp.generated.resources.player_processing_reason_thermal_light
+import sakuro.composeapp.generated.resources.player_processing_reason_thermal_moderate
+import sakuro.composeapp.generated.resources.player_processing_reason_thermal_severe
+import sakuro.composeapp.generated.resources.player_processing_reason_unknown
+import sakuro.composeapp.generated.resources.player_processing_reduced
+import sakuro.composeapp.generated.resources.player_processing_unavailable
 import sakuro.composeapp.generated.resources.player_seek_back
 import sakuro.composeapp.generated.resources.player_seek_forward
 import sakuro.composeapp.generated.resources.player_shader_direct
@@ -185,6 +205,8 @@ private data class DoubleTapSeek(
 @Composable
 fun PlayerScreen(component: PlayerComponent) {
     val state by component.engine.state.collectAsState()
+    val debugStats by component.engine.debugStats.collectAsState(initial = DebugStats())
+    val adaptiveDecision by component.adaptiveDecision.collectAsState()
     val debugEnabled by component.debugOverlay.collectAsState()
     val selectedPresetId by component.selectedPresetId.collectAsState()
     val gesturesEnabled by component.gesturesEnabled.collectAsState()
@@ -193,6 +215,16 @@ fun PlayerScreen(component: PlayerComponent) {
     val gestureSeek by component.gestureSeek.collectAsState()
     val gestureZoom by component.gestureZoom.collectAsState()
     val gestureSensitivity by component.gestureSensitivity.collectAsState()
+    val processingNotice = processingNotice(adaptiveDecision, debugStats)
+    val processingReporter = remember { ProcessingStatusReporter(::logProcessingStatus) }
+
+    LaunchedEffect(
+        adaptiveDecision,
+        debugStats.upscaleRuntimeState,
+        debugStats.upscaleRuntimeReason,
+    ) {
+        adaptiveDecision?.let { processingReporter.report(it, debugStats) }
+    }
 
     val systemControls = rememberPlayerSystemControls()
     val haptics = LocalHapticFeedback.current
@@ -520,6 +552,18 @@ fun PlayerScreen(component: PlayerComponent) {
             EclipseLoader(Modifier.align(Alignment.Center))
         }
 
+        AnimatedVisibility(
+            visible = processingNotice != null && !inPip,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(top = 64.dp, start = 12.dp, end = 12.dp),
+        ) {
+            processingNotice?.let { ProcessingStatusBanner(it) }
+        }
+
         if (debugEnabled && !inPip) {
             DebugOverlay(
                 component = component,
@@ -574,6 +618,92 @@ fun PlayerScreen(component: PlayerComponent) {
             )
         }
     }
+}
+
+@Composable
+private fun ProcessingStatusBanner(notice: ProcessingNotice) {
+    val title = when (notice) {
+        is ProcessingNotice.Adaptive -> stringResource(
+            if (notice.outcome == ProcessingOutcome.DISABLED) {
+                Res.string.player_processing_disabled
+            } else {
+                Res.string.player_processing_reduced
+            },
+            notice.level,
+        )
+        ProcessingNotice.RuntimePending -> stringResource(Res.string.player_processing_pending)
+        is ProcessingNotice.RuntimeFallback -> stringResource(
+            if (notice.state == UpscaleRuntimeState.PASSTHROUGH) {
+                Res.string.player_processing_unavailable
+            } else {
+                Res.string.player_processing_degraded
+            },
+        )
+    }
+    val reason = when (notice) {
+        is ProcessingNotice.Adaptive -> notice.reason.localizedText()
+        is ProcessingNotice.RuntimeFallback ->
+            notice.reason
+                ?: stringResource(Res.string.player_processing_reason_unknown)
+        ProcessingNotice.RuntimePending -> null
+    }
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = SakuroColors.SurfaceElevated.copy(alpha = 0.94f),
+        contentColor = SakuroColors.TextPrimary,
+        shadowElevation = 8.dp,
+        modifier = Modifier.widthIn(max = 520.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Lucide.Activity,
+                contentDescription = null,
+                tint = SakuroColors.AccentSakura,
+                modifier = Modifier.size(18.dp),
+            )
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SakuroColors.TextPrimary,
+                )
+                reason?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SakuroColors.TextMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdaptiveReason.localizedText(): String = when (this) {
+    is AdaptiveReason.Thermal -> stringResource(
+        when (level) {
+            ThermalLevel.NONE,
+            ThermalLevel.LIGHT -> Res.string.player_processing_reason_thermal_light
+            ThermalLevel.MODERATE -> Res.string.player_processing_reason_thermal_moderate
+            ThermalLevel.SEVERE -> Res.string.player_processing_reason_thermal_severe
+            ThermalLevel.CRITICAL -> Res.string.player_processing_reason_thermal_critical
+        },
+    )
+    is AdaptiveReason.FrameDrops -> stringResource(
+        Res.string.player_processing_reason_frame_drops,
+        percent.roundToInt(),
+    )
+    AdaptiveReason.PowerSave -> stringResource(Res.string.player_processing_reason_power_save)
+    is AdaptiveReason.LowBattery -> stringResource(Res.string.player_processing_reason_low_battery, percent)
 }
 
 @Composable

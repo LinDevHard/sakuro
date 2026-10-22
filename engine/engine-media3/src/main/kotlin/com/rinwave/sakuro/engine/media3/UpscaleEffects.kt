@@ -29,7 +29,13 @@ object UpscaleEffectChain {
 
     const val MAX_TARGET_HEIGHT = 2160
 
-    fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): List<Effect> {
+    internal data class BuiltChain(
+        val effects: List<Effect>,
+        val telemetry: EffectChainTelemetry,
+    )
+
+    internal fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): BuiltChain {
+        val telemetry = EffectChainTelemetry()
         // An explicit user-shader chain overrides the engine's own selection.
         UserShaderChain.load(context, profile)?.let { custom ->
             // The runtime resolves params against the merged document, so the
@@ -39,25 +45,41 @@ object UpscaleEffectChain {
                 val params = profile.shaderChain.fold(emptyMap<String, Float>()) { acc, file ->
                     acc + profile.shaderParams[file].orEmpty()
                 }
-                return listOf(UserShaderGlEffect(custom, params))
+                val label = profile.shaderChain.joinToString(" → ")
+                return BuiltChain(
+                    listOf(UserShaderGlEffect(custom, params, telemetry.addShader(label))),
+                    telemetry,
+                )
             }
         }
         val anime4kChain = Anime4KChain.load(context, profile)
-        if (anime4kChain.passes.isNotEmpty()) return listOf(UserShaderGlEffect(anime4kChain))
-        return buildParametricChain(context, profile, sourceHeight)
+        if (anime4kChain.passes.isNotEmpty()) {
+            return BuiltChain(
+                listOf(UserShaderGlEffect(anime4kChain, onConfigured = telemetry.addShader("Anime4K"))),
+                telemetry,
+            )
+        }
+        return BuiltChain(buildParametricChain(context, profile, sourceHeight, telemetry), telemetry)
     }
 
     private fun buildParametricChain(
         context: Context,
         profile: UpscaleProfile,
         sourceHeight: Int,
+        telemetry: EffectChainTelemetry,
     ): List<Effect> = buildList {
         ParametricChain.forProfile(profile).forEach { link ->
             val document = UserShaderChain.loadByName(context, link.shader.fileName)
             val loaded = document != null && document.passes.isNotEmpty()
-            if (loaded) add(UserShaderGlEffect(document!!, link.params))
+            if (loaded) {
+                add(UserShaderGlEffect(document!!, link.params, telemetry.addShader(link.shader.displayName)))
+            }
             if (link.shader.role == BundledShaderRole.UPSCALE) {
-                presentationFor(profile, sourceHeight, shaderDoubles = loaded)?.let { add(it) }
+                presentationFor(profile, sourceHeight, shaderDoubles = loaded)?.let { presentation ->
+                    add(presentation)
+                    val target = targetHeight(profile, sourceHeight)
+                    telemetry.addPresentation(target)
+                }
             }
         }
     }

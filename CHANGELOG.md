@@ -17,6 +17,8 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 ### Changed
 
 - New app icon: eclipse ring, play button and sakura blossom, with a matching monochrome variant for Android 13+ themed icons. All icon assets are generated from one script (`tools/branding/generate_app_icon.py`).
+- Media3 debug statistics now report the configured shader graph's actual output resolution and retained passes, including pending and passthrough degradation states.
+- Adaptive quality now degrades explicit shader chains safely and keeps a localized player status visible while processing is reduced, pending, partially applied, or unavailable; transition logs include the requested/effective chains and runtime reason.
 - Public README now reflects the current Android-first Media3/mpv architecture and links to benchmark methodology.
 - Internal worklog/research notes are excluded from the public repository surface.
 - The `foss` flavor excludes the prebuilt libmpv AAR and native mpv/FFmpeg libraries; the reference engine remains in `full` only.

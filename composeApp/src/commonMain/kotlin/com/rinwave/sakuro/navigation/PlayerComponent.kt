@@ -157,7 +157,12 @@ class PlayerComponent(
                     // (clean quality measurements). We reset the controller so that on
                     // re-enable the streak/level start over.
                     adaptiveController.reset()
-                    AdaptiveController.Decision(effective = inputs.user, level = 0, reason = null)
+                    AdaptiveController.Decision(
+                        requested = inputs.user,
+                        effective = inputs.user,
+                        level = 0,
+                        reason = null,
+                    )
                 }
             }.collect { decision ->
                 _adaptiveDecision.value = decision

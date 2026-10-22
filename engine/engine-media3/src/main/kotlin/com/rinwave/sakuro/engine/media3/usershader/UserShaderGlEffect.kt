@@ -20,10 +20,11 @@ import androidx.media3.effect.GlShaderProgram
 internal class UserShaderGlEffect(
     private val document: ShaderDocument,
     private val paramValues: Map<String, Float> = emptyMap(),
+    private val onConfigured: (ShaderGraphRuntimeStats) -> Unit = {},
 ) : GlEffect {
 
     override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram =
-        UserShaderProgram(document, paramValues = paramValues)
+        UserShaderProgram(document, paramValues = paramValues, onConfigured = onConfigured)
 
     override fun isNoOp(inputWidth: Int, inputHeight: Int): Boolean = document.passes.isEmpty()
 }

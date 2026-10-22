@@ -30,7 +30,6 @@ import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.describe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -71,6 +70,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     /** Source height used when the current effect chain was built; 0 means unknown. */
     private var effectsBuiltForHeight = -1
+    private var effectChainTelemetry = EffectChainTelemetry()
 
     private var videoDecoderName: String? = null
     private var audioDecoderName: String? = null
@@ -275,9 +275,12 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     private fun setEffectsInternal() {
         val sourceHeight = _state.value.videoHeight
         effectsBuiltForHeight = if (currentProfile.passes.any { it is UpscalePass.Upscale }) sourceHeight else -1
+        val built = UpscaleEffectChain.build(appContext, currentProfile, sourceHeight)
+        effectChainTelemetry = built.telemetry
         runCatching {
-            player.setVideoEffects(UpscaleEffectChain.build(appContext, currentProfile, sourceHeight))
+            player.setVideoEffects(built.effects)
         }.onFailure {
+            built.telemetry.fail(it.message ?: it.javaClass.simpleName)
             _state.update { s -> s.copy(errorMessage = "Failed to apply effects: ${it.message}") }
         }
     }
@@ -287,14 +290,15 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         val audioFormat = player.audioFormat
         val sourceHeight = _state.value.videoHeight
         val sourceWidth = _state.value.videoWidth
-        val targetHeight = UpscaleEffectChain.targetHeight(currentProfile, sourceHeight)
-        val outputWidth = if (sourceHeight > 0) sourceWidth * targetHeight / sourceHeight else 0
+        val applied = effectChainTelemetry.snapshot(sourceWidth, sourceHeight)
         return DebugStats(
             engine = "Media3/ExoPlayer",
             videoCodec = videoFormat?.codecs ?: videoFormat?.sampleMimeType,
             videoDecoder = videoDecoderName,
             sourceResolution = videoFormat?.let { "${it.width}x${it.height}" },
-            outputResolution = if (sourceHeight > 0) "${outputWidth}x$targetHeight" else null,
+            outputResolution = applied.outputWidth?.let { width ->
+                applied.outputHeight?.let { height -> "${width}x$height" }
+            },
             videoFps = videoFormat?.frameRate?.takeIf { it > 0 },
             droppedFrames = droppedFrames,
             renderedFrames = player.videoDecoderCounters?.renderedOutputBufferCount,
@@ -305,9 +309,15 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             audioChannels = audioFormat?.channelCount?.takeIf { it != Format.NO_VALUE },
             audioSampleRateHz = audioFormat?.sampleRate?.takeIf { it != Format.NO_VALUE },
             upscaleProfile = currentProfile.name,
-            upscalePasses = currentProfile.passes.map { it.describe() },
+            upscalePasses = applied.effects,
+            upscaleRuntimeState = applied.runtimeState,
+            upscaleRuntimeReason = applied.degradedReasons.takeIf { it.isNotEmpty() }?.joinToString("; "),
             extras = buildMap {
                 audioDecoderName?.let { put("audio decoder", it) }
+                if (applied.pending) put("shader graph", "pending")
+                if (applied.degradedReasons.isNotEmpty()) {
+                    put("shader graph", "degraded: ${applied.degradedReasons.joinToString("; ")}")
+                }
             },
         )
     }

@@ -115,8 +115,7 @@ platform :android do
     fdroid
   end
 
-  desc "Validate a clean tag and build audited F-Droid plus signed Play artifacts"
-  lane :release do
+  private_lane :validate_release do
     ensure_git_status_clean
     properties = release_properties(project_root)
     version_name = properties.fetch("sakuro.versionName")
@@ -128,7 +127,18 @@ platform :android do
       changelog = File.join(locale, "changelogs", "#{version_code}.txt")
       UI.user_error!("Missing localized changelog: #{changelog}") unless File.exist?(changelog)
     end
+  end
 
+  desc "Validate a clean tag and build the audited unsigned F-Droid artifact"
+  lane :fdroid_release do
+    validate_release
+    quality
+    fdroid
+  end
+
+  desc "Validate a clean tag and build audited F-Droid plus signed Play artifacts"
+  lane :release do
+    validate_release
     quality
     fdroid
     play

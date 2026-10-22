@@ -41,6 +41,7 @@ internal class UserShaderProgram(
      * `glsl-shader-opts` change.
      */
     private val paramValues: Map<String, Float> = emptyMap(),
+    private val onConfigured: (ShaderGraphRuntimeStats) -> Unit = {},
 ) : BaseGlShaderProgram(HIGH_PRECISION, TEXTURE_POOL_CAPACITY) {
 
     private data class TexRef(val texId: Int, val width: Int, val height: Int)
@@ -67,6 +68,7 @@ internal class UserShaderProgram(
     private var inputWidth = 0
     private var inputHeight = 0
     private var degraded = false
+    private var degradedReason: String? = null
     private var frameIndex = 0
 
     override fun configure(inputWidth: Int, inputHeight: Int): Size {
@@ -110,20 +112,40 @@ internal class UserShaderProgram(
             storageImages = createStorageImages()
             bufferObjects = createBuffers()
             degraded = false
+            degradedReason = null
         } catch (e: GlUtil.GlException) {
             degradeToPassthrough(e)
         } catch (e: UserShaderException) {
             degradeToPassthrough(e)
         }
 
+        return reportConfiguration(inputWidth, inputHeight)
+    }
+
+    private fun reportConfiguration(inputWidth: Int, inputHeight: Int): Size {
+        val outputWidth = if (degraded) inputWidth else plan.outputWidth
+        val outputHeight = if (degraded) inputHeight else plan.outputHeight
+        onConfigured(
+            ShaderGraphRuntimeStats(
+                outputWidth = outputWidth,
+                outputHeight = outputHeight,
+                passes = if (degraded) {
+                    emptyList()
+                } else {
+                    plan.passes.map { RuntimeShaderPass(it.pass.desc, it.outWidth, it.outHeight) }
+                },
+                degradedReason = degradedReason,
+            ),
+        )
         // On degradation we return the source size (no upscale is applied).
-        return if (degraded) Size(inputWidth, inputHeight) else Size(plan.outputWidth, plan.outputHeight)
+        return Size(outputWidth, outputHeight)
     }
 
     /** No FP16 targets / an unsupported feature / a broken shader — play the frame as-is. */
     private fun degradeToPassthrough(cause: Exception) {
         Log.w(TAG, "shader graph was not built, passthrough: ${cause.message}")
         degraded = true
+        degradedReason = cause.message ?: cause.javaClass.simpleName
         releaseGraph()
     }
 
