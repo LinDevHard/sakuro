@@ -31,4 +31,8 @@ internal data class UserShaderPass(
     val compute: ComputeLayout?,
     /** GLSL body: everything between directives (usually `vec4 hook() { ... }`). */
     val body: String,
+    /** File-local declarations survive merging; null means use the enclosing document. */
+    val parameters: List<ShaderParam>? = null,
+    /** Overrides for this source file, independent of names in other files. */
+    val parameterValues: Map<String, Float> = emptyMap(),
 )

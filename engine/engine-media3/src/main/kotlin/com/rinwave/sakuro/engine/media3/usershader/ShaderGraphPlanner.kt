@@ -113,14 +113,14 @@ internal object ShaderGraphPlanner {
         outputWidth: Int,
         outputHeight: Int,
         private val caps: RuntimeCapabilities,
-        paramValues: Map<String, Float>,
+        private val paramValues: Map<String, Float>,
     ) {
         private val sizes = hashMapOf(
             ShaderStages.MAIN to (inputWidth to inputHeight),
             ShaderStages.OUTPUT_REF to (outputWidth to outputHeight),
             ShaderStages.NATIVE_CROPPED_REF to (inputWidth to inputHeight),
         )
-        private val params = document.params.associate { it.name to it.effective(paramValues[it.name]) }
+        private val documentParams = document.params
         private val customTextures = document.textures.associateBy { it.name }
         private val buffersByName = document.buffers.associateBy { it.name }
 
@@ -396,7 +396,9 @@ internal object ShaderGraphPlanner {
         private fun valueResolver(pass: UserShaderPass, slot: String): (String) -> Float = { token ->
             val dot = token.indexOf('.')
             if (dot <= 0) {
-                params[token] ?: throw UserShaderException("unknown variable '$token' for '${pass.desc}'")
+                val param = (pass.parameters ?: documentParams).firstOrNull { it.name == token }
+                    ?: throw UserShaderException("unknown variable '$token' for '${pass.desc}'")
+                param.effective(pass.parameterValues[token] ?: paramValues[token])
             } else {
                 val name = token.substring(0, dot)
                 if (name in PLANE_SLOTS) seedPlanes(name)

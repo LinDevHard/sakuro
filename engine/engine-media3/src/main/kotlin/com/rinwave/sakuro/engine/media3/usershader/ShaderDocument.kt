@@ -1,7 +1,7 @@
 package com.rinwave.sakuro.engine.media3.usershader
 
 /** A shader chain failed to parse/plan/build; the runtime degrades to passthrough. */
-internal class UserShaderException(message: String) : RuntimeException(message)
+internal class UserShaderException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 /**
  * Everything parsed out of one (or several merged) mpv user-shader `.glsl` files:
@@ -20,8 +20,18 @@ internal data class ShaderDocument(
             ShaderDocument(passes, emptyList(), emptyList(), emptyList())
 
         /** Concatenates several files of a chain into one document, preserving order. */
-        fun merge(documents: List<ShaderDocument>): ShaderDocument = ShaderDocument(
-            passes = documents.flatMap { it.passes },
+        fun merge(
+            documents: List<ShaderDocument>,
+            parameterValues: List<Map<String, Float>> = emptyList(),
+        ): ShaderDocument = ShaderDocument(
+            passes = documents.flatMapIndexed { index, document ->
+                document.passes.map { pass ->
+                    pass.copy(
+                        parameters = pass.parameters ?: document.params,
+                        parameterValues = parameterValues.getOrElse(index) { emptyMap() } + pass.parameterValues,
+                    )
+                }
+            },
             textures = documents.flatMap { it.textures },
             buffers = documents.flatMap { it.buffers },
             params = documents.flatMap { it.params },

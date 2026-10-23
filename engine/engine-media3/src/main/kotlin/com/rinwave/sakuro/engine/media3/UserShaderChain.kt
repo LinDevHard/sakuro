@@ -27,6 +27,7 @@ internal object UserShaderChain {
                 profile.shaderChain.map { name ->
                     MpvUserShaderParser.parse(readShader(context, dir, name))
                 },
+                profile.shaderChain.map { profile.shaderParams[it].orEmpty() },
             )
         }.onSuccess {
             Log.i(TAG, "custom chain ${profile.shaderChain} → ${it.passes.size} passes")

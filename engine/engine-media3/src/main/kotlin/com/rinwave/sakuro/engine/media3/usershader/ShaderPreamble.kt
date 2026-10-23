@@ -80,7 +80,7 @@ void main() {
         appendLine("in vec2 v_texcoord;")
         appendLine("out vec4 frag_out;")
         appendGlobals()
-        appendParams(document.params, paramValues)
+        appendParams(pass.parameters ?: document.params, paramValues + pass.parameterValues)
         val binds = pass.binds.distinct()
         for (bind in binds) {
             appendBind(bind, document, pass.body, posExpression = "v_texcoord", gather = caps.gather)
@@ -120,7 +120,7 @@ void main() {
         )
         appendLine("layout(rgba16f, binding = 0) uniform writeonly highp image2D out_image;")
         appendGlobals()
-        appendParams(document.params, paramValues)
+        appendParams(pass.parameters ?: document.params, paramValues + pass.parameterValues)
         val binds = pass.binds.distinct()
         for (bind in binds) {
             appendBind(

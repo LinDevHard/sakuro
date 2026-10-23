@@ -28,7 +28,6 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
-import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +68,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     private val externalSubtitles = mutableListOf<ExternalSubtitle>()
 
     /** Source height used when the current effect chain was built; 0 means unknown. */
-    private var effectsBuiltForHeight = -1
+    private val effectSourceSize = EffectSourceSize()
     private var effectChainTelemetry = EffectChainTelemetry()
 
     private var videoDecoderName: String? = null
@@ -89,8 +88,11 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
-            if (videoSize.width > 0 && videoSize.height > 0) {
-                onSourceSizeKnown(videoSize.width, videoSize.height)
+            // VideoSize may describe the processed output. Only decoded format sizes
+            // can drive source-relative scaling without causing a rebuild feedback loop.
+            val format = player.videoFormat
+            if (format != null && format.width > 0 && format.height > 0) {
+                onSourceSizeKnown(format.width, format.height)
             }
         }
 
@@ -163,11 +165,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         if (changed) {
             _state.update { it.copy(videoWidth = width, videoHeight = height) }
         }
-        // If an upscale chain was created before the source size was known,
-        // rebuild it now so Presentation and shader planning use the real height.
-        val needsRebuild = effectsBuiltForHeight == 0 &&
-            currentProfile.passes.any { it is UpscalePass.Upscale }
-        if (needsRebuild) {
+        // Rebuild both the first unknown-size chain and chains for a changed source.
+        if (effectSourceSize.needsRebuild(height)) {
             applyUpscale(currentProfile)
         }
     }
@@ -184,7 +183,9 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         externalSubtitles.clear()
         droppedFrames = 0
         lastRenderSample = null
-        _state.update { it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null) }
+        _state.update {
+            it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null, videoWidth = 0, videoHeight = 0)
+        }
         setEffectsInternal()
         player.setMediaItem(media.toMediaItem())
         player.prepare()
@@ -274,8 +275,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     private fun setEffectsInternal() {
         val sourceHeight = _state.value.videoHeight
-        effectsBuiltForHeight = if (currentProfile.passes.any { it is UpscalePass.Upscale }) sourceHeight else -1
         val built = UpscaleEffectChain.build(appContext, currentProfile, sourceHeight)
+        effectSourceSize.onEffectsBuilt(if (built.sourceDependent) sourceHeight else -1)
         effectChainTelemetry = built.telemetry
         runCatching {
             player.setVideoEffects(built.effects)
