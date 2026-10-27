@@ -35,6 +35,7 @@ captures/
 # Signing and local secrets
 *.jks
 *.keystore
+.worktrees/
 *.p12
 *.pem
 *.key
