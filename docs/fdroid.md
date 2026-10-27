@@ -40,7 +40,7 @@ lane even when Play signing secrets are available.
 5. Submit/update `com.rinwave.sakuro.yml` in the separate `fdroiddata`
    repository, selecting the `foss` Gradle flavor.
 
-Suggested fdroiddata build block for version 0.1.0:
+Suggested fdroiddata build block for version 0.1.1:
 
 ```yaml
 Categories:
@@ -54,19 +54,20 @@ RepoType: git
 Repo: https://github.com/LinDevHard/sakuro.git
 
 Builds:
-  - versionName: 0.1.0
-    versionCode: 1
-    commit: v0.1.0
+  - versionName: 0.1.1
+    versionCode: 2
+    commit: <full release commit SHA>
     gradle:
       - foss
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: gradle.properties|sakuro.versionCode=(\d+)|.|sakuro.versionName=(.+)
-CurrentVersion: 0.1.0
-CurrentVersionCode: 1
+CurrentVersion: 0.1.1
+CurrentVersionCode: 2
 ```
 
-The tag does not exist yet; create it only when the release commit is ready.
+Use the immutable commit SHA tagged as `v0.1.1` after the release commit is
+ready.
 F-Droid signs its own builds, so no signing key or secret belongs in this
 repository or in the F-Droid lane.

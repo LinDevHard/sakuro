@@ -161,7 +161,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Sakuro"
-            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.0.
+            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.1.
             packageVersion = "1.0.0"
         }
     }

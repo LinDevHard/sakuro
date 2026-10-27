@@ -6,7 +6,7 @@ package com.rinwave.sakuro
  * in one place.
  */
 object AppInfo {
-    const val VERSION = "0.1.0"
+    const val VERSION = "0.1.1"
 
     const val GITHUB_URL = "https://github.com/rinwave/sakuro"
     const val ISSUES_URL = "https://github.com/rinwave/sakuro/issues"

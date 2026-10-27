@@ -14,8 +14,8 @@ not a store artifact.
 The canonical version is stored in `gradle.properties`:
 
 ```properties
-sakuro.versionName=0.1.0
-sakuro.versionCode=1
+sakuro.versionName=0.1.1
+sakuro.versionCode=2
 sakuro.enableR8=true
 ```
 
@@ -72,7 +72,7 @@ This is an engineering gate, not a substitute for legal review.
 1. Complete device benchmark/parity and smoke tests for the exact release APK.
 2. Update the version and localized changelogs.
 3. Merge the clean release commit.
-4. Create and push the exact tag, for example `v0.1.0`.
+4. Create and push the exact tag, for example `v0.1.1`.
 5. The required tag job builds and verifies the unsigned F-Droid output and
    retains it with the license report for 30 days.
 6. When `SAKURO_PLAY_RELEASE_ENABLED=true`, a separate tag job also builds the

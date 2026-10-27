@@ -6,7 +6,9 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
-- Added a gated release pipeline for unsigned F-Droid APKs and signed Play APK/AAB artifacts, including tag/version validation, dependency-license auditing, optional R8/resource shrinking, mapping retention, and SHA-256 manifests.
+## 0.1.1
+
+- Added a gated release pipeline for unsigned F-Droid APKs and signed Play APK/AAB artifacts, including tag/version validation, dependency-license auditing, R8/resource shrinking, mapping retention, and SHA-256 manifests.
 
 ### Added
 
