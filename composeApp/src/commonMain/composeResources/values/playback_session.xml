@@ -1,0 +1,20 @@
+<resources>
+    <string name="session_tools">Playback tools</string>
+    <string name="session_autoplay">Play next video automatically</string>
+    <string name="session_close">Close</string>
+    <string name="session_continue">Continue</string>
+    <string name="session_copied">Copied</string>
+    <string name="session_copy">Copy report</string>
+    <string name="session_diagnostics">Diagnostic report</string>
+    <string name="session_diagnostics_hint">Review this technical snapshot before sharing. Media names and file paths are excluded.</string>
+    <string name="session_error">Unable to play this video</string>
+    <string name="session_error_hint">Try again without video processing, or return to the library.</string>
+    <string name="session_next">Next video</string>
+    <string name="session_previous">Previous video</string>
+    <string name="session_processing_off">Processing is off for this session</string>
+    <string name="session_restart">Start over</string>
+    <string name="session_resume">Continue watching?</string>
+    <string name="session_resume_at">Resume from %1$s</string>
+    <string name="session_retry_plain">Retry without processing</string>
+    <string name="session_share">Share report</string>
+</resources>

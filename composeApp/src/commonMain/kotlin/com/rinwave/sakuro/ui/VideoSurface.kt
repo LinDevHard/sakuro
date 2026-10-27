@@ -3,6 +3,7 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.player.SubtitlePreferences
 
 /**
  * The current engine's video surface. Android: Media3 renders into a PlayerView;
@@ -10,4 +11,9 @@ import com.rinwave.sakuro.core.player.PlayerEngine
  * [scaleMode] — the frame scaling mode, toggled by pinch (FEATURES.md §3.1).
  */
 @Composable
-expect fun VideoSurface(engine: PlayerEngine, scaleMode: ScaleMode, modifier: Modifier)
+expect fun VideoSurface(
+    engine: PlayerEngine,
+    scaleMode: ScaleMode,
+    modifier: Modifier,
+    subtitles: SubtitlePreferences = SubtitlePreferences(),
+)

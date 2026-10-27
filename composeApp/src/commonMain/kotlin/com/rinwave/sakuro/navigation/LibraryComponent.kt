@@ -7,6 +7,7 @@ import com.rinwave.sakuro.core.media.LibraryEvents
 import com.rinwave.sakuro.core.media.LibraryPreferencesStore
 import com.rinwave.sakuro.core.media.LibrarySort
 import com.rinwave.sakuro.core.media.MediaLibrary
+import com.rinwave.sakuro.core.media.PlaybackHistoryStore
 import com.rinwave.sakuro.core.media.SortOrder
 import com.rinwave.sakuro.core.media.VideoFolder
 import com.rinwave.sakuro.core.media.VideoItem
@@ -22,6 +23,7 @@ class LibraryComponent(
     componentContext: ComponentContext,
     private val mediaLibrary: MediaLibrary,
     private val preferences: LibraryPreferencesStore,
+    history: PlaybackHistoryStore,
     private val onOpenVideo: (uri: String, title: String) -> Unit,
     val onOpenSettings: () -> Unit,
 ) : ComponentContext by componentContext {
@@ -49,6 +51,7 @@ class LibraryComponent(
 
     private val _state = MutableStateFlow(State(sortOrder = preferences.sortOrder.value))
     val state: StateFlow<State> = _state.asStateFlow()
+    val progress = history.entries
 
     /** The system back button exits an opened folder to the top level. */
     private val backCallback = BackCallback(isEnabled = false) { onBack() }

@@ -1,0 +1,5 @@
+<resources>
+    <string name="entry_open_one_file">Open one file</string>
+    <string name="entry_connect_library">Connect library</string>
+    <string name="entry_library_access_description">Open a video without library access, or allow access to show videos from your device.</string>
+</resources>

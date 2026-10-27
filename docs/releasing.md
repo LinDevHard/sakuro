@@ -16,14 +16,12 @@ The canonical version is stored in `gradle.properties`:
 ```properties
 sakuro.versionName=0.1.0
 sakuro.versionCode=1
-sakuro.enableR8=false
+sakuro.enableR8=true
 ```
 
 Increase `versionCode` for every store release and keep `versionName` equal to
-the Git tag without its `v` prefix. R8 and resource shrinking stay disabled
-until the optimized APK passes the physical-device benchmark/parity suite. Once
-that is true, set the GitHub Actions variable `SAKURO_ENABLE_R8=true` (and then
-make `sakuro.enableR8=true` the repository default). Preserve the generated
+the Git tag without its `v` prefix. R8 and resource shrinking are enabled for
+release artifacts, including the unsigned F-Droid APK. Preserve the generated
 `mapping.txt` for every optimized release.
 
 ## Signing secrets

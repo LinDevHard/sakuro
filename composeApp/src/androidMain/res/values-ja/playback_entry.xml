@@ -1,0 +1,4 @@
+<resources>
+    <string name="incoming_video_unsupported">この動画を開けません。端末内の動画ファイルを選択してください。</string>
+    <string name="incoming_video_title">動画</string>
+</resources>

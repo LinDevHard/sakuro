@@ -1,0 +1,14 @@
+<resources>
+    <string name="settings_subtitles">Subtitles</string>
+    <string name="settings_subtitle_font">Font size</string>
+    <string name="settings_subtitle_background">Subtitle background</string>
+    <string name="settings_subtitle_background_hint">Dark background improves readability.</string>
+    <string name="settings_subtitle_position">Distance from bottom</string>
+    <string name="settings_subtitle_delay">Subtitle delay: %1$d ms</string>
+    <string name="settings_subtitle_delay_hint">Positive values display subtitles later.</string>
+    <string name="settings_subtitle_earlier">−100 ms</string>
+    <string name="settings_subtitle_later">+100 ms</string>
+    <string name="settings_subtitle_reset">Reset</string>
+    <string name="settings_subtitle_language">Preferred language</string>
+    <string name="settings_subtitle_language_hint">Language tag, for example en or ru. Leave empty for automatic selection.</string>
+</resources>

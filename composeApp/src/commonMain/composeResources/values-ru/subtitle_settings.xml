@@ -1,0 +1,14 @@
+<resources>
+    <string name="settings_subtitles">Субтитры</string>
+    <string name="settings_subtitle_font">Размер шрифта</string>
+    <string name="settings_subtitle_background">Фон субтитров</string>
+    <string name="settings_subtitle_background_hint">Тёмный фон улучшает читаемость.</string>
+    <string name="settings_subtitle_position">Отступ снизу</string>
+    <string name="settings_subtitle_delay">Задержка субтитров: %1$d мс</string>
+    <string name="settings_subtitle_delay_hint">Положительные значения показывают субтитры позже.</string>
+    <string name="settings_subtitle_earlier">−100 мс</string>
+    <string name="settings_subtitle_later">+100 мс</string>
+    <string name="settings_subtitle_reset">Сбросить</string>
+    <string name="settings_subtitle_language">Предпочитаемый язык</string>
+    <string name="settings_subtitle_language_hint">Код языка, например ru или en. Пустое поле — автоматический выбор.</string>
+</resources>

@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -66,6 +68,7 @@ import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
 import com.rinwave.sakuro.core.media.FOLDER_OTHER
 import com.rinwave.sakuro.core.media.LibrarySort
+import com.rinwave.sakuro.core.media.PlaybackProgress
 import com.rinwave.sakuro.core.media.SortOrder
 import com.rinwave.sakuro.core.media.VideoFolder
 import com.rinwave.sakuro.core.media.VideoItem
@@ -74,6 +77,7 @@ import com.rinwave.sakuro.navigation.LibraryComponent
 import com.rinwave.sakuro.navigation.LibraryComponent.Tab
 import com.rinwave.sakuro.ui.VideoThumbnail
 import com.rinwave.sakuro.ui.label
+import com.rinwave.sakuro.ui.rememberConnectMediaLibrary
 import com.rinwave.sakuro.ui.rememberVideoFilePicker
 import com.rinwave.sakuro.ui.theme.SakuroColors
 import com.rinwave.sakuro.ui.util.formatSize
@@ -81,9 +85,11 @@ import com.rinwave.sakuro.ui.util.formatTime
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.action_back
-import sakuro.composeapp.generated.resources.action_open_file
 import sakuro.composeapp.generated.resources.action_refresh
 import sakuro.composeapp.generated.resources.action_settings
+import sakuro.composeapp.generated.resources.entry_connect_library
+import sakuro.composeapp.generated.resources.entry_library_access_description
+import sakuro.composeapp.generated.resources.entry_open_one_file
 import sakuro.composeapp.generated.resources.folder_other
 import sakuro.composeapp.generated.resources.library_empty_subtitle
 import sakuro.composeapp.generated.resources.library_empty_title
@@ -97,7 +103,9 @@ import sakuro.composeapp.generated.resources.tab_videos
 @Composable
 fun LibraryScreen(component: LibraryComponent) {
     val state by component.state.collectAsState()
+    val progress by component.progress.collectAsState()
     val openFilePicker = rememberVideoFilePicker(component::onFilePicked)
+    val connectLibrary = rememberConnectMediaLibrary()
     var sortSheetOpen by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -108,7 +116,7 @@ fun LibraryScreen(component: LibraryComponent) {
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Lucide.FolderOpen, contentDescription = null, Modifier.size(20.dp)) },
-                text = { Text(stringResource(Res.string.action_open_file)) },
+                text = { Text(stringResource(Res.string.entry_open_one_file)) },
             )
         },
     ) { padding ->
@@ -119,13 +127,24 @@ fun LibraryScreen(component: LibraryComponent) {
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
             LibraryHeader(onRefresh = component::refresh, onSettings = component.onOpenSettings)
+            if (connectLibrary != null) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    Text(
+                        stringResource(Res.string.entry_library_access_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Button(onClick = connectLibrary) {
+                        Text(stringResource(Res.string.entry_connect_library))
+                    }
+                }
+            }
             CatalogControls(
                 state = state,
                 onSelectTab = component::selectTab,
                 onBack = component::onBack,
                 onOpenSort = { sortSheetOpen = true },
             )
-            LibraryContent(state = state, component = component)
+            LibraryContent(state = state, component = component, progress = progress)
         }
     }
 
@@ -140,7 +159,11 @@ fun LibraryScreen(component: LibraryComponent) {
 }
 
 @Composable
-private fun LibraryContent(state: LibraryComponent.State, component: LibraryComponent) {
+private fun LibraryContent(
+    state: LibraryComponent.State,
+    component: LibraryComponent,
+    progress: Map<String, PlaybackProgress>,
+) {
     when {
         state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -156,7 +179,7 @@ private fun LibraryContent(state: LibraryComponent.State, component: LibraryComp
             if (tab == Tab.Folders && folder == null) {
                 FolderGrid(folders = state.folders, onOpen = component::openFolder)
             } else {
-                VideoGrid(sections = state.sections, onClick = component::onVideoClick)
+                VideoGrid(sections = state.sections, progress = progress, onClick = component::onVideoClick)
             }
         }
     }
@@ -293,7 +316,11 @@ private fun SortButton(order: SortOrder, onClick: () -> Unit) {
 }
 
 @Composable
-private fun VideoGrid(sections: List<VideoSection>, onClick: (VideoItem) -> Unit) {
+private fun VideoGrid(
+    sections: List<VideoSection>,
+    progress: Map<String, PlaybackProgress>,
+    onClick: (VideoItem) -> Unit,
+) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 168.dp),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 96.dp),
@@ -306,7 +333,7 @@ private fun VideoGrid(sections: List<VideoSection>, onClick: (VideoItem) -> Unit
                 item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(bucket.label()) }
             }
             items(section.items, key = { it.id }) { item ->
-                VideoCard(item = item, onClick = { onClick(item) })
+                VideoCard(item = item, progress = progress[item.uri]?.fraction ?: 0f, onClick = { onClick(item) })
             }
         }
     }
@@ -358,7 +385,7 @@ private fun EmptyLibrary() {
 }
 
 @Composable
-private fun VideoCard(item: VideoItem, onClick: () -> Unit) {
+private fun VideoCard(item: VideoItem, progress: Float, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -389,6 +416,13 @@ private fun VideoCard(item: VideoItem, onClick: () -> Unit) {
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                 )
             }
+        }
+        if (progress > 0f) {
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth(),
+                color = SakuroColors.AccentSakura,
+            )
         }
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(

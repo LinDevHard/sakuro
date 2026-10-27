@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.CancellationException
 
 @Composable
 actual fun rememberVideoFilePicker(onPicked: (uri: String, title: String) -> Unit): () -> Unit {
@@ -35,7 +36,7 @@ actual fun rememberShaderFilePicker(onPicked: (name: String, content: String) ->
                 val content = context.contentResolver.openInputStream(uri)!!
                     .bufferedReader().use { it.readText() }
                 callback.value(context.displayName(uri) ?: "shader.glsl", content)
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
     }
     return { launcher.launch(arrayOf("*/*")) }
@@ -56,7 +57,7 @@ private fun rememberDocumentPicker(
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
+            }.onFailure { if (it is CancellationException) throw it }
             callback.value(uri.toString(), context.displayName(uri) ?: fallbackTitle)
         }
     }
@@ -64,7 +65,9 @@ private fun rememberDocumentPicker(
     return { launcher.launch(mimeTypes) }
 }
 
-private fun android.content.Context.displayName(uri: Uri): String? =
+private fun android.content.Context.displayName(uri: Uri): String? = runCatching {
     contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-        if (cursor.moveToFirst()) cursor.getString(0) else null
+        val column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (column >= 0 && cursor.moveToFirst()) cursor.getString(column)?.takeIf { it.isNotBlank() } else null
     }
+}.onFailure { if (it is CancellationException) throw it }.getOrNull()

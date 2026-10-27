@@ -3,6 +3,7 @@ package com.rinwave.sakuro.engine.media3
 import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
@@ -24,6 +25,7 @@ import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
 import com.rinwave.sakuro.core.player.PlayerState
+import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -56,7 +58,19 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     private val appContext: Context = context.applicationContext
 
-    val player: ExoPlayer = ExoPlayer.Builder(context).build()
+    @Volatile
+    private var subtitlePreferences = SubtitlePreferences()
+
+    val player: ExoPlayer = ExoPlayer.Builder(
+        context,
+        SubtitleRenderersFactory(context) { subtitlePreferences.subtitlePositionUs(it) },
+    ).setAudioAttributes(
+        AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .build(),
+        true,
+    ).setHandleAudioBecomingNoisy(true).build()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -250,10 +264,33 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         player.playWhenReady = wasPlaying
     }
 
+    override fun setSubtitlePreferences(preferences: SubtitlePreferences) {
+        val value = preferences.normalized()
+        val delayChanged = value.delayMs != subtitlePreferences.delayMs
+        val languageChanged = value.preferredLanguage != subtitlePreferences.preferredLanguage
+        subtitlePreferences = value
+        if (languageChanged) {
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                .setPreferredTextLanguage(value.preferredLanguage.ifEmpty { null })
+                .build()
+        }
+        if (delayChanged && player.playbackState != Player.STATE_IDLE) {
+            // Re-read cues already consumed by the text decoder, keeping the media position unchanged.
+            val media = currentMedia ?: return
+            val position = player.currentPosition
+            val wasPlaying = player.playWhenReady
+            player.stop()
+            player.setMediaItem(media.toMediaItem(), position)
+            player.prepare()
+            player.playWhenReady = wasPlaying
+        }
+    }
+
     override fun applyUpscale(profile: UpscaleProfile) {
         currentProfile = profile
-        _state.update { it.copy(activeUpscaleProfileId = profile.id) }
-        if (player.playbackState == Player.STATE_IDLE) {
+        _state.update { it.copy(activeUpscaleProfileId = profile.id, errorMessage = null) }
+        if (player.playbackState == Player.STATE_IDLE && currentMedia == null) {
             setEffectsInternal()
             return
         }

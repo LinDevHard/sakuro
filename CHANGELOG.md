@@ -10,6 +10,12 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ### Added
 
+- Local resume history with library progress, natural-order folder navigation and optional autoplay.
+- Opening videos from other Android apps, with library access requested only on demand.
+- Subtitle appearance, timing and preferred-language settings for Media3.
+- Session-only retry without processing and previewable privacy-filtered diagnostic reports with explicit sharing.
+- Media3 audio focus and pause on disconnected headphones.
+
 - Open-source project documentation: license, contributing guide, security policy, code of conduct, issue templates, pull request template, privacy policy, funding metadata, and code ownership.
 - README badges and clearer public project status.
 - Fastlane quality/release lanes, localized F-Droid store metadata, and CI packaging checks.

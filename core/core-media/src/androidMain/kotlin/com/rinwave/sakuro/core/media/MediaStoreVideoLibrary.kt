@@ -54,6 +54,7 @@ class MediaStoreVideoLibrary(private val context: Context) : MediaLibrary {
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.DATE_ADDED,
             MediaStore.Video.Media.BUCKET_DISPLAY_NAME,
+            MediaStore.Video.Media.BUCKET_ID,
         )
         val items = mutableListOf<VideoItem>()
         runCatching {
@@ -72,6 +73,7 @@ class MediaStoreVideoLibrary(private val context: Context) : MediaLibrary {
                 val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
                 val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
                 val bucketCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
+                val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_ID)
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idCol)
                     val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
@@ -85,6 +87,7 @@ class MediaStoreVideoLibrary(private val context: Context) : MediaLibrary {
                         sizeBytes = cursor.getLong(sizeCol),
                         dateAddedEpochSec = cursor.getLong(dateCol),
                         folderName = cursor.getString(bucketCol).orEmpty(),
+                        folderId = cursor.getString(bucketIdCol).orEmpty(),
                     )
                 }
             }

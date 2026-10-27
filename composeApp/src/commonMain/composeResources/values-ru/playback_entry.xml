@@ -1,0 +1,5 @@
+<resources>
+    <string name="entry_open_one_file">Открыть один файл</string>
+    <string name="entry_connect_library">Подключить медиатеку</string>
+    <string name="entry_library_access_description">Откройте видео без доступа к медиатеке или разрешите доступ, чтобы видеть видео с устройства.</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <string name="incoming_video_unsupported">Cannot open this video. Choose a local video file.</string>
+    <string name="incoming_video_title">Video</string>
+</resources>

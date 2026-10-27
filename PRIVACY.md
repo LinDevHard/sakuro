@@ -5,7 +5,8 @@ Sakuro is a local-first video player. The current app does not include accounts,
 ## Summary
 
 - Sakuro reads local video metadata to build the on-device library.
-- Sakuro stores settings and preset preferences locally.
+- Sakuro stores settings, subtitle preferences and preset preferences locally.
+- Playback progress for up to 200 recently watched local video URIs is stored locally to offer resume playback.
 - Debug information is shown locally in the app.
 - `sakuro-bench` captures and reports are generated locally by the developer running the tool.
 - Sakuro does not send your media library, playback activity, settings, debug overlay data, benchmark captures, or reports to Sakuro/Rinwave servers.
@@ -34,6 +35,8 @@ The Android app currently requests local media read permissions:
 - `READ_MEDIA_VIDEO` on modern Android versions;
 - `READ_EXTERNAL_STORAGE` on Android 12 and older.
 
+Library permission is requested only when you choose to connect the media library. You can instead open an individual file with the system picker or another app without granting access to the whole library.
+
 The app manifest does not request the `INTERNET` permission in the current open-source build.
 
 ## Settings And Presets
@@ -46,7 +49,10 @@ Sakuro stores app settings locally through multiplatform settings. Stored values
 - adaptive mode setting;
 - gesture settings;
 - library sort preferences;
-- user presets and pinned preset choices.
+- user presets and pinned preset choices;
+- subtitle size, background, position, delay and preferred language;
+- optional next-video autoplay (off by default);
+- bounded playback history containing local URI, position and duration.
 
 These settings remain local to the device or desktop sandbox environment.
 
@@ -55,6 +61,12 @@ These settings remain local to the device or desktop sandbox environment.
 The debug overlay can show technical playback data such as engine, decoder, codec, resolution, FPS, dropped frames, bitrate, audio information, active preset, detected content class, adaptive state, and device signals.
 
 This information is displayed locally. If you share screenshots or logs publicly, review them first for private file names, folder names, or media details.
+
+## Diagnostic Reports
+
+The player can prepare a technical report for you to preview. It contains the app version, device/OS information, engine, canonical codec labels, resolutions, frame statistics, processing state and an error code. It excludes video titles, file paths, media URIs, raw logs, images and custom preset names.
+
+Nothing is exported until you explicitly copy the preview or choose Share and select a destination in the system chooser. The receiving app handles any further transmission under its own privacy policy.
 
 ## sakuro-bench
 

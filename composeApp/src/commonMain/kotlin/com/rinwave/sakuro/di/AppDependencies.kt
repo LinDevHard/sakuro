@@ -3,6 +3,7 @@ package com.rinwave.sakuro.di
 import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.media.LibraryPreferencesStore
 import com.rinwave.sakuro.core.media.MediaLibrary
+import com.rinwave.sakuro.core.media.PlaybackHistoryStore
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
@@ -28,6 +29,7 @@ class AppDependencies(
     val presetStores: PresetStores,
     val userShaderStore: UserShaderStore,
     val shaderInspector: ShaderInspector,
+    val playbackHistory: PlaybackHistoryStore,
 )
 
 /** Builds the DI graph: platform implementations come from outside, the rest is built here. */
@@ -44,11 +46,12 @@ fun appModule(
     single { settings }
     single { mediaLibrary }
     single { LibraryPreferencesStore() }
+    single { PlaybackHistoryStore() }
     single { engineRegistry }
     single { deviceStatusMonitor }
     single { contentClassifier }
     single { PresetStores(user = UserPresetStore(), pinned = PinnedPresetStore()) }
     single { userShaderStore }
     single { shaderInspector }
-    single { AppDependencies(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { AppDependencies(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

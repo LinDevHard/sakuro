@@ -1,0 +1,5 @@
+<resources>
+    <string name="entry_open_one_file">ファイルを開く</string>
+    <string name="entry_connect_library">ライブラリに接続</string>
+    <string name="entry_library_access_description">ライブラリへのアクセスなしで動画を開くか、アクセスを許可して端末の動画を表示できます。</string>
+</resources>

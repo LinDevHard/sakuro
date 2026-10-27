@@ -1,0 +1,20 @@
+<resources>
+    <string name="session_tools">Управление воспроизведением</string>
+    <string name="session_autoplay">Автоматически включать следующее видео</string>
+    <string name="session_close">Закрыть</string>
+    <string name="session_continue">Продолжить</string>
+    <string name="session_copied">Скопировано</string>
+    <string name="session_copy">Копировать отчёт</string>
+    <string name="session_diagnostics">Диагностический отчёт</string>
+    <string name="session_diagnostics_hint">Просмотрите технические данные перед отправкой. Названия видео и пути к файлам исключены.</string>
+    <string name="session_error">Не удалось воспроизвести видео</string>
+    <string name="session_error_hint">Попробуйте воспроизвести без обработки видео или вернитесь в медиатеку.</string>
+    <string name="session_next">Следующее видео</string>
+    <string name="session_previous">Предыдущее видео</string>
+    <string name="session_processing_off">Обработка выключена в этом сеансе</string>
+    <string name="session_restart">С начала</string>
+    <string name="session_resume">Продолжить просмотр?</string>
+    <string name="session_resume_at">Продолжить с %1$s</string>
+    <string name="session_retry_plain">Повторить без обработки</string>
+    <string name="session_share">Поделиться отчётом</string>
+</resources>

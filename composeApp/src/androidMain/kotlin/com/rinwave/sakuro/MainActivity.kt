@@ -1,11 +1,9 @@
 package com.rinwave.sakuro
 
-import android.Manifest
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -14,38 +12,35 @@ import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
-import com.rinwave.sakuro.core.media.LibraryEvents
 import com.rinwave.sakuro.di.AppDependencies
 import com.rinwave.sakuro.navigation.RootComponent
 import com.rinwave.sakuro.ui.PipActionReceiver
 import com.rinwave.sakuro.ui.PipBridge
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 
 class MainActivity : ComponentActivity() {
 
-    private val requestMediaPermission = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) LibraryEvents.requestRefresh()
-    }
+    private lateinit var root: RootComponent
+    private var incomingVideoJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val deps = GlobalContext.get().get<AppDependencies>()
-        val root = RootComponent(defaultComponentContext(), deps)
+        root = RootComponent(defaultComponentContext(), deps)
 
         setContent {
             App(root)
         }
 
-        requestMediaPermissionIfNeeded()
+        if (savedInstanceState == null) {
+            incomingVideoJob = handleIncomingVideo(intent, root::openVideo)
+        }
 
         // PiP when minimized during playback (FEATURES.md §3.1):
         // on 12+ the system enters it itself (autoEnter), earlier — onUserLeaveHint.
@@ -115,15 +110,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestMediaPermissionIfNeeded() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_VIDEO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-            requestMediaPermission.launch(permission)
-        }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        incomingVideoJob?.cancel()
+        incomingVideoJob = handleIncomingVideo(intent, root::openVideo)
     }
 
     private companion object {

@@ -205,6 +205,7 @@ private data class DoubleTapSeek(
 @Composable
 fun PlayerScreen(component: PlayerComponent) {
     val state by component.engine.state.collectAsState()
+    val subtitles by component.subtitlePreferences.collectAsState()
     val debugStats by component.engine.debugStats.collectAsState(initial = DebugStats())
     val adaptiveDecision by component.adaptiveDecision.collectAsState()
     val debugEnabled by component.debugOverlay.collectAsState()
@@ -250,6 +251,7 @@ fun PlayerScreen(component: PlayerComponent) {
     }
 
     var controlsVisible by remember { mutableStateOf(true) }
+    var toolsVisible by remember { mutableStateOf(false) }
     var presetSheetVisible by remember { mutableStateOf(false) }
     var speedSheetVisible by remember { mutableStateOf(false) }
     var tracksSheetVisible by remember { mutableStateOf(false) }
@@ -309,6 +311,7 @@ fun PlayerScreen(component: PlayerComponent) {
                     scaleX = manualZoom
                     scaleY = manualZoom
                 },
+            subtitles = subtitles,
         )
 
         // Gestures: tap toggles controls, double tap seeks or pauses, long press gives 2x speed,
@@ -486,6 +489,7 @@ fun PlayerScreen(component: PlayerComponent) {
         ) {
             PlayerControls(
                 component = component,
+                onToolsClick = { toolsVisible = true },
                 onPresetClick = {
                     speedSheetVisible = false
                     tracksSheetVisible = false
@@ -612,9 +616,18 @@ fun PlayerScreen(component: PlayerComponent) {
                 tracks = state.tracks,
                 onExternalSubtitleClick = openSubtitleFile,
                 onTrackSelected = {
-                    component.engine.selectTrack(it)
+                    component.selectTrack(it)
                     tracksSheetVisible = false
                 },
+            )
+        }
+        if (!inPip) {
+            PlaybackSessionUi(
+                component = component,
+                stats = debugStats,
+                presetId = selectedPresetId,
+                toolsVisible = toolsVisible,
+                onDismissTools = { toolsVisible = false },
             )
         }
     }
@@ -709,6 +722,7 @@ private fun AdaptiveReason.localizedText(): String = when (this) {
 @Composable
 private fun PlayerControls(
     component: PlayerComponent,
+    onToolsClick: () -> Unit,
     onPresetClick: () -> Unit,
     onSpeedClick: () -> Unit,
     onTracksClick: () -> Unit,
@@ -811,6 +825,7 @@ private fun PlayerControls(
                         Text(activePreset.displayName(), fontSize = 12.sp)
                     }
                 }
+                PlaybackToolsButton(onToolsClick)
                 IconButton(onClick = component::toggleDebugOverlay) {
                     Icon(
                         Lucide.Activity,

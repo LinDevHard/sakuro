@@ -1,6 +1,7 @@
 package com.rinwave.sakuro.core.settings
 
 import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,27 @@ class SakuroSettings(
             .coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX),
     )
     val gestureSensitivity: StateFlow<Float> = _gestureSensitivity.asStateFlow()
+
+    private val _subtitlePreferences = MutableStateFlow(
+        SubtitlePreferences(
+            fontSizeSp = settings.getFloat("subtitle_font_size", 20f),
+            backgroundEnabled = settings.getBoolean("subtitle_background", true),
+            bottomPaddingFraction = settings.getFloat("subtitle_bottom_padding", 0.08f),
+            delayMs = settings.getLong("subtitle_delay_ms", 0L),
+            preferredLanguage = settings.getString("subtitle_language", ""),
+        ).normalized(),
+    )
+    val subtitlePreferences: StateFlow<SubtitlePreferences> = _subtitlePreferences.asStateFlow()
+
+    fun setSubtitlePreferences(value: SubtitlePreferences) {
+        val normalized = value.normalized()
+        settings.putFloat("subtitle_font_size", normalized.fontSizeSp)
+        settings.putBoolean("subtitle_background", normalized.backgroundEnabled)
+        settings.putFloat("subtitle_bottom_padding", normalized.bottomPaddingFraction)
+        settings.putLong("subtitle_delay_ms", normalized.delayMs)
+        settings.putString("subtitle_language", normalized.preferredLanguage)
+        _subtitlePreferences.value = normalized
+    }
 
     fun setEngineType(type: EngineType) {
         settings.putString(KEY_ENGINE, type.name)

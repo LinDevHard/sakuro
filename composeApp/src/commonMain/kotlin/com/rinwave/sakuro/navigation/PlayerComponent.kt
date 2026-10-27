@@ -1,16 +1,24 @@
 package com.rinwave.sakuro.navigation
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnPause
 import com.rinwave.sakuro.core.detect.ClassificationRequest
 import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.detect.ContentDetection
+import com.rinwave.sakuro.core.media.MediaLibrary
+import com.rinwave.sakuro.core.media.PlaybackHistoryStore
+import com.rinwave.sakuro.core.media.VideoItem
+import com.rinwave.sakuro.core.media.nextVideoInFolder
+import com.rinwave.sakuro.core.media.previousVideoInFolder
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackHealthTracker
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.player.TrackSelection
+import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
@@ -22,6 +30,7 @@ import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserShaderStore
+import com.rinwave.sakuro.playback.PlaybackSessionState
 import com.rinwave.sakuro.ui.isInPipNow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +53,9 @@ class PlayerComponent(
     presetStores: PresetStores,
     userShaderStore: UserShaderStore,
     val shaderInspector: ShaderInspector,
+    private val history: PlaybackHistoryStore,
+    private val mediaLibrary: MediaLibrary,
+    private val onOpenVideo: (String, String) -> Unit,
     private val onFinished: () -> Unit,
 ) : ComponentContext by componentContext {
 
@@ -56,6 +68,18 @@ class PlayerComponent(
     val activeEngineType: EngineType = engineRegistry.resolve(settings.engineType.value)
 
     val engine: PlayerEngine = engineRegistry.create(settings.engineType.value)
+    val subtitlePreferences = settings.subtitlePreferences
+    val autoPlayNext = history.autoPlayNext
+    private val savedResumePosition = history.entry(media.uri)?.resumePositionMs ?: 0L
+    private val session = PlaybackSessionState(savedResumePosition)
+    private val _resumePosition = MutableStateFlow(savedResumePosition.takeIf { it > 0 })
+    val resumePosition = _resumePosition.asStateFlow()
+    private val _nextVideo = MutableStateFlow<VideoItem?>(null)
+    val nextVideo = _nextVideo.asStateFlow()
+    private val _previousVideo = MutableStateFlow<VideoItem?>(null)
+    val previousVideo = _previousVideo.asStateFlow()
+    private val _processingDisabled = MutableStateFlow(false)
+    val processingDisabled = _processingDisabled.asStateFlow()
 
     /** "Auto" + built-in + user presets (FEATURES.md §2.2). */
     val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
@@ -92,9 +116,11 @@ class PlayerComponent(
     val liveShader: StateFlow<LiveShader?> = _liveShader.asStateFlow()
 
     /** What the user picked: a live shader wins over the preset while it is set. */
-    private data class Selection(val presetId: String, val live: LiveShader?)
+    private data class Selection(val presetId: String, val live: LiveShader?, val bypass: Boolean = false)
 
-    private val selection = combine(_selectedPresetId, _liveShader) { id, live -> Selection(id, live) }
+    private val selection = combine(_selectedPresetId, _liveShader, _processingDisabled) { id, live, bypass ->
+        Selection(id, live, bypass)
+    }
 
     /** Shaders that can be applied live: imported files plus the bundled registry. */
     val shaderFiles: StateFlow<List<String>> = userShaderStore.shaders
@@ -128,11 +154,38 @@ class PlayerComponent(
 
     init {
         appliedProfile = resolveUserProfile(Selection(_selectedPresetId.value, null), _detection.value)
+        engine.setSubtitlePreferences(subtitlePreferences.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
+        if (session.awaitingChoice) engine.pause()
         // In PiP the activity is "paused", but the video must keep playing.
-        lifecycle.doOnPause { if (!isInPipNow()) engine.pause() }
-        lifecycle.doOnDestroy { engine.release() }
+        lifecycle.doOnPause {
+            saveProgress(force = true)
+            if (!isInPipNow()) engine.pause()
+        }
+        lifecycle.doOnDestroy {
+            saveProgress(force = true)
+            engine.release()
+        }
+        scope.launch { subtitlePreferences.collect { engine.setSubtitlePreferences(it) } }
+        scope.launch {
+            val videos = mediaLibrary.scan()
+            _nextVideo.value = nextVideoInFolder(videos, media.uri)
+            _previousVideo.value = previousVideoInFolder(videos, media.uri)
+        }
+        scope.launch {
+            engine.state.collect {
+                applyPendingResume()
+                saveProgress()
+            }
+        }
+        scope.launch {
+            combine(engine.state, nextVideo, autoPlayNext) { state, next, enabled ->
+                if (session.shouldAdvance(state.status, enabled, next != null)) next else null
+            }.collect { next ->
+                if (next != null) openAdjacent(next)
+            }
+        }
 
         scope.launch {
             contentClassifier.classify(ClassificationRequest(uri = media.uri, title = media.title))
@@ -177,6 +230,7 @@ class PlayerComponent(
     }
 
     private fun resolveUserProfile(selection: Selection, detection: ContentDetection): UpscaleProfile {
+        if (selection.bypass) return BuiltInPresets.OFF
         selection.live?.let { return it.toProfile() }
         return when (val selectedId = selection.presetId) {
             AUTO_PRESET_ID -> BuiltInPresets.forContentClass(detection.contentClass)
@@ -259,6 +313,57 @@ class PlayerComponent(
         if (activeEngineType == EngineType.MEDIA3) {
             engine.applyUpscale(appliedProfile)
         }
+    }
+
+    private fun saveProgress(force: Boolean = false) {
+        session.checkpoint(engine.state.value, force)?.let {
+            history.record(media.uri, it.positionMs, it.durationMs)
+        }
+    }
+
+    fun chooseResume(continueWatching: Boolean) {
+        session.chooseResume(continueWatching)
+        if (!continueWatching) history.clear(media.uri)
+        _resumePosition.value = null
+        applyPendingResume()
+    }
+
+    private fun applyPendingResume() {
+        session.takePendingSeek(engine.state.value)?.let { target ->
+            engine.seekTo(target)
+            if (lifecycle.state == Lifecycle.State.RESUMED || isInPipNow()) engine.play()
+        }
+    }
+
+    fun playNext() { nextVideo.value?.let(::openAdjacent) }
+    fun playPrevious() { previousVideo.value?.let(::openAdjacent) }
+    fun setAutoPlayNext(enabled: Boolean) = history.setAutoPlayNext(enabled)
+
+    private fun openAdjacent(video: VideoItem) {
+        saveProgress(force = true)
+        onOpenVideo(video.uri, video.title)
+    }
+
+    /** Session-local bypass; adaptive/profile updates cannot turn processing back on. */
+    fun retryWithoutProcessing() {
+        _processingDisabled.value = true
+        adaptiveController.reset()
+        healthTracker.reset()
+        appliedProfile = BuiltInPresets.OFF
+        engine.applyUpscale(BuiltInPresets.OFF)
+        if (!session.awaitingChoice) engine.play()
+    }
+
+    fun selectTrack(selection: TrackSelection) {
+        if (selection.type == TrackType.SUBTITLE) {
+            val language = engine.state.value.tracks.firstOrNull { it.id == selection.trackId }?.language
+            if (!language.isNullOrBlank()) {
+                val preferences = subtitlePreferences.value.copy(preferredLanguage = language)
+                engine.setSubtitlePreferences(preferences)
+                settings.setSubtitlePreferences(preferences)
+            }
+        }
+        engine.selectTrack(selection)
     }
 
     fun toggleDebugOverlay() = settings.setDebugOverlay(!settings.debugOverlay.value)

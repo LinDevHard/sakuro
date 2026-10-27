@@ -29,6 +29,9 @@ interface PlayerEngine {
 
     fun addExternalSubtitle(subtitle: ExternalSubtitle)
 
+    /** Engines without subtitle support may ignore these preferences. */
+    fun setSubtitlePreferences(preferences: SubtitlePreferences) = Unit
+
     /**
      * The single upscale application point: libmpv loads a `.glsl` chain,
      * Media3 builds a `GlEffect` list and calls `setVideoEffects()`.

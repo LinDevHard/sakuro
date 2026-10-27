@@ -2,6 +2,7 @@ package com.rinwave.sakuro.core.media
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 
+@Suppress("LongParameterList")
 data class VideoItem(
     val id: String,
     val title: String,
@@ -13,6 +14,8 @@ data class VideoItem(
     val dateAddedEpochSec: Long = 0,
     /** Folder bucket name (the bucket on Android); empty if unknown, then shown as [FOLDER_OTHER]. */
     val folderName: String = "",
+    /** Platform folder identity, independent of display labels (MediaStore bucket ID on Android). */
+    val folderId: String = "",
 )
 
 /** Label for files without a bucket. */

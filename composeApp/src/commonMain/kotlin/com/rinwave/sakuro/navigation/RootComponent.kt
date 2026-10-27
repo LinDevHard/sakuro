@@ -6,6 +6,7 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.di.AppDependencies
@@ -45,13 +46,24 @@ class RootComponent(
         childFactory = ::createChild,
     )
 
+    /** Entry point shared by the library, external intents and folder navigation. */
+    fun openVideo(uri: String, title: String) {
+        val current = stack.value.active.instance
+        if (current is Child.Player) {
+            if (current.component.media.uri != uri) navigation.replaceCurrent(Config.Player(uri, title))
+        } else {
+            navigation.push(Config.Player(uri, title))
+        }
+    }
+
     private fun createChild(config: Config, componentContext: ComponentContext): Child = when (config) {
         is Config.Library -> Child.Library(
             LibraryComponent(
                 componentContext = componentContext,
                 mediaLibrary = deps.mediaLibrary,
                 preferences = deps.libraryPreferences,
-                onOpenVideo = { uri, title -> navigation.push(Config.Player(uri, title)) },
+                history = deps.playbackHistory,
+                onOpenVideo = ::openVideo,
                 onOpenSettings = { navigation.push(Config.Settings) },
             ),
         )
@@ -67,6 +79,9 @@ class RootComponent(
                 presetStores = deps.presetStores,
                 userShaderStore = deps.userShaderStore,
                 shaderInspector = deps.shaderInspector,
+                history = deps.playbackHistory,
+                mediaLibrary = deps.mediaLibrary,
+                onOpenVideo = ::openVideo,
                 onFinished = navigation::pop,
             ),
         )
