@@ -1,9 +1,10 @@
 # Release pipeline
 
-Sakuro has one product dependency graph (`foss`, Media3-only) and two release
+Sakuro has one product dependency graph (`foss`, Media3-only) and three release
 outputs from it:
 
-- an unsigned APK for F-Droid, which F-Droid rebuilds and signs itself;
+- an unsigned APK that F-Droid rebuilds for reproducibility verification;
+- an upstream-signed APK shared by GitHub Releases and F-Droid;
 - a signed APK and Android App Bundle for Google Play.
 
 The `full` flavor contains libmpv and remains a benchmark/reference build. It is
@@ -24,18 +25,22 @@ the Git tag without its `v` prefix. R8 and resource shrinking are enabled for
 release artifacts, including the unsigned F-Droid APK. Preserve the generated
 `mapping.txt` for every optimized release.
 
-## Signing secrets
+## App-signing secrets
 
-Never commit the upload keystore. Configure these GitHub Actions secrets:
+Never commit the Sakuro app-signing keystore. The dedicated key has alias
+`sakuro-release`; it must not be reused by another application. Configure these
+secrets in the protected GitHub Actions environment named `release`:
 
 - `SAKURO_UPLOAD_KEYSTORE_BASE64`
 - `SAKURO_UPLOAD_KEYSTORE_PASSWORD`
 - `SAKURO_UPLOAD_KEY_ALIAS`
 - `SAKURO_UPLOAD_KEY_PASSWORD`
 
-After all four secrets are configured, set the GitHub Actions repository
-variable `SAKURO_PLAY_RELEASE_ENABLED=true`. Until then, tag builds verify and
-publish only the unsigned F-Droid artifact and the Play job stays skipped.
+The historical `SAKURO_UPLOAD_*` names are retained for compatibility with the
+tagged release scripts, but they contain Sakuro's permanent app-signing key,
+not a replaceable Play upload key. Store the local keystore outside the
+repository, keep its passwords in a password manager, and maintain an encrypted
+offline backup. Loss of this key prevents compatible GitHub/F-Droid updates.
 
 For a local signed build, decode the keystore outside the repository and expose
 its path as `SAKURO_UPLOAD_KEYSTORE_FILE` together with the other three values.
@@ -73,8 +78,12 @@ This is an engineering gate, not a substitute for legal review.
 2. Update the version and localized changelogs.
 3. Merge the clean release commit.
 4. Create and push the exact tag, for example `v0.1.1`.
-5. The required tag job builds and verifies the unsigned F-Droid output and
-   retains it with the license report for 30 days.
-6. When `SAKURO_PLAY_RELEASE_ENABLED=true`, a separate tag job also builds the
-   signed Play artifacts and retains their bundle for 30 days. Publishing to
-   Play and submitting to `fdroiddata` remain explicit human-controlled steps.
+5. The tag job builds the unsigned comparison APK plus signed APK/AAB, runs all
+   release gates, uploads CI artifacts, and creates or updates the matching
+   GitHub Release without moving the tag.
+6. To publish an existing immutable tag after introducing the workflow, run the
+   `Android` workflow manually and set `release_tag` to that tag. For the
+   initial upstream-signed release use `v0.1.1`; the workflow checks out the
+   existing tag instead of retagging it.
+7. Updating `fdroiddata` remains an explicit human-controlled step and is done
+   only after F-Droid verifies that the upstream-signed APK is reproducible.

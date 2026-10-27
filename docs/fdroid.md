@@ -25,8 +25,9 @@ composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk
 ```
 
 The shared release and signing workflow is documented in
-[`releasing.md`](releasing.md). Signing is forcibly disabled in the F-Droid
-lane even when Play signing secrets are available.
+[`releasing.md`](releasing.md). Signing is forcibly disabled while producing
+the comparison APK. GitHub Actions separately signs the matching upstream APK
+with Sakuro's dedicated app-signing key.
 
 ## Release contract
 
@@ -69,5 +70,13 @@ CurrentVersionCode: 2
 
 Use the immutable commit SHA tagged as `v0.1.1` after the release commit is
 ready.
-F-Droid signs its own builds, so no signing key or secret belongs in this
-repository or in the F-Droid lane.
+
+For upstream-signed reproducible builds, the metadata also uses:
+
+```yaml
+Binaries: https://github.com/LinDevHard/sakuro/releases/download/v%v/sakuro-%v-foss-release.apk
+AllowedAPKSigningKeys: <sakuro signing certificate SHA-256 digest>
+```
+
+The private key remains only in the GitHub `release` environment and encrypted
+offline backups. It never belongs in this repository or in `fdroiddata`.
