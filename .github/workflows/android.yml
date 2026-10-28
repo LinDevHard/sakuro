@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-${{ github.ref }}
-  cancel-in-progress: true
+  group: android-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/v') }}
 
 jobs:
   verify:
@@ -25,15 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
         with:
           bundler-cache: true
 
@@ -41,21 +41,21 @@ jobs:
         run: bundle exec fastlane android ci
 
       - name: Upload unsigned F-Droid APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sakuro-fdroid-unsigned
           path: composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk
           if-no-files-found: error
 
       - name: Upload dependency license report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sakuro-release-licenses
           path: build/reports/licenses/foss-release.tsv
           if-no-files-found: error
 
   upstream-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: release
@@ -63,6 +63,7 @@ jobs:
       contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+      EXPECTED_SIGNING_CERT_SHA256: 3c55a6285bfa2a1788f6236a6d0f9704bf00db785451fc845c8ed0f11c10660d
     steps:
       - name: Validate immutable release tag
         env:
@@ -71,18 +72,18 @@ jobs:
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
           gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: refs/tags/${{ env.RELEASE_TAG }}
           fetch-depth: 0
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1
         with:
           bundler-cache: true
 
@@ -104,6 +105,16 @@ jobs:
           SAKURO_UPLOAD_KEY_PASSWORD: ${{ secrets.SAKURO_UPLOAD_KEY_PASSWORD }}
         run: bundle exec fastlane android release
 
+      - name: Verify release signing certificate
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          ACTUAL_CERT_SHA256="$(
+            "$APKSIGNER" verify --print-certs "dist/$RELEASE_TAG/composeApp-foss-release.apk" |
+              awk -F': ' '/certificate SHA-256 digest:/ { print $NF; exit }'
+          )"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_SIGNING_CERT_SHA256"
+
       - name: Prepare stable release asset names
         run: |
           VERSION="${RELEASE_TAG#v}"
@@ -111,9 +122,11 @@ jobs:
             "dist/$RELEASE_TAG/sakuro-${VERSION}-foss-release.apk"
           cp "dist/$RELEASE_TAG/composeApp-foss-release.aab" \
             "dist/$RELEASE_TAG/sakuro-${VERSION}-foss-release.aab"
+          rm -f "dist/$RELEASE_TAG/SHA256SUMS"
+          (cd "dist/$RELEASE_TAG" && sha256sum -- * > SHA256SUMS)
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sakuro-${{ env.RELEASE_TAG }}
           path: dist/${{ env.RELEASE_TAG }}/

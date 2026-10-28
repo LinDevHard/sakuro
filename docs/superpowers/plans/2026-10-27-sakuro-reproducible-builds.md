@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Keep application ID `com.rinwave.sakuro` and the immutable `v0.1.1` tag unchanged.
+- Keep application ID `com.rinwave.sakuro` and all published tags unchanged.
 - Use a unique RSA-4096 key with alias `sakuro-release` and do not reuse another Rinwave key.
 - R8 and resource shrinking remain enabled for every release artifact.
 - No keystore or credential may be committed or printed.
@@ -38,19 +38,19 @@
 - Produces: `SAKURO_UPLOAD_KEYSTORE_BASE64`, `SAKURO_UPLOAD_KEYSTORE_PASSWORD`, `SAKURO_UPLOAD_KEY_ALIAS`, and `SAKURO_UPLOAD_KEY_PASSWORD` in GitHub environment `release`
 - Produces: SHA-256 signing-certificate fingerprint for F-Droid metadata
 
-- [ ] **Step 1: Create the GitHub `release` environment**
+- [x] **Step 1: Create the GitHub `release` environment**
 
 Use the GitHub API for `LinDevHard/sakuro`; verify the environment is returned by the repository environments endpoint.
 
-- [ ] **Step 2: Generate the key without exposing credentials**
+- [x] **Step 2: Generate the key without exposing credentials**
 
 Generate random store/key passwords, create an RSA-4096 JKS key with alias `sakuro-release`, and store both passwords in macOS Keychain. Expected: `keytool -list` identifies exactly one private-key entry with that alias.
 
-- [ ] **Step 3: Upload environment-scoped secrets through stdin**
+- [x] **Step 3: Upload environment-scoped secrets through stdin**
 
 Set the four existing `SAKURO_UPLOAD_*` secrets in environment `release`; expected: `gh secret list --env release` lists all four names without values.
 
-- [ ] **Step 4: Record and independently verify the certificate fingerprint**
+- [x] **Step 4: Record and independently verify the certificate fingerprint**
 
 Run `keytool -list -v` and `apksigner verify --print-certs` after the first signed build; expected: both SHA-256 fingerprints are identical.
 
@@ -65,51 +65,55 @@ Run `keytool -list -v` and `apksigner verify --print-certs` after the first sign
 - Consumes: Task 1 environment secrets
 - Produces: workflow input `release_tag` and release asset `sakuro-<version>-foss-release.apk`
 
-- [ ] **Step 1: Add safe workflow triggers and tag validation**
+- [x] **Step 1: Add safe workflow triggers and tag validation**
 
 Add `workflow_dispatch.inputs.release_tag`; resolve it to the tag event ref for automatic runs or the explicit input for manual runs. Validate `^v[0-9]+\.[0-9]+\.[0-9]+$` and ensure it resolves to an existing tag before any secret-bearing step.
 
-- [ ] **Step 2: Add a release-environment signing job**
+- [x] **Step 2: Add a release-environment signing job**
 
 Checkout the resolved tag, use `environment: release`, set job-level `contents: write`, materialize the keystore under `runner.temp`, and run `bundle exec fastlane android release` with the four signing variables. Do not override the tag's R8 setting with a false default.
 
-- [ ] **Step 3: Publish deterministic asset names without moving tags**
+- [x] **Step 3: Publish deterministic asset names without moving tags**
 
 Use `gh release create` only when the release is absent and `gh release upload --clobber` for assets. Publish the signed FOSS APK, AAB, mapping, license report, and checksums from `dist/<tag>/`.
 
-- [ ] **Step 4: Add workflow safety assertions**
+- [x] **Step 4: Add workflow safety assertions**
 
 Validate the YAML and inspect the event/job conditions. Expected: pull requests run only `verify`; tag/manual release jobs alone reference `environment: release` and `contents: write`.
 
-- [ ] **Step 5: Update release documentation**
+- [x] **Step 5: Update release documentation**
 
-Document that the historical `SAKURO_UPLOAD_*` names now carry Sakuro's dedicated app-signing key, how to restore it from backup, and how to dispatch the current `v0.1.1` tag without retagging.
+Document that the historical `SAKURO_UPLOAD_*` names now carry Sakuro's dedicated app-signing key, how to restore it from backup, and how to dispatch an existing immutable tag without retagging.
 
-- [ ] **Step 6: Commit the workflow change**
+- [x] **Step 6: Commit the workflow change**
 
 Commit only the design, plan, workflow, and release documentation with message `Add upstream-signed release workflow`.
 
-### Task 3: Produce and validate the signed v0.1.1 release
+### Task 3: Produce and validate the signed release
+
+Execution note: `v0.1.1` exposed nondeterministic AGP baseline-profile entries.
+The immutable corrective release is `v0.1.2` (versionCode 3), which disables
+release ArtProfile generation per F-Droid's reproducible-build guidance.
 
 **Files:**
 - No repository source changes
-- Create externally: GitHub Release assets for `v0.1.1`
+- Create externally: GitHub Release assets for `v0.1.2`
 
 **Interfaces:**
 - Consumes: Task 2 workflow and Task 1 secrets
 - Produces: public signed APK URL and verified certificate fingerprint
 
-- [ ] **Step 1: Push the workflow commit and dispatch `release_tag=v0.1.1`**
+- [x] **Step 1: Push the workflow commit and publish `v0.1.2`**
 
-Expected: the workflow checks out commit `3036de7b36e469db7f6f5f7fcd820ae9668e1c43`; the tag itself remains unchanged.
+Expected: the workflow checks out commit `50d7b3f00e266a081ee4e07db0c7f81f1cfb1185`; the tag itself remains unchanged.
 
-- [ ] **Step 2: Wait for the complete release job**
+- [x] **Step 2: Wait for the complete release job**
 
 Expected: tests, Detekt, dependency-license gate, R8 build, APK audit, signing, checksums, and release upload all pass.
 
-- [ ] **Step 3: Download and inspect the public APK**
+- [x] **Step 3: Download and inspect the public APK**
 
-Verify package `com.rinwave.sakuro`, versionName `0.1.1`, versionCode `2`, release signature, and absence of debug signing.
+Verify package `com.rinwave.sakuro`, versionName `0.1.2`, versionCode `3`, release signature, and absence of debug signing.
 
 - [ ] **Step 4: Verify upstream/F-Droid reproducibility**
 
@@ -124,15 +128,15 @@ Compare the public signed APK against the APK produced by fdroiddata pipeline `2
 - Consumes: Task 3 public APK URL and SHA-256 certificate fingerprint
 - Produces: `Binaries`/`AllowedAPKSigningKeys` metadata for MR `!53715`
 
-- [ ] **Step 1: Add binary URL and allowed key**
+- [x] **Step 1: Add binary URL and allowed key**
 
 Point the metadata at `https://github.com/LinDevHard/sakuro/releases/download/v%v/sakuro-%v-foss-release.apk` and set `AllowedAPKSigningKeys` to the verified lowercase SHA-256 certificate digest.
 
-- [ ] **Step 2: Validate metadata and build locally where available**
+- [x] **Step 2: Validate metadata and build locally where available**
 
 Run YAML parsing, `fdroid lint`, `fdroid rewritemeta`, and the app-specific build/verify commands available in the fdroiddata checkout. Expected: no metadata rewrite diff and successful binary verification.
 
-- [ ] **Step 3: Commit and push the existing MR branch**
+- [x] **Step 3: Commit and push the existing MR branch**
 
 Commit with message `Enable reproducible builds for Sakuro`; push without creating a second MR.
 

@@ -36,6 +36,12 @@ secrets in the protected GitHub Actions environment named `release`:
 - `SAKURO_UPLOAD_KEY_ALIAS`
 - `SAKURO_UPLOAD_KEY_PASSWORD`
 
+Protect that environment with the `LinDevHard` required reviewer and selected
+deployment refs `main` and `v*`. Keep the repository ruleset `Protect Sakuro
+release tags` active so only repository administrators can create, move, or
+delete release tags. Manual releases are accepted only when the workflow itself
+is launched from `main`; the job still checks out the requested immutable tag.
+
 The historical `SAKURO_UPLOAD_*` names are retained for compatibility with the
 tagged release scripts, but they contain Sakuro's permanent app-signing key,
 not a replaceable Play upload key. Store the local keystore outside the
@@ -59,7 +65,10 @@ Both release lanes require `HEAD` to have the exact tag `v<versionName>` and a
 localized `<versionCode>.txt` changelog for every metadata locale. The full
 `android release` lane creates `dist/v<versionName>/` with F-Droid and Play
 artifacts, the dependency license report, optional R8 mapping, and
-`SHA256SUMS`.
+`SHA256SUMS`. GitHub Actions regenerates that manifest after adding the stable
+`sakuro-<version>-foss-release.*` filenames, and verifies the APK certificate
+against Sakuro's expected SHA-256 fingerprint before publication. All external
+Actions in the signing job are pinned to immutable commit SHAs.
 
 ## Dependency and asset licenses
 
@@ -82,8 +91,9 @@ This is an engineering gate, not a substitute for legal review.
    release gates, uploads CI artifacts, and creates or updates the matching
    GitHub Release without moving the tag.
 6. To publish an existing immutable tag after introducing the workflow, run the
-   `Android` workflow manually and set `release_tag` to that tag. For the
-   an existing release, provide its exact immutable tag; the workflow checks
-   out that tag instead of retagging it.
+   `Android` workflow from `main` and set `release_tag` to that tag. For an
+   existing release, provide its exact immutable tag; the workflow checks out
+   that tag instead of retagging it. Approve the protected `release`
+   environment only after confirming the requested tag and commit.
 7. Updating `fdroiddata` remains an explicit human-controlled step and is done
    only after F-Droid verifies that the upstream-signed APK is reproducible.
