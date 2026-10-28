@@ -29,6 +29,12 @@ if grep -Eiq '(^|/)(libmpv|libavcodec|libavformat|libavutil|libswresample|libsws
   exit 1
 fi
 
+if grep -Eq '^assets/dexopt/baseline\.profm?$' "$archive_file"; then
+  echo "F-Droid APK contains a non-reproducible compiled baseline profile:" >&2
+  grep -E '^assets/dexopt/baseline\.profm?$' "$archive_file" >&2
+  exit 1
+fi
+
 sdk_dir="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 if [[ -z "$sdk_dir" && -f "$repo_root/local.properties" ]]; then
   sdk_dir="$(sed -n 's/^sdk\.dir=//p' "$repo_root/local.properties" | head -1)"

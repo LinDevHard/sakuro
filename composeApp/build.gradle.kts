@@ -137,6 +137,15 @@ android {
     }
 }
 
+// AGP's compiled baseline profiles are nondeterministic across otherwise
+// identical release builds. F-Droid verifies upstream signatures byte-for-byte,
+// so release APKs must omit these generated binary profiles.
+tasks.configureEach {
+    if (name.contains("ReleaseArtProfile")) {
+        enabled = false
+    }
+}
+
 tasks.register("printReleaseInfo") {
     group = "release"
     description = "Prints non-secret release identity and build switches."
@@ -161,7 +170,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Sakuro"
-            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.1.
+            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.2.
             packageVersion = "1.0.0"
         }
     }

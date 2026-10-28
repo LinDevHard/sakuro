@@ -15,8 +15,8 @@ not a store artifact.
 The canonical version is stored in `gradle.properties`:
 
 ```properties
-sakuro.versionName=0.1.1
-sakuro.versionCode=2
+sakuro.versionName=0.1.2
+sakuro.versionCode=3
 sakuro.enableR8=true
 ```
 
@@ -77,13 +77,13 @@ This is an engineering gate, not a substitute for legal review.
 1. Complete device benchmark/parity and smoke tests for the exact release APK.
 2. Update the version and localized changelogs.
 3. Merge the clean release commit.
-4. Create and push the exact tag, for example `v0.1.1`.
+4. Create and push the exact tag, for example `v0.1.2`.
 5. The tag job builds the unsigned comparison APK plus signed APK/AAB, runs all
    release gates, uploads CI artifacts, and creates or updates the matching
    GitHub Release without moving the tag.
 6. To publish an existing immutable tag after introducing the workflow, run the
    `Android` workflow manually and set `release_tag` to that tag. For the
-   initial upstream-signed release use `v0.1.1`; the workflow checks out the
-   existing tag instead of retagging it.
+   an existing release, provide its exact immutable tag; the workflow checks
+   out that tag instead of retagging it.
 7. Updating `fdroiddata` remains an explicit human-controlled step and is done
    only after F-Droid verifies that the upstream-signed APK is reproducible.

@@ -6,6 +6,13 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+## 0.1.2
+
+- Added upstream-signed reproducible GitHub/F-Droid releases with a dedicated
+  Sakuro signing key.
+- Disabled AGP's nondeterministic compiled release baseline profiles so clean
+  R8 builds produce byte-identical unsigned APKs.
+
 ## 0.1.1
 
 - Added a gated release pipeline for unsigned F-Droid APKs and signed Play APK/AAB artifacts, including tag/version validation, dependency-license auditing, R8/resource shrinking, mapping retention, and SHA-256 manifests.

@@ -1,0 +1,1 @@
+Sakuro's first upstream-signed reproducible release. Includes playback resume history, natural-order folder navigation and optional autoplay; opening videos from other Android apps; configurable subtitles; retry without processing after an effects failure; audio-focus handling; pause on disconnected headphones; privacy-filtered diagnostic export; and R8 optimization.
