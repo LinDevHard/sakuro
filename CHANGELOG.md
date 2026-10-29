@@ -6,6 +6,15 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+## 0.1.3
+
+- Removed AGP dependency metadata from release signing blocks for F-Droid
+  policy compatibility.
+- Pinned Kotlin tooling metadata to JVM 17 so release APKs remain reproducible
+  when F-Droid builds them on JDK 21.
+- Hardened the signing workflow with protected release refs, immutable Action
+  SHAs, certificate verification and complete stable-asset checksums.
+
 ## 0.1.2
 
 - Added upstream-signed reproducible GitHub/F-Droid releases with a dedicated

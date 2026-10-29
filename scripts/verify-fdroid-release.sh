@@ -35,6 +35,36 @@ if grep -Eq '^assets/dexopt/baseline\.profm?$' "$archive_file"; then
   exit 1
 fi
 
+python3 - "$apk_path" <<'PY'
+import pathlib
+import struct
+import sys
+import zipfile
+
+apk_path = pathlib.Path(sys.argv[1])
+data = apk_path.read_bytes()
+with zipfile.ZipFile(apk_path) as archive:
+    central_directory_offset = archive.start_dir
+
+magic = b"APK Sig Block 42"
+footer_offset = central_directory_offset - 24
+if footer_offset >= 0 and data[footer_offset + 8 : central_directory_offset] == magic:
+    block_size = struct.unpack_from("<Q", data, footer_offset)[0]
+    block_offset = central_directory_offset - block_size - 8
+    if block_offset < 0 or struct.unpack_from("<Q", data, block_offset)[0] != block_size:
+        raise SystemExit("Malformed APK Signing Block")
+
+    entry_offset = block_offset + 8
+    while entry_offset < footer_offset:
+        entry_size = struct.unpack_from("<Q", data, entry_offset)[0]
+        if entry_size < 4 or entry_offset + 8 + entry_size > footer_offset:
+            raise SystemExit("Malformed APK Signing Block entry")
+        entry_id = struct.unpack_from("<I", data, entry_offset + 8)[0]
+        if entry_id == 0x504B4453:
+            raise SystemExit("F-Droid APK contains the disallowed AGP dependency metadata signing block")
+        entry_offset += 8 + entry_size
+PY
+
 sdk_dir="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 if [[ -z "$sdk_dir" && -f "$repo_root/local.properties" ]]; then
   sdk_dir="$(sed -n 's/^sdk\.dir=//p' "$repo_root/local.properties" | head -1)"

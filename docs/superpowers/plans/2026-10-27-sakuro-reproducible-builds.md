@@ -92,28 +92,31 @@ Commit only the design, plan, workflow, and release documentation with message `
 ### Task 3: Produce and validate the signed release
 
 Execution note: `v0.1.1` exposed nondeterministic AGP baseline-profile entries.
-The immutable corrective release is `v0.1.2` (versionCode 3), which disables
-release ArtProfile generation per F-Droid's reproducible-build guidance.
+`v0.1.2` removed those profiles but F-Droid then exposed JDK-dependent Kotlin
+tooling metadata and a disallowed AGP dependency signing block. The final
+corrective release is `v0.1.3` (versionCode 4), with all three sources removed
+or pinned.
 
 **Files:**
 - No repository source changes
-- Create externally: GitHub Release assets for `v0.1.2`
+- Create externally: GitHub Release assets for `v0.1.3`
 
 **Interfaces:**
 - Consumes: Task 2 workflow and Task 1 secrets
 - Produces: public signed APK URL and verified certificate fingerprint
 
-- [x] **Step 1: Push the workflow commit and publish `v0.1.2`**
+- [ ] **Step 1: Push the release commit and publish `v0.1.3`**
 
-Expected: the workflow checks out commit `50d7b3f00e266a081ee4e07db0c7f81f1cfb1185`; the tag itself remains unchanged.
+Expected: the workflow checks out the exact immutable commit tagged `v0.1.3`;
+the tag itself remains unchanged.
 
-- [x] **Step 2: Wait for the complete release job**
+- [ ] **Step 2: Wait for the complete release job**
 
 Expected: tests, Detekt, dependency-license gate, R8 build, APK audit, signing, checksums, and release upload all pass.
 
-- [x] **Step 3: Download and inspect the public APK**
+- [ ] **Step 3: Download and inspect the public APK**
 
-Verify package `com.rinwave.sakuro`, versionName `0.1.2`, versionCode `3`, release signature, and absence of debug signing.
+Verify package `com.rinwave.sakuro`, versionName `0.1.3`, versionCode `4`, release signature, and absence of debug signing.
 
 - [ ] **Step 4: Verify upstream/F-Droid reproducibility**
 

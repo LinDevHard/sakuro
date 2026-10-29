@@ -136,6 +136,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // F-Droid rejects AGP's optional dependency metadata signing block, and it
+    // is not required for app execution or reproducible verification.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -174,7 +181,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Sakuro"
-            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.2.
+            // macOS packaging requires MAJOR > 0; Android uses the canonical 0.1.3.
             packageVersion = "1.0.0"
         }
     }

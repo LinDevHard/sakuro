@@ -1,0 +1,1 @@
+Improved F-Droid reproducibility across JDK versions, removed unsupported dependency metadata from APK signing blocks, and hardened the upstream signing workflow.
