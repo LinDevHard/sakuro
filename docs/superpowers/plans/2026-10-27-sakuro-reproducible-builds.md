@@ -105,22 +105,22 @@ or pinned.
 - Consumes: Task 2 workflow and Task 1 secrets
 - Produces: public signed APK URL and verified certificate fingerprint
 
-- [ ] **Step 1: Push the release commit and publish `v0.1.3`**
+- [x] **Step 1: Push the release commit and publish `v0.1.3`**
 
 Expected: the workflow checks out the exact immutable commit tagged `v0.1.3`;
 the tag itself remains unchanged.
 
-- [ ] **Step 2: Wait for the complete release job**
+- [x] **Step 2: Wait for the complete release job**
 
 Expected: tests, Detekt, dependency-license gate, R8 build, APK audit, signing, checksums, and release upload all pass.
 
-- [ ] **Step 3: Download and inspect the public APK**
+- [x] **Step 3: Download and inspect the public APK**
 
 Verify package `com.rinwave.sakuro`, versionName `0.1.3`, versionCode `4`, release signature, and absence of debug signing.
 
-- [ ] **Step 4: Verify upstream/F-Droid reproducibility**
+- [x] **Step 4: Verify upstream/F-Droid reproducibility**
 
-Compare the public signed APK against the APK produced by fdroiddata pipeline `2995441259` using F-Droid signature-copy verification. Expected: only signing data differs and verification succeeds; otherwise stop before Task 4 and diagnose the exact differing entries.
+Compare the public signed APK against the APK produced by fdroiddata pipeline `3004505129` using F-Droid signature-copy verification. Expected: only signing data differs and verification succeeds; otherwise stop before Task 4 and diagnose the exact differing entries.
 
 ### Task 4: Switch the existing F-Droid MR to upstream-signed RB
 
@@ -143,11 +143,11 @@ Run YAML parsing, `fdroid lint`, `fdroid rewritemeta`, and the app-specific buil
 
 Commit with message `Enable reproducible builds for Sakuro`; push without creating a second MR.
 
-- [ ] **Step 4: Wait for GitLab CI**
+- [x] **Step 4: Wait for GitLab CI**
 
 Expected: source checks, schema, lint, F-Droid build, and APK verification all pass.
 
-- [ ] **Step 5: Prepare reviewer response**
+- [x] **Step 5: Prepare reviewer response**
 
 Report R8 enabled, upstream signing selected, the immutable source commit, public binary URL, and passing reproducibility verification. Obtain action-time confirmation before posting the message to GitLab.
 
