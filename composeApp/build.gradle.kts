@@ -27,7 +27,11 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
-    jvm("desktop")
+    jvm("desktop") {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
     applyDefaultHierarchyTemplate()
 
     sourceSets {
