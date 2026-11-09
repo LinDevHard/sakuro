@@ -224,4 +224,7 @@
     <string name="player_processing_display_limited">アップスケール ×%1$s · 画面に合わせて制限</string>
     <string name="player_processing_display_skipped">アップスケール省略 · この画面では不要</string>
     <string name="player_processing_display_reason">この画面では最大 %1$dp で表示されます</string>
+    <string name="msg_shader_imported_unsupported">シェーダーをインポートしました: %1$s。このデバイスでは動作しません: %2$s</string>
+    <string name="shader_unsupported_badge">このデバイスでは非対応</string>
+    <string name="shader_unsupported_reason">このデバイスでは非対応: %1$s</string>
 </resources>

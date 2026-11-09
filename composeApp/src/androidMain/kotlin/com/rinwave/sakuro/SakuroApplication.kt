@@ -17,6 +17,7 @@ import com.rinwave.sakuro.core.upscale.AndroidDeviceStatusMonitor
 import com.rinwave.sakuro.di.AndroidUserShaderStore
 import com.rinwave.sakuro.di.appModule
 import com.rinwave.sakuro.engine.fake.FakeEngineFactory
+import com.rinwave.sakuro.engine.media3.DeviceGpu
 import com.rinwave.sakuro.engine.media3.Media3EngineFactory
 import com.rinwave.sakuro.engine.media3.Media3ShaderInspector
 import org.koin.core.context.startKoin
@@ -31,6 +32,8 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        // Shader pickers and import need the GPU capabilities; probe them off the main thread.
+        DeviceGpu.warmUp()
         startKoin {
             modules(
                 appModule(

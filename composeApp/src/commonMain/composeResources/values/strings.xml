@@ -223,4 +223,7 @@
     <string name="player_processing_display_limited">Upscale ×%1$s · limited by screen</string>
     <string name="player_processing_display_skipped">Upscale skipped · not needed on this screen</string>
     <string name="player_processing_display_reason">This screen shows the video at up to %1$dp</string>
+    <string name="msg_shader_imported_unsupported">Shader imported: %1$s. It will not run on this device: %2$s</string>
+    <string name="shader_unsupported_badge">Not supported on this device</string>
+    <string name="shader_unsupported_reason">Not supported on this device: %1$s</string>
 </resources>

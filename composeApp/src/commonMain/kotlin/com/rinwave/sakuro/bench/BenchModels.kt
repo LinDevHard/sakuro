@@ -97,6 +97,20 @@ data class BenchDevice(
     val model: String,
     val sdk: Int,
     val abi: String,
+    /** Null on bundles from older app versions or when the GPU probe failed. */
+    val gpu: BenchGpu? = null,
+)
+
+/** What the user-shader runtime found on this GPU — explains passthrough modes in a report. */
+@Serializable
+data class BenchGpu(
+    val renderer: String,
+    val vendor: String,
+    val glVersion: String,
+    val glesMajor: Int,
+    val glesMinor: Int,
+    val fp16Renderable: Boolean,
+    val compute: Boolean,
 )
 
 @Serializable

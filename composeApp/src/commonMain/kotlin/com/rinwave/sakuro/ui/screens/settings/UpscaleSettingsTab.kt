@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -58,6 +58,7 @@ import com.rinwave.sakuro.core.upscale.BundledShader
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.ShaderInspector
+import com.rinwave.sakuro.core.upscale.ShaderSupport
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserPresetStore
@@ -85,6 +86,7 @@ import sakuro.composeapp.generated.resources.msg_imported
 import sakuro.composeapp.generated.resources.msg_invalid_preset
 import sakuro.composeapp.generated.resources.msg_saved
 import sakuro.composeapp.generated.resources.msg_shader_imported
+import sakuro.composeapp.generated.resources.msg_shader_imported_unsupported
 import sakuro.composeapp.generated.resources.msg_shader_rejected
 import sakuro.composeapp.generated.resources.preset_content_class
 import sakuro.composeapp.generated.resources.preset_content_class_hint
@@ -102,6 +104,8 @@ import sakuro.composeapp.generated.resources.settings_default_preset
 import sakuro.composeapp.generated.resources.settings_shaders
 import sakuro.composeapp.generated.resources.settings_shaders_empty
 import sakuro.composeapp.generated.resources.shader_imported
+import sakuro.composeapp.generated.resources.shader_unsupported_badge
+import sakuro.composeapp.generated.resources.shader_unsupported_reason
 import sakuro.composeapp.generated.resources.value_off
 
 /** A pending status message shown under the custom-presets section, resolved to text in composition. */
@@ -112,6 +116,9 @@ private sealed interface PresetMessage {
     data class Saved(val name: String) : PresetMessage
     data object Invalid : PresetMessage
     data class ShaderImported(val name: String) : PresetMessage
+
+    /** Stored, but this device's GPU cannot run it (kept for mpv and preset sharing). */
+    data class ShaderImportedUnsupported(val name: String, val reason: String) : PresetMessage
     data class ShaderRejected(val reason: String) : PresetMessage
 }
 
@@ -123,6 +130,8 @@ private fun PresetMessage.text(): String = when (this) {
     is PresetMessage.Saved -> stringResource(Res.string.msg_saved, name)
     PresetMessage.Invalid -> stringResource(Res.string.msg_invalid_preset)
     is PresetMessage.ShaderImported -> stringResource(Res.string.msg_shader_imported, name)
+    is PresetMessage.ShaderImportedUnsupported ->
+        stringResource(Res.string.msg_shader_imported_unsupported, name, reason)
     is PresetMessage.ShaderRejected -> stringResource(Res.string.msg_shader_rejected, reason)
 }
 
@@ -179,9 +188,15 @@ internal fun UpscaleSettingsTab(component: UpscaleSettingsComponent) {
     UserShadersPanel(
         shaders = userShaders,
         message = shaderMessage,
+        support = component.shaderInspector::support,
         onImport = { name, content ->
             shaderMessage = component.importShader(name, content).fold(
-                onSuccess = { PresetMessage.ShaderImported(it) },
+                onSuccess = { stored ->
+                    when (val support = component.shaderInspector.support(stored)) {
+                        is ShaderSupport.Unsupported -> PresetMessage.ShaderImportedUnsupported(stored, support.reason)
+                        else -> PresetMessage.ShaderImported(stored)
+                    }
+                },
                 onFailure = { PresetMessage.ShaderRejected(it.message.orEmpty()) },
             )
         },
@@ -307,6 +322,7 @@ private fun CustomPresetsPanel(
 private fun UserShadersPanel(
     shaders: List<String>,
     message: PresetMessage?,
+    support: (String) -> ShaderSupport,
     onImport: (name: String, content: String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
@@ -329,14 +345,24 @@ private fun UserShadersPanel(
                 Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    name,
-                    color = SakuroColors.TextPrimary,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        name,
+                        color = SakuroColors.TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    (support(name) as? ShaderSupport.Unsupported)?.let {
+                        Text(
+                            stringResource(Res.string.shader_unsupported_reason, it.reason),
+                            color = SakuroColors.AccentSakura,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
                 IconButton(onClick = { onDelete(name) }) {
                     Icon(
                         Lucide.Trash2,
@@ -530,6 +556,7 @@ private fun PresetEditorDialog(
                 ShaderChainEditor(
                     importedShaders = importedShaders,
                     chain = shaderChain,
+                    support = inspector::support,
                     onToggle = { name ->
                         shaderChain = if (name in shaderChain) shaderChain - name else shaderChain + name
                         // Dropping a shader drops the values that belonged to it.
@@ -589,6 +616,7 @@ private fun PresetEditorDialog(
 private fun ShaderChainEditor(
     importedShaders: List<String>,
     chain: List<String>,
+    support: (String) -> ShaderSupport,
     onToggle: (String) -> Unit,
 ) {
     Text(
@@ -610,6 +638,7 @@ private fun ShaderChainEditor(
                 order = chain.indexOf(name),
                 // An import shadows the bundled shader — its badges would lie.
                 bundled = if (name in importedShaders) null else BundledShaders.byFileName(name),
+                unsupported = support(name) is ShaderSupport.Unsupported,
                 onToggle = onToggle,
             )
         }
@@ -627,6 +656,7 @@ private fun ShaderChip(
     name: String,
     order: Int,
     bundled: BundledShader?,
+    unsupported: Boolean,
     onToggle: (String) -> Unit,
 ) {
     val title = bundled?.displayName ?: name
@@ -643,7 +673,7 @@ private fun ShaderChip(
     FilterChip(
         selected = order >= 0,
         onClick = { onToggle(name) },
-        modifier = Modifier.height(52.dp),
+        modifier = Modifier.heightIn(min = 52.dp),
         label = {
             Column(Modifier.padding(vertical = 6.dp)) {
                 Text(
@@ -655,6 +685,14 @@ private fun ShaderChip(
                     style = MaterialTheme.typography.labelSmall,
                     color = SakuroColors.TextMuted,
                 )
+                // Still selectable: the libmpv engine and other devices may run it.
+                if (unsupported) {
+                    Text(
+                        stringResource(Res.string.shader_unsupported_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = SakuroColors.AccentSakura,
+                    )
+                }
             }
         },
         colors = FilterChipDefaults.filterChipColors(

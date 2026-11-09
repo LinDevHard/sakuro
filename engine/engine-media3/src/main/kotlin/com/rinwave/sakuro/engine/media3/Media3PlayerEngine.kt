@@ -395,6 +395,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             upscaleDisplayLimit = displayLimitStatus,
             extras = buildMap {
                 audioDecoderName?.let { put("audio decoder", it) }
+                DeviceGpu.capabilities?.let { put("gpu", it.summary()) }
                 displayLimitStatus?.let { put("screen limit", it.technicalText()) }
                 if (applied.pending) put("shader graph", "pending")
                 if (applied.degradedReasons.isNotEmpty()) {

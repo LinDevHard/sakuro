@@ -32,6 +32,7 @@ import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.detachReferenceEngineSurface
+import com.rinwave.sakuro.engine.media3.DeviceGpu
 import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -190,12 +191,7 @@ internal class AndroidBenchRunner(
         val manifest = BenchManifest(
             createdAtMs = System.currentTimeMillis(),
             appVersion = AppInfo.VERSION,
-            device = BenchDevice(
-                manufacturer = Build.MANUFACTURER,
-                model = Build.MODEL,
-                sdk = Build.VERSION.SDK_INT,
-                abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty(),
-            ),
+            device = currentDevice(),
             video = videoInfo ?: BenchVideo(video.title, 0, 0, 0),
             outputWidth = OUT_WIDTH,
             outputHeight = OUT_HEIGHT,
@@ -338,6 +334,24 @@ internal class AndroidBenchRunner(
         }
         return stored
     }
+
+    private fun currentDevice() = BenchDevice(
+        manufacturer = Build.MANUFACTURER,
+        model = Build.MODEL,
+        sdk = Build.VERSION.SDK_INT,
+        abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty(),
+        gpu = DeviceGpu.capabilities?.let {
+            BenchGpu(
+                renderer = it.renderer,
+                vendor = it.vendor,
+                glVersion = it.glVersion,
+                glesMajor = it.glesMajor,
+                glesMinor = it.glesMinor,
+                fp16Renderable = it.fp16Renderable,
+                compute = it.es31,
+            )
+        },
+    )
 
     private fun failed(config: BenchConfigItem, warnings: List<String>) = BenchModeResult(
         mode = config.mode,

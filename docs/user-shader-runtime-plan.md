@@ -52,6 +52,14 @@ for explicit shader chains it passes the fit-to-screen size as `targetSize`. The
 panel size comes from `Display.Mode` (Android TV renders UI at 1080p on 4K
 panels). The engine default is unlimited, so the on-device bench is unaffected;
 the player shows a short banner when the limit kicks in.
+**Device capabilities (2026-11-09):** `GpuCapabilities.probe()` reads the ES
+version, renderer and FP16 render-target support once in an offscreen context
+(`DeviceGpu` in engine-media3, warmed at app start).
+`UserShaderValidator.check(source|document, gpu)` returns `Ok`, `Invalid` (broken
+everywhere — import rejects it) or `Unsupported` (valid, but this GPU lacks ES 3.1
+or FP16 — import keeps it with a warning, since mpv or another device may run
+it). `ShaderInspector.support()` feeds the preset editor chips and the imported
+list; the debug overlay and the bench bundle (`device.gpu`) show the probe.
 
 **Stage model.** Media3 hands us one RGB texture after decode; mpv hooks a richer pipeline.
 Mapping:

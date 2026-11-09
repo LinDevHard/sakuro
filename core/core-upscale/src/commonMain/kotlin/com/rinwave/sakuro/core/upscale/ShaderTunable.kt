@@ -57,6 +57,20 @@ data class ShaderTunables(
 interface ShaderInspector {
     /** Tunables of [fileName]; empty when the shader has none or cannot be read. */
     fun tunables(fileName: String): List<ShaderTunable>
+
+    /** Whether this device's GPU can run [fileName] in the Media3 runtime. */
+    fun support(fileName: String): ShaderSupport = ShaderSupport.Unknown
+}
+
+/** Can this device run a shader? Decided once from a GPU probe, before playback. */
+sealed interface ShaderSupport {
+    data object Supported : ShaderSupport
+
+    /** [reason] is the runtime's technical cause (e.g. "needs an ES 3.1 context"). */
+    data class Unsupported(val reason: String) : ShaderSupport
+
+    /** No GPU information (desktop, probe failed, unreadable file) — show nothing. */
+    data object Unknown : ShaderSupport
 }
 
 class NoopShaderInspector : ShaderInspector {

@@ -223,4 +223,7 @@
     <string name="player_processing_display_limited">Апскейл ×%1$s · ограничен экраном</string>
     <string name="player_processing_display_skipped">Апскейл пропущен · не нужен на этом экране</string>
     <string name="player_processing_display_reason">Экран показывает это видео максимум в %1$dp</string>
+    <string name="msg_shader_imported_unsupported">Шейдер импортирован: %1$s. На этом устройстве он не запустится: %2$s</string>
+    <string name="shader_unsupported_badge">Не поддерживается на этом устройстве</string>
+    <string name="shader_unsupported_reason">Не поддерживается на этом устройстве: %1$s</string>
 </resources>

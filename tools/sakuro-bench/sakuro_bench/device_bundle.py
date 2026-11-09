@@ -117,7 +117,7 @@ class Bundle:
     def describe(self) -> dict[str, str]:
         device = self.manifest.get("device", {})
         video = self.manifest.get("video", {})
-        return {
+        info = {
             "device": f"{device.get('manufacturer', '?')} {device.get('model', '?')} "
                       f"(SDK {device.get('sdk', '?')}, {device.get('abi', '?')})",
             "app": self.manifest.get("appVersion", "?"),
@@ -125,6 +125,15 @@ class Bundle:
                      f"{video.get('durationMs', 0) / 1000:.0f} s",
             "render size": f"{self.manifest.get('outputWidth', 0)}×{self.manifest.get('outputHeight', 0)}",
         }
+        # Older bundles have no GPU block; a passthrough mode is easier to explain with it.
+        gpu = device.get("gpu")
+        if gpu:
+            info["gpu"] = (
+                f"{gpu.get('renderer', '?')} · ES {gpu.get('glesMajor', '?')}.{gpu.get('glesMinor', '?')} · "
+                f"fp16 {'yes' if gpu.get('fp16Renderable') else 'no'} · "
+                f"compute {'yes' if gpu.get('compute') else 'no'}"
+            )
+        return info
 
 
 def _as_float(value) -> float:
