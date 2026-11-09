@@ -59,8 +59,11 @@ def probe(path: str) -> VideoInfo:
 
 
 def frame_at(path: str, ts_ms: int, size: tuple[int, int], info: VideoInfo) -> Frame:
-    """The frame shown at `ts_ms` (last one with pts <= ts), fitted into `size`.
+    """The frame a player shows after an exact seek to `ts_ms`, fitted into `size`.
 
+    After an exact seek both engines (Media3 and mpv hr-seek) render the first
+    frame with pts >= ts, not the one on screen just before ts; checked on a
+    Pixel bundle, where a scene cut sat between the two candidates.
     Fitting mirrors the player: keep aspect, centre, black bars.
     """
     out_w, out_h = size
@@ -68,7 +71,7 @@ def frame_at(path: str, ts_ms: int, size: tuple[int, int], info: VideoInfo) -> F
     start = max(0.0, t - 2.0)
     in_range = "pc" if info.full_range else "tv"
     vf = (
-        f"select='lte(t\\,{t:.6f})',"
+        f"select='gte(t\\,{t - 0.0005:.6f})',"
         f"scale={out_w}:{out_h}:force_original_aspect_ratio=decrease"
         f":flags=lanczos+accurate_rnd+full_chroma_int"
         f":in_color_matrix={info.matrix}:in_range={in_range}:out_range=pc,"
@@ -78,17 +81,15 @@ def frame_at(path: str, ts_ms: int, size: tuple[int, int], info: VideoInfo) -> F
     # so the select filter compares against the real timestamp.
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error",
-        "-ss", f"{start:.6f}", "-copyts", "-t", f"{t - start + 0.5:.6f}", "-i", path,
-        "-vf", vf, "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1",
+        "-ss", f"{start:.6f}", "-copyts", "-i", path,
+        "-vf", vf, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1",
     ]
     proc = subprocess.run(cmd, capture_output=True)
     if proc.returncode != 0:
         raise SystemExit(f"ffmpeg failed extracting {ts_ms} ms from {path}: "
                          f"{proc.stderr.decode(errors='replace').strip()}")
     frame_bytes = out_w * out_h * 3
-    n = len(proc.stdout) // frame_bytes
-    if n == 0:
-        raise SystemExit(f"{path}: no frame at or before {ts_ms} ms")
-    last = proc.stdout[(n - 1) * frame_bytes:n * frame_bytes]
-    rgb = np.frombuffer(last, dtype=np.uint8).reshape(out_h, out_w, 3).copy()
+    if len(proc.stdout) < frame_bytes:
+        raise SystemExit(f"{path}: no frame at or after {ts_ms} ms")
+    rgb = np.frombuffer(proc.stdout[:frame_bytes], dtype=np.uint8).reshape(out_h, out_w, 3).copy()
     return Frame(name="ref", rgb=rgb)

@@ -68,8 +68,8 @@ unpacked works in place of the zip.
 `--ref-video` is the easier way to get full-reference metrics: pass the
 high-resolution master of the clip the phone played (e.g. play `clip_480.mp4` on
 the device, pass `clip_1080.mp4` here). For every capture timestamp in the
-manifest, ffmpeg decodes the frame a player would show at that moment (the last
-frame with pts ≤ timestamp) and fits it into the bundle's output size with black
+manifest, ffmpeg decodes the frame a player shows after an exact seek there (the first
+frame with pts ≥ timestamp) and fits it into the bundle's output size with black
 bars. The reference then goes through no engine on the device, so Media3 and mpv
 are judged against the same frame. If the master has no colour-matrix tag, the
 matrix is guessed from its resolution (HD and up → BT.709, like mpv); the run
