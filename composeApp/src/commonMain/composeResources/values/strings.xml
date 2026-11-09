@@ -166,9 +166,9 @@
     <string name="preset_off_name">Off</string>
     <string name="preset_off_desc">The original picture with no processing</string>
     <string name="preset_anime_sd_name">Anime SD</string>
-    <string name="preset_anime_sd_desc">2× upscale, denoise and aggressive sharpening for SD anime and weak rips</string>
+    <string name="preset_anime_sd_desc">2× CNN upscale with light denoise for SD anime and weak rips</string>
     <string name="preset_anime_hd_name">Anime HD</string>
-    <string name="preset_anime_hd_desc">1.5× upscale and moderate sharpening for 720p/1080p anime</string>
+    <string name="preset_anime_hd_desc">1.5× CNN upscale for 720p/1080p anime, no extra sharpening</string>
     <string name="preset_live_light_name">Live-action light</string>
     <string name="preset_live_light_desc">Gentle sharpening without upscaling — for live-action footage</string>
     <string name="preset_auto_name">Auto</string>

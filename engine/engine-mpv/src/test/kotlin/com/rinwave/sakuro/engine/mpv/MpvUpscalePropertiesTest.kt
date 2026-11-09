@@ -28,40 +28,72 @@ class MpvUpscalePropertiesTest {
     }
 
     @Test
-    fun `an anime preset builds the Anime4K chain in canonical order`() {
-        val sd = shaders(BuiltInPresets.ANIME_SD)
+    fun `the built-in anime presets run Upscale CNN S without Restore`() {
+        assertEquals(
+            listOf(
+                "Anime4K_Clamp_Highlights.glsl",
+                "Anime4K_Denoise_Bilateral_Mode.glsl",
+                "Anime4K_Upscale_CNN_x2_S.glsl",
+            ),
+            shaders(BuiltInPresets.ANIME_SD),
+        )
+        assertEquals(
+            listOf("Anime4K_Clamp_Highlights.glsl", "Anime4K_Upscale_CNN_x2_S.glsl"),
+            shaders(BuiltInPresets.ANIME_HD),
+        )
+    }
+
+    @Test
+    fun `an anime chain follows the canonical order and sizes Restore by strength`() {
+        fun chain(sharpen: Float) = shaders(
+            UpscaleProfile(
+                id = "t",
+                name = "t",
+                contentClass = ContentClass.ANIME,
+                // Deliberately out of order: the chain order is fixed.
+                passes = listOf(UpscalePass.Upscale(2f), UpscalePass.Sharpen(sharpen), UpscalePass.Denoise(0.3f)),
+            ),
+        )
 
         assertEquals(
             listOf(
                 "Anime4K_Clamp_Highlights.glsl",
                 "Anime4K_Denoise_Bilateral_Mode.glsl",
                 "Anime4K_Restore_CNN_M.glsl",
-                "Anime4K_Upscale_CNN_x2_M.glsl",
+                "Anime4K_Upscale_CNN_x2_S.glsl",
             ),
-            sd,
+            chain(0.8f),
         )
+        assertTrue("Anime4K_Restore_CNN_S.glsl" in chain(0.4f))
     }
 
     @Test
-    fun `weak passes use the small CNN models`() {
-        val hd = shaders(BuiltInPresets.ANIME_HD)
-
-        assertEquals(
-            listOf(
-                "Anime4K_Clamp_Highlights.glsl",
-                "Anime4K_Restore_CNN_S.glsl",
-                "Anime4K_Upscale_CNN_x2_S.glsl",
-            ),
-            hd,
-        )
+    fun `the anime upscale is the small CNN at any factor`() {
+        for (factor in listOf(1.25f, 1.5f, 2f, 3f)) {
+            val chain = shaders(
+                UpscaleProfile(
+                    id = "t",
+                    name = "t",
+                    contentClass = ContentClass.ANIME,
+                    passes = listOf(UpscalePass.Upscale(factor)),
+                ),
+            )
+            assertEquals("Anime4K_Upscale_CNN_x2_S.glsl", chain.last(), "factor $factor")
+        }
     }
 
     @Test
     fun `with a shader chain the sharpen property is zeroed — Restore does the sharpening`() {
-        val sd = props(BuiltInPresets.ANIME_SD)
+        val profile = UpscaleProfile(
+            id = "t",
+            name = "t",
+            contentClass = ContentClass.ANIME,
+            passes = listOf(UpscalePass.Upscale(2f), UpscalePass.Sharpen(0.5f)),
+        )
+        val props = props(profile)
 
-        assertEquals("0.0", sd["sharpen"])
-        assertEquals("ewa_lanczossharp", sd["scale"])
+        assertEquals("0.0", props["sharpen"])
+        assertEquals("ewa_lanczossharp", props["scale"])
     }
 
     @Test

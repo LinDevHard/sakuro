@@ -2,8 +2,13 @@ package com.rinwave.sakuro.core.upscale
 
 /**
  * Built-in presets for content classes (FEATURES.md §2.2).
- * The chains are inspired by Anime4K modes A/B/C; on Media3 they are applied
- * as ported GLSL ES passes, on libmpv as native `.glsl`.
+ * On Media3 they are applied as ported GLSL ES passes, on libmpv as native `.glsl`.
+ *
+ * The anime presets are built on Anime4K Upscale CNN x2 S with no Sharpen pass
+ * (no Restore CNN). On-device benchmarks (Pixel 9 Pro XL, two anime clips,
+ * VMAF-NEG against the master) ranked plain Upscale S first: Restore before it
+ * scored 6–8 points lower and mostly added oversharpening, and Upscale M was no
+ * better than S at a higher cost.
  */
 object BuiltInPresets {
 
@@ -17,12 +22,11 @@ object BuiltInPresets {
     val ANIME_SD = UpscaleProfile(
         id = "anime-sd",
         name = "Anime SD",
-        description = "2× upscale, denoise and aggressive sharpening for SD anime and weak rips",
+        description = "2× CNN upscale with light denoise for SD anime and weak rips",
         contentClass = ContentClass.ANIME,
         passes = listOf(
             UpscalePass.Denoise(0.35f),
             UpscalePass.Upscale(2f),
-            UpscalePass.Sharpen(0.8f),
         ),
         builtIn = true,
     )
@@ -30,11 +34,10 @@ object BuiltInPresets {
     val ANIME_HD = UpscaleProfile(
         id = "anime-hd",
         name = "Anime HD",
-        description = "1.5× upscale and moderate sharpening for 720p/1080p anime",
+        description = "1.5× CNN upscale for 720p/1080p anime, no extra sharpening",
         contentClass = ContentClass.ANIME,
         passes = listOf(
             UpscalePass.Upscale(1.5f),
-            UpscalePass.Sharpen(0.5f),
         ),
         builtIn = true,
     )

@@ -6,6 +6,12 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Rebuilt the Anime SD and Anime HD presets on Anime4K Upscale CNN x2 S and
+  dropped their Sharpen pass (Restore CNN). On-device benchmarks scored plain
+  Upscale S highest; the old Restore + Upscale chains mostly added
+  oversharpening. Anime chains now always use the small Upscale CNN; the
+  medium model stays available in custom shader chains.
+
 ## 0.1.3
 
 - Removed AGP dependency metadata from release signing blocks for F-Droid

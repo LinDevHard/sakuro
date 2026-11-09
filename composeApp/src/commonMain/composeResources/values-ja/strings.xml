@@ -167,9 +167,9 @@
     <string name="preset_off_name">オフ</string>
     <string name="preset_off_desc">処理なしの元の映像</string>
     <string name="preset_anime_sd_name">アニメ SD</string>
-    <string name="preset_anime_sd_desc">SD アニメや低品質リップ向けの2×アップスケール、ノイズ除去、強めのシャープ化</string>
+    <string name="preset_anime_sd_desc">SD アニメや低品質リップ向けの2× CNN アップスケールと軽いノイズ除去</string>
     <string name="preset_anime_hd_name">アニメ HD</string>
-    <string name="preset_anime_hd_desc">720p/1080p アニメ向けの1.5×アップスケールと中程度のシャープ化</string>
+    <string name="preset_anime_hd_desc">720p/1080p アニメ向けの1.5× CNN アップスケール（追加のシャープ化なし）</string>
     <string name="preset_live_light_name">実写ライト</string>
     <string name="preset_live_light_desc">アップスケールなしの控えめなシャープ化 — 実写映像向け</string>
     <string name="preset_auto_name">自動</string>

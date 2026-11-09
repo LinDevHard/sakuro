@@ -27,7 +27,8 @@ internal data class MpvRenderConfig(
  * Selection order mirrors Media3 exactly:
  * 1. an explicit [UpscaleProfile.shaderChain] replaces everything;
  * 2. anime/cartoon passes translate into the canonical Anime4K `.glsl` chain
- *    (Clamp → Denoise → Restore → Upscale, CNN size by pass strength);
+ *    (Clamp → Denoise → Restore → Upscale; Restore size by Sharpen strength,
+ *    Upscale always the small CNN);
  * 3. otherwise the passes map through [ParametricChain] onto the same bundled
  *    shaders as on Media3, with slider strengths baked into their `//!PARAM`s.
  *
@@ -91,7 +92,9 @@ private fun buildAnime4kChain(profile: UpscaleProfile): List<String> {
             add(if (it.strength >= HEAVY_SHARPEN) "Anime4K_Restore_CNN_M.glsl" else "Anime4K_Restore_CNN_S.glsl")
         }
         profile.passes.filterIsInstance<UpscalePass.Upscale>().firstOrNull()?.let {
-            add(if (it.factor >= HEAVY_UPSCALE) "Anime4K_Upscale_CNN_x2_M.glsl" else "Anime4K_Upscale_CNN_x2_S.glsl")
+            // Always S: on-device benchmarks scored M no better than S at a higher cost.
+            // M stays reachable through explicit shader chains.
+            add("Anime4K_Upscale_CNN_x2_S.glsl")
         }
     }
     if (chain.isEmpty()) return emptyList()
@@ -101,9 +104,6 @@ private fun buildAnime4kChain(profile: UpscaleProfile): List<String> {
 
 /** Sharpen-strength threshold at or above which the medium CNN model is used instead of the small one. */
 private const val HEAVY_SHARPEN = 0.6f
-
-/** Upscale-factor threshold at or above which the medium CNN model is used instead of the small one. */
-private const val HEAVY_UPSCALE = 1.75f
 
 /** Float → a string with 2 decimals and a dot separator regardless of locale. */
 private fun Float.fmt(): String = ((this * 100).roundToInt() / 100.0).toString()

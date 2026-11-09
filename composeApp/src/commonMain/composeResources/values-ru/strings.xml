@@ -166,9 +166,9 @@
     <string name="preset_off_name">Выкл</string>
     <string name="preset_off_desc">Оригинальная картинка без обработки</string>
     <string name="preset_anime_sd_name">Аниме SD</string>
-    <string name="preset_anime_sd_desc">2× апскейл, шумоподавление и агрессивная резкость для SD-аниме и слабых рипов</string>
+    <string name="preset_anime_sd_desc">2× CNN-апскейл с лёгким шумоподавлением для SD-аниме и слабых рипов</string>
     <string name="preset_anime_hd_name">Аниме HD</string>
-    <string name="preset_anime_hd_desc">1.5× апскейл и умеренная резкость для 720p/1080p-аниме</string>
+    <string name="preset_anime_hd_desc">1.5× CNN-апскейл для 720p/1080p-аниме без дополнительной резкости</string>
     <string name="preset_live_light_name">Съёмка, лёгкий</string>
     <string name="preset_live_light_desc">Деликатная резкость без апскейла — для реальной съёмки</string>
     <string name="preset_auto_name">Авто</string>

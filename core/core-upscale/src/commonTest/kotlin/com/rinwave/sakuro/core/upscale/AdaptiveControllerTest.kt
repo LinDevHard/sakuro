@@ -8,7 +8,13 @@ import kotlin.test.assertTrue
 
 class AdaptiveControllerTest {
 
-    private val user = BuiltInPresets.ANIME_SD
+    // Every pass kind, so each degradation step has something to remove.
+    private val user = UpscaleProfile(
+        id = "user",
+        name = "User",
+        contentClass = ContentClass.ANIME,
+        passes = listOf(UpscalePass.Denoise(0.35f), UpscalePass.Upscale(2f), UpscalePass.Sharpen(0.8f)),
+    )
     private val okDevice = DeviceStatus()
     private val okHealth = PlaybackHealth()
 

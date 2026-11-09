@@ -13,7 +13,8 @@ import java.io.IOException
  * Selects and loads the Anime4K `.glsl` chain for an [UpscaleProfile] on the Media3 engine.
  *
  * The order and S/M model selection mirror the mpv engine:
- * Clamp→Denoise→Restore→Upscale, with CNN size selected by pass strength.
+ * Clamp→Denoise→Restore→Upscale; Restore size follows the Sharpen strength,
+ * Upscale is always the small CNN.
  * Assets come from this module's `assets/anime4k/`, so the Media3 product engine
  * remains complete when the optional libmpv reference module is excluded.
  */
@@ -23,9 +24,6 @@ internal object Anime4KChain {
 
     /** Sharpen-strength threshold at or above which the medium CNN model is used instead of the small one. */
     private const val HEAVY_SHARPEN = 0.6f
-
-    /** Upscale-factor threshold at or above which the medium CNN model is used instead of the small one. */
-    private const val HEAVY_UPSCALE = 1.75f
 
     /** The `.glsl` file names of the chain for a profile (empty — Anime4K is not applicable). */
     fun shaderFilesFor(profile: UpscaleProfile): List<String> {
@@ -39,8 +37,9 @@ internal object Anime4KChain {
                 add(if (it.strength >= HEAVY_SHARPEN) "Anime4K_Restore_CNN_M.glsl" else "Anime4K_Restore_CNN_S.glsl")
             }
             profile.passes.filterIsInstance<UpscalePass.Upscale>().firstOrNull()?.let {
-                val heavy = it.factor >= HEAVY_UPSCALE
-                add(if (heavy) "Anime4K_Upscale_CNN_x2_M.glsl" else "Anime4K_Upscale_CNN_x2_S.glsl")
+                // Always S: on-device benchmarks scored M no better than S at a higher cost.
+                // M stays reachable through explicit shader chains.
+                add("Anime4K_Upscale_CNN_x2_S.glsl")
             }
         }
         if (chain.isEmpty()) return emptyList()
