@@ -23,14 +23,27 @@ package com.rinwave.media3.usershader
  */
 internal object ShaderPreamble {
 
-    const val VERTEX_SHADER = """#version 300 es
-in vec4 a_position;
+    private const val VERTEX_BODY = """in vec4 a_position;
 out vec2 v_texcoord;
 void main() {
   gl_Position = a_position;
   v_texcoord = a_position.xy * 0.5 + 0.5;
 }
 """
+
+    /** For the presenter, whose fragment is always ES 3.00. */
+    const val VERTEX_SHADER = "#version 300 es\n$VERTEX_BODY"
+
+    /**
+     * The `#version` line for pass programs. GLSL ES requires every stage of a
+     * linked program to share one version, so the vertex and fragment shaders
+     * of a pass must both come from here.
+     */
+    fun glslVersion(caps: RuntimeCapabilities): String =
+        if (caps.gather) "#version 310 es" else "#version 300 es"
+
+    /** The fullscreen-quad vertex shader at the same version as [fragmentShader] for [caps]. */
+    fun vertexShader(caps: RuntimeCapabilities): String = "${glslVersion(caps)}\n$VERTEX_BODY"
 
     /**
      * Uniform name of the sampler for input [bind] — the bare bind name, as in
@@ -74,7 +87,7 @@ void main() {
         isFinal: Boolean = false,
         paramValues: Map<String, Float> = emptyMap(),
     ): String = buildString {
-        appendLine(if (caps.gather) "#version 310 es" else "#version 300 es")
+        appendLine(glslVersion(caps))
         appendLine("precision highp float;")
         appendLine("precision highp sampler2D;")
         appendLine("in vec2 v_texcoord;")

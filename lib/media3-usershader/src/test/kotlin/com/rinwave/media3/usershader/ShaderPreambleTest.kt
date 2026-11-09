@@ -1,6 +1,7 @@
 package com.rinwave.media3.usershader
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ShaderPreambleTest {
@@ -108,6 +109,25 @@ class ShaderPreambleTest {
         // An ENUM define formats as an int even without an explicit type token.
         assertTrue(fragment.contains("#define MODE 1"))
         assertTrue(!fragment.contains("#define MODE 1.0"))
+    }
+
+    @Test
+    fun `pass vertex and fragment shaders always share one GLSL version`() {
+        // Mismatched versions fail to link on ES 3.1 devices ("Fragment shader
+        // version does not match other shader versions") and the whole chain
+        // falls back to passthrough.
+        val pass = MpvUserShaderParser.parse(
+            """
+            //!HOOK MAIN
+            //!BIND HOOKED
+            vec4 hook() { return HOOKED_tex(HOOKED_pos); }
+            """.trimIndent(),
+        ).passes.single()
+        for (caps in listOf(RuntimeCapabilities.BASELINE, RuntimeCapabilities.ES31)) {
+            val vertex = ShaderPreamble.vertexShader(caps).lineSequence().first()
+            val fragment = ShaderPreamble.fragmentShader(pass, caps = caps).lineSequence().first()
+            assertEquals(fragment, vertex, "caps=$caps")
+        }
     }
 
     @Test

@@ -127,7 +127,7 @@ internal class UserShaderProgram(
                         planned.pass, planned.hook, document, caps, paramValues = paramValues,
                     )
                     PassProgram.Fragment(
-                        FragmentProgram(ShaderPreamble.VERTEX_SHADER, fragment, graphResources).apply {
+                        FragmentProgram(ShaderPreamble.vertexShader(caps), fragment, graphResources).apply {
                             setBufferAttribute(POSITION_ATTR, GlUtil.getNormalizedCoordinateBounds(), COORD_SIZE)
                         },
                     )
