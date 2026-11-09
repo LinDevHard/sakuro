@@ -85,7 +85,8 @@ object UpscaleEffectChain {
             val document = loadShader(link.shader.fileName)
             val loaded = document != null && !document.isEmpty
             if (loaded) {
-                add(UserShaderGlEffect(document!!, link.params, telemetry.addShader(link.shader.displayName)))
+                val onConfigured = telemetry.addShader(link.shader.displayName)
+                add(UserShaderGlEffect(document!!, link.params, onConfigured = onConfigured))
             }
             if (link.shader.role == BundledShaderRole.UPSCALE) {
                 addPresentation(profile, sourceHeight, telemetry)

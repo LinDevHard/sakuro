@@ -14,6 +14,16 @@ import java.nio.ByteOrder
 import kotlin.random.Random
 
 /**
+ * Without a known target, OUTPUT is assumed N× the input so the `//!WHEN`
+ * upscale gates trigger.
+ */
+internal const val OUTPUT_GATE_SCALE = 4
+
+/** The `OUTPUT` size the planner gates against: [target], or the 4× fallback. */
+internal fun resolveTargetSize(inputWidth: Int, inputHeight: Int, target: Size?): Size =
+    target ?: Size(inputWidth * OUTPUT_GATE_SCALE, inputHeight * OUTPUT_GATE_SCALE)
+
+/**
  * A mini render-graph runtime for mpv user-shaders on top of a single
  * [BaseGlShaderProgram]. Media3 sees one effect; the whole multi-pass graph
  * (conv chains, depth-to-space, residual) runs inside `drawFrame` over its own
@@ -31,8 +41,8 @@ import kotlin.random.Random
 @UnstableApi
 internal class UserShaderProgram(
     private val document: ShaderDocument,
-    /** Target-size multiplier for gating `//!WHEN` (upscale larger than the input). */
-    private val outputGateScale: Int = OUTPUT_GATE_SCALE,
+    /** Display/target size for `OUTPUT` and `target_size`; null → [OUTPUT_GATE_SCALE]× the input. */
+    private val targetSize: Size? = null,
     /**
      * `//!PARAM` overrides by name (clamped to the params' bounds). Fixed for the
      * program's lifetime: they are baked into the generated GLSL and the plan,
@@ -69,6 +79,8 @@ internal class UserShaderProgram(
 
     private var inputWidth = 0
     private var inputHeight = 0
+    private var targetWidth = 0
+    private var targetHeight = 0
     private var degraded = false
     private var degradedReason: String? = null
     private var frameIndex = 0
@@ -76,6 +88,9 @@ internal class UserShaderProgram(
     override fun configure(inputWidth: Int, inputHeight: Int): Size {
         this.inputWidth = inputWidth
         this.inputHeight = inputHeight
+        val target = resolveTargetSize(inputWidth, inputHeight, targetSize)
+        targetWidth = target.width
+        targetHeight = target.height
         releaseGraph()
 
         presenterResources.release()
@@ -91,8 +106,8 @@ internal class UserShaderProgram(
                 document,
                 inputWidth,
                 inputHeight,
-                inputWidth * outputGateScale,
-                inputHeight * outputGateScale,
+                targetWidth,
+                targetHeight,
                 caps,
                 paramValues,
             )
@@ -337,6 +352,11 @@ internal class UserShaderProgram(
         if (location >= 0) GLES31.glUniform2f(location, x, y)
     }
 
+    // `target_size` is the real target when the caller knows it; otherwise the
+    // assumed 4× gate would be a made-up size, so report what the graph produces.
+    private fun targetSizeUniformWidth(): Int = if (targetSize != null) targetWidth else plan.outputWidth
+    private fun targetSizeUniformHeight(): Int = if (targetSize != null) targetHeight else plan.outputHeight
+
     /** The spec globals for a compute pass, set with raw GL calls when active. */
     private fun setComputeGlobals(programId: Int) {
         val frame = GLES31.glGetUniformLocation(programId, ShaderPreamble.UNIFORM_FRAME)
@@ -346,7 +366,7 @@ internal class UserShaderProgram(
         setVec2IfActive(programId, ShaderPreamble.UNIFORM_INPUT_SIZE, inputWidth.toFloat(), inputHeight.toFloat())
         setVec2IfActive(
             programId, ShaderPreamble.UNIFORM_TARGET_SIZE,
-            plan.outputWidth.toFloat(), plan.outputHeight.toFloat(),
+            targetSizeUniformWidth().toFloat(), targetSizeUniformHeight().toFloat(),
         )
         setVec2IfActive(programId, ShaderPreamble.UNIFORM_TEX_OFFSET, 0f, 0f)
     }
@@ -375,7 +395,7 @@ internal class UserShaderProgram(
         if (isActive(programId, ShaderPreamble.UNIFORM_TARGET_SIZE)) {
             program.setFloatsUniform(
                 ShaderPreamble.UNIFORM_TARGET_SIZE,
-                floatArrayOf(plan.outputWidth.toFloat(), plan.outputHeight.toFloat()),
+                floatArrayOf(targetSizeUniformWidth().toFloat(), targetSizeUniformHeight().toFloat()),
             )
         }
         if (isActive(programId, ShaderPreamble.UNIFORM_TEX_OFFSET)) {
@@ -535,9 +555,6 @@ internal class UserShaderProgram(
         const val PRESENT_SAMPLER = "uTex"
         const val PRESENT_OFFSET = "uOffset"
         const val COORD_SIZE = 4
-
-        /** We compute OUTPUT as N× the input so the `//!WHEN` upscale gates trigger. */
-        const val OUTPUT_GATE_SCALE = 4
 
         const val DEFAULT_UNPACK_ALIGNMENT = 4
 

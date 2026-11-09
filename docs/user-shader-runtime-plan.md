@@ -41,6 +41,11 @@ no Anime4K knowledge). `anime4k/` shrinks to preset policy (`Anime4KChain`: prof
 `UserShaderValidator`, `UserShaderException`; everything else stays `internal`.
 Shader assets (Anime4K, bundled CAS/ravu) stay in engine-media3; the library's
 tests read them from there as a regression corpus.
+`UserShaderGlEffect(targetSize = …)` sets the `OUTPUT` pseudo-texture and the
+`target_size` uniform to the real display size, so `//!WHEN`-gated upscalers
+skip themselves when the screen is not larger than the source. Without it,
+`OUTPUT` stays 4× the input (every upscale gate open) — Sakuro still relies on
+that fallback and does not pass a target yet.
 
 **Stage model.** Media3 hands us one RGB texture after decode; mpv hooks a richer pipeline.
 Mapping:
