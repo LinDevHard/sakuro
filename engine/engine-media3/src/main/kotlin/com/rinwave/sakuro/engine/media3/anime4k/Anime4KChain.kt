@@ -2,11 +2,11 @@ package com.rinwave.sakuro.engine.media3.anime4k
 
 import android.content.Context
 import android.util.Log
+import com.rinwave.media3.usershader.MpvUserShaderParser
+import com.rinwave.media3.usershader.ShaderDocument
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.engine.media3.usershader.MpvUserShaderParser
-import com.rinwave.sakuro.engine.media3.usershader.ShaderDocument
 import java.io.IOException
 
 /**

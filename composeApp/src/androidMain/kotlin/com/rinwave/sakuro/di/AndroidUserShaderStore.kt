@@ -1,8 +1,8 @@
 package com.rinwave.sakuro.di
 
 import android.content.Context
+import com.rinwave.media3.usershader.UserShaderValidator
 import com.rinwave.sakuro.core.upscale.UserShaderStore
-import com.rinwave.sakuro.engine.media3.usershader.UserShaderValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -4,13 +4,13 @@ import android.content.Context
 import androidx.media3.common.Effect
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Presentation
+import com.rinwave.media3.usershader.ShaderDocument
+import com.rinwave.media3.usershader.UserShaderGlEffect
 import com.rinwave.sakuro.core.upscale.BundledShaderRole
 import com.rinwave.sakuro.core.upscale.ParametricChain
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.engine.media3.anime4k.Anime4KChain
-import com.rinwave.sakuro.engine.media3.usershader.ShaderDocument
-import com.rinwave.sakuro.engine.media3.usershader.UserShaderGlEffect
 import kotlin.math.roundToInt
 
 /**
@@ -38,7 +38,7 @@ object UpscaleEffectChain {
 
     internal fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): BuiltChain {
         val custom = UserShaderChain.load(context, profile)
-        val anime = if (custom?.passes?.isNotEmpty() == true) {
+        val anime = if (custom?.isEmpty == false) {
             ShaderDocument.EMPTY
         } else {
             Anime4KChain.load(context, profile)
@@ -55,14 +55,14 @@ object UpscaleEffectChain {
         loadShader: (String) -> ShaderDocument?,
     ): BuiltChain {
         val telemetry = EffectChainTelemetry()
-        if (custom != null && custom.passes.isNotEmpty()) {
+        if (custom != null && !custom.isEmpty) {
             val label = profile.shaderChain.joinToString(" → ")
             return BuiltChain(
                 listOf(UserShaderGlEffect(custom, onConfigured = telemetry.addShader(label))),
                 telemetry,
             )
         }
-        if (anime.passes.isNotEmpty()) {
+        if (!anime.isEmpty) {
             val effects = buildList {
                 add(UserShaderGlEffect(anime, onConfigured = telemetry.addShader("Anime4K")))
                 addPresentation(profile, sourceHeight, telemetry)
@@ -83,7 +83,7 @@ object UpscaleEffectChain {
     ): List<Effect> = buildList {
         ParametricChain.forProfile(profile).forEach { link ->
             val document = loadShader(link.shader.fileName)
-            val loaded = document != null && document.passes.isNotEmpty()
+            val loaded = document != null && !document.isEmpty
             if (loaded) {
                 add(UserShaderGlEffect(document!!, link.params, telemetry.addShader(link.shader.displayName)))
             }

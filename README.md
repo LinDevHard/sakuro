@@ -141,6 +141,7 @@ core/core-settings/    Persisted app settings
 engine/engine-media3/  Media3/ExoPlayer engine and GLSL ES upscale effects
 engine/engine-mpv/     Developer/reference libmpv path, shader store, mpv property mapping
 engine/engine-fake/    Fake engine for desktop UI and tests
+lib/media3-usershader/ Standalone mpv user-shader runtime for Media3 (no Sakuro deps)
 build-logic/           Shared Gradle convention plugins
 tools/sakuro-bench/    Local benchmark utility for shader/output comparisons
 licenses/              Third-party license texts for vendored assets

@@ -1,7 +1,7 @@
 package com.rinwave.sakuro.engine.media3
 
+import com.rinwave.media3.usershader.ShaderGraphRuntimeStats
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
-import com.rinwave.sakuro.engine.media3.usershader.ShaderGraphRuntimeStats
 import kotlin.math.roundToInt
 
 /** Honest runtime view of the Media3 effects that have actually configured. */

@@ -1,9 +1,9 @@
 package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
+import com.rinwave.media3.usershader.ShaderParam
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.ShaderTunable
-import com.rinwave.sakuro.engine.media3.usershader.ShaderParam
 
 /**
  * Reads the `//!PARAM` blocks of imported and bundled shaders so the UI can

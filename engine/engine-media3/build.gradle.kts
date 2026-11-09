@@ -8,6 +8,7 @@ android {
 
 dependencies {
     api(project(":core:core-player"))
+    api(project(":lib:media3-usershader"))
     implementation(libs.kotlinx.coroutines.android)
     api(libs.media3.exoplayer)
     implementation(libs.media3.effect)

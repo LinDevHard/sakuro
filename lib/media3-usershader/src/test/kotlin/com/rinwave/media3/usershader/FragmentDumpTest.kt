@@ -1,0 +1,55 @@
+package com.rinwave.media3.usershader
+
+import java.io.File
+import kotlin.test.Test
+
+/**
+ * Dumps every fragment shader the runtime would generate (real fixture chains
+ * plus the synthetic plane/color passes) so they can be compiled offline with a
+ * GLSL validator, e.g.:
+ *
+ * ```
+ * FRAGMENT_DUMP_DIR=/tmp/frags ./gradlew :engine:engine-media3:testDebugUnitTest
+ * cd /tmp/frags && for f in ./?*.frag; do glslc -fshader-stage=fragment --target-env=opengl "$f" -o /dev/null; done
+ * ```
+ *
+ * A no-op unless the `FRAGMENT_DUMP_DIR` environment variable is set.
+ */
+class FragmentDumpTest {
+
+    @Test
+    fun `dump generated fragments for offline GLSL validation`() {
+        val dir = System.getenv("FRAGMENT_DUMP_DIR")?.let(::File) ?: return
+        dir.mkdirs()
+
+        val fixtures = listOf(
+            "adaptive-sharpen.glsl",
+            "SSimSuperRes.glsl",
+            "FSRCNNX_x2_8-0-4-1.glsl",
+            "KrigBilateral.glsl",
+            "ravu-r3.hook",
+            "ravu-lite-r3.hook",
+            "nnedi3-nns32-win8x4.hook",
+            "synthetic-stats.hook",
+        )
+        val caps = RuntimeCapabilities.ES31
+        for (fixture in fixtures) {
+            val source = javaClass.getResourceAsStream("/usershader/$fixture")!!
+                .bufferedReader().use { it.readText() }
+            val document = MpvUserShaderParser.parse(source)
+            val plan = ShaderGraphPlanner.plan(document, 640, 360, 640 * 4, 360 * 4, caps)
+            plan.passes.forEachIndexed { i, planned ->
+                val name = fixture.substringBeforeLast('.') + "_$i" +
+                    "_" + planned.pass.desc.replace(Regex("[^A-Za-z0-9]+"), "-")
+                if (planned.pass.compute != null) {
+                    val compute = ShaderPreamble.computeShader(planned.pass, planned.hook, document)
+                    File(dir, "$name.comp").writeText(compute)
+                } else {
+                    val fragment =
+                        ShaderPreamble.fragmentShader(planned.pass, planned.hook, document, caps)
+                    File(dir, "$name.frag").writeText(fragment)
+                }
+            }
+        }
+    }
+}

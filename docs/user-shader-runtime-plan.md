@@ -34,6 +34,13 @@ runtime becomes the seed of the generic one.
 no Anime4K knowledge). `anime4k/` shrinks to preset policy (`Anime4KChain`: profile →
 `.glsl` files). Extraction into a standalone Gradle module (potentially open-sourceable
 `media3-mpv-shaders`) is deferred until the API stabilizes — cheap to do later.
+**Update 2026-11-09:** extracted into `:lib:media3-usershader` (package
+`com.rinwave.media3.usershader`, Kotlin explicit API mode). Public surface:
+`MpvUserShaderParser.parse`, `ShaderDocument` (`merge`, `params`, `isEmpty`,
+`passCount`), `ShaderParam`, `UserShaderGlEffect`, `ShaderGraphRuntimeStats`,
+`UserShaderValidator`, `UserShaderException`; everything else stays `internal`.
+Shader assets (Anime4K, bundled CAS/ravu) stay in engine-media3; the library's
+tests read them from there as a regression corpus.
 
 **Stage model.** Media3 hands us one RGB texture after decode; mpv hooks a richer pipeline.
 Mapping:

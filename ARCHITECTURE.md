@@ -68,10 +68,13 @@ engine/                     PlayerEngine implementations and reference tools
   engine-mpv/               Developer/reference libmpv path for shader parity, capture, and comparisons
   engine-fake/              FakePlayerEngine for desktop and tests
 
+lib/                        Sakuro-independent libraries (candidates for standalone publishing)
+  media3-usershader/        mpv user-shader runtime for Media3: parser, graph planner, one GlEffect
+
 iosApp/                     Future wrapper after the Android product runtime stabilizes
 ```
 
-Core logic lives in `core/*`; UI, navigation, and entry points live in `composeApp`; each engine is isolated under `engine/*` and depends only on `:core:core-player`. `composeApp` should wire Media3 for product builds, fake for desktop/tests, and libmpv only for developer/reference workflows.
+Core logic lives in `core/*`; UI, navigation, and entry points live in `composeApp`; each engine is isolated under `engine/*` and depends only on `:core:core-player` (engine-media3 also uses `:lib:media3-usershader`). Modules under `lib/*` must not depend on any Sakuro module. `composeApp` should wire Media3 for product builds, fake for desktop/tests, and libmpv only for developer/reference workflows.
 
 ### 3.1 JetBrains Alignment
 

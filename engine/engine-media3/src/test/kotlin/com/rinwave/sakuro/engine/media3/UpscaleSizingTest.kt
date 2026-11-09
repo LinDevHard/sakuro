@@ -1,11 +1,11 @@
 package com.rinwave.sakuro.engine.media3
 
 import androidx.media3.effect.Presentation
+import com.rinwave.media3.usershader.MpvUserShaderParser
+import com.rinwave.media3.usershader.ShaderDocument
 import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.engine.media3.usershader.MpvUserShaderParser
-import com.rinwave.sakuro.engine.media3.usershader.ShaderDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

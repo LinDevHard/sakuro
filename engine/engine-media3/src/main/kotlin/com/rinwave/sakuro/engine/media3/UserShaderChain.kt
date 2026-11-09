@@ -2,11 +2,11 @@ package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
 import android.util.Log
+import com.rinwave.media3.usershader.MpvUserShaderParser
+import com.rinwave.media3.usershader.ShaderDocument
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserShaderStore
-import com.rinwave.sakuro.engine.media3.usershader.MpvUserShaderParser
-import com.rinwave.sakuro.engine.media3.usershader.ShaderDocument
 import java.io.File
 
 /**
@@ -30,7 +30,7 @@ internal object UserShaderChain {
                 profile.shaderChain.map { profile.shaderParams[it].orEmpty() },
             )
         }.onSuccess {
-            Log.i(TAG, "custom chain ${profile.shaderChain} → ${it.passes.size} passes")
+            Log.i(TAG, "custom chain ${profile.shaderChain} → ${it.passCount} passes")
         }.onFailure {
             Log.w(TAG, "custom shader chain '${profile.shaderChain}' failed to load: ${it.message}")
         }.getOrNull()
