@@ -4,6 +4,7 @@ import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
+import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
 import com.rinwave.sakuro.core.upscale.ThermalLevel
 import com.rinwave.sakuro.core.upscale.UpscalePass
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
@@ -87,6 +88,30 @@ class ProcessingNoticeTest {
         )
 
         assertIs<ProcessingNotice.RuntimePending>(notice)
+    }
+
+    @Test
+    fun `screen limit is reported when nothing more serious is going on`() {
+        val limit = DisplayLimitStatus(DisplayLimitStatus.Kind.SKIPPED, 2f, 1f, 1080)
+        val notice = processingNotice(
+            decision = AdaptiveController.Decision(requested = requested, effective = requested, level = 0),
+            stats = DebugStats(upscaleRuntimeState = UpscaleRuntimeState.APPLIED, upscaleDisplayLimit = limit),
+        )
+
+        assertEquals(ProcessingNotice.DisplayLimited(limit), notice)
+    }
+
+    @Test
+    fun `a runtime fallback outranks the screen limit`() {
+        val notice = processingNotice(
+            decision = null,
+            stats = DebugStats(
+                upscaleRuntimeState = UpscaleRuntimeState.PASSTHROUGH,
+                upscaleDisplayLimit = DisplayLimitStatus(DisplayLimitStatus.Kind.LIMITED, 2f, 1.5f, 1080),
+            ),
+        )
+
+        assertIs<ProcessingNotice.RuntimeFallback>(notice)
     }
 
     @Test

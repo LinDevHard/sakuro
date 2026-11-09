@@ -44,8 +44,14 @@ tests read them from there as a regression corpus.
 `UserShaderGlEffect(targetSize = …)` sets the `OUTPUT` pseudo-texture and the
 `target_size` uniform to the real display size, so `//!WHEN`-gated upscalers
 skip themselves when the screen is not larger than the source. Without it,
-`OUTPUT` stays 4× the input (every upscale gate open) — Sakuro still relies on
-that fallback and does not pass a target yet.
+`OUTPUT` stays 4× the input (every upscale gate open).
+Sakuro applies the screen limit itself (`DisplayUpscaleLimit` in core-upscale,
+setting "Limit upscaling to screen", on by default): for preset chains it lowers
+or drops the `Upscale` pass so its `Presentation` never renders past the panel;
+for explicit shader chains it passes the fit-to-screen size as `targetSize`. The
+panel size comes from `Display.Mode` (Android TV renders UI at 1080p on 4K
+panels). The engine default is unlimited, so the on-device bench is unaffected;
+the player shows a short banner when the limit kicks in.
 
 **Stage model.** Media3 hands us one RGB texture after decode; mpv hooks a richer pipeline.
 Mapping:

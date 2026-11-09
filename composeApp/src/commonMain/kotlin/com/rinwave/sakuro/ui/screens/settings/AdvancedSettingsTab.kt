@@ -28,12 +28,15 @@ import sakuro.composeapp.generated.resources.settings_bench
 import sakuro.composeapp.generated.resources.settings_bench_desc
 import sakuro.composeapp.generated.resources.settings_debug_overlay
 import sakuro.composeapp.generated.resources.settings_debug_overlay_desc
+import sakuro.composeapp.generated.resources.settings_display_limit_desc
+import sakuro.composeapp.generated.resources.settings_display_limit_title
 import sakuro.composeapp.generated.resources.settings_quality_mode
 
 @Composable
 internal fun AdvancedSettingsTab(component: AdvancedSettingsComponent) {
     val adaptiveEnabled by component.adaptiveEnabled.collectAsState()
     val debugOverlay by component.debugOverlay.collectAsState()
+    val displayLimit by component.upscaleDisplayLimit.collectAsState()
 
     SettingsPanel(title = stringResource(Res.string.settings_quality_mode), icon = Lucide.Settings) {
         SettingSwitchRow(
@@ -41,6 +44,13 @@ internal fun AdvancedSettingsTab(component: AdvancedSettingsComponent) {
             subtitle = stringResource(Res.string.settings_adaptive_desc),
             checked = adaptiveEnabled,
             onCheckedChange = component::setAdaptiveEnabled,
+        )
+        PanelDivider()
+        SettingSwitchRow(
+            title = stringResource(Res.string.settings_display_limit_title),
+            subtitle = stringResource(Res.string.settings_display_limit_desc),
+            checked = displayLimit,
+            onCheckedChange = component::setUpscaleDisplayLimit,
         )
         PanelDivider()
         SettingSwitchRow(

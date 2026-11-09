@@ -38,6 +38,14 @@ interface PlayerEngine {
      */
     fun applyUpscale(profile: UpscaleProfile)
 
+    /**
+     * Caps upscaling at the physical screen (see `DisplayUpscaleLimit`). Off by
+     * default so benchmarks and reference captures stay unlimited; the player
+     * turns it on from the user setting. Engines that already scale against
+     * the real output (libmpv) may ignore it.
+     */
+    fun setUpscaleDisplayLimit(enabled: Boolean) = Unit
+
     fun release()
 }
 

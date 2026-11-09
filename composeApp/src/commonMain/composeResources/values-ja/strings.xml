@@ -219,4 +219,9 @@
     <string name="player_processing_reason_low_battery">バッテリー残量低下: %1$d%%</string>
     <string name="player_processing_reason_unknown">エンジンから理由が報告されませんでした</string>
     <string name="seek_seconds">%1$d 秒</string>
+    <string name="settings_display_limit_title">アップスケールを画面解像度に制限</string>
+    <string name="settings_display_limit_desc">画面で追加の精細さを表示できない場合はアップスケールを省略・縮小し、発熱と電池消費を抑えます。プリセット通りに常にアップスケールするにはオフにします（比較・テスト用）。</string>
+    <string name="player_processing_display_limited">アップスケール ×%1$s · 画面に合わせて制限</string>
+    <string name="player_processing_display_skipped">アップスケール省略 · この画面では不要</string>
+    <string name="player_processing_display_reason">この画面では最大 %1$dp で表示されます</string>
 </resources>

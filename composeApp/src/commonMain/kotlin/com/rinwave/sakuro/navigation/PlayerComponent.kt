@@ -155,6 +155,7 @@ class PlayerComponent(
     init {
         appliedProfile = resolveUserProfile(Selection(_selectedPresetId.value, null), _detection.value)
         engine.setSubtitlePreferences(subtitlePreferences.value)
+        engine.setUpscaleDisplayLimit(settings.upscaleDisplayLimit.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
         if (session.awaitingChoice) engine.pause()
@@ -168,6 +169,7 @@ class PlayerComponent(
             engine.release()
         }
         scope.launch { subtitlePreferences.collect { engine.setSubtitlePreferences(it) } }
+        scope.launch { settings.upscaleDisplayLimit.collect { engine.setUpscaleDisplayLimit(it) } }
         scope.launch {
             val videos = mediaLibrary.scan()
             _nextVideo.value = nextVideoInFolder(videos, media.uri)

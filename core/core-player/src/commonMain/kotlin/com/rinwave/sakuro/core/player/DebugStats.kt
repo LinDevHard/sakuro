@@ -1,5 +1,7 @@
 package com.rinwave.sakuro.core.player
 
+import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
+
 enum class UpscaleRuntimeState {
     UNKNOWN,
     INACTIVE,
@@ -36,6 +38,8 @@ data class DebugStats(
     val upscaleRuntimeState: UpscaleRuntimeState = UpscaleRuntimeState.UNKNOWN,
     /** Engine-provided technical cause when the chain degraded or became passthrough. */
     val upscaleRuntimeReason: String? = null,
+    /** Set when the screen limit reduced or dropped the requested upscale. */
+    val upscaleDisplayLimit: DisplayLimitStatus? = null,
     /** Free-form engine pairs (container, surface, etc.). */
     val extras: Map<String, String> = emptyMap(),
 )

@@ -2,6 +2,7 @@ package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
 import androidx.media3.common.Effect
+import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Presentation
 import com.rinwave.media3.usershader.ShaderDocument
@@ -36,30 +37,46 @@ object UpscaleEffectChain {
         val sourceDependent: Boolean = false,
     )
 
-    internal fun build(context: Context, profile: UpscaleProfile, sourceHeight: Int): BuiltChain {
+    /**
+     * [chainTargetSize] is the real screen size handed to an explicit shader
+     * chain as its `OUTPUT`; null keeps the library's open-gate fallback.
+     */
+    internal fun build(
+        context: Context,
+        profile: UpscaleProfile,
+        sourceHeight: Int,
+        chainTargetSize: Size? = null,
+    ): BuiltChain {
         val custom = UserShaderChain.load(context, profile)
         val anime = if (custom?.isEmpty == false) {
             ShaderDocument.EMPTY
         } else {
             Anime4KChain.load(context, profile)
         }
-        return build(profile, sourceHeight, custom, anime) { UserShaderChain.loadByName(context, it) }
+        return build(profile, sourceHeight, custom, anime, chainTargetSize) {
+            UserShaderChain.loadByName(context, it)
+        }
     }
 
     /** Assembles already loaded documents; file I/O stays outside chain construction. */
+    @Suppress("LongParameterList")
     internal fun build(
         profile: UpscaleProfile,
         sourceHeight: Int,
         custom: ShaderDocument?,
         anime: ShaderDocument,
+        chainTargetSize: Size? = null,
         loadShader: (String) -> ShaderDocument?,
     ): BuiltChain {
         val telemetry = EffectChainTelemetry()
         if (custom != null && !custom.isEmpty) {
             val label = profile.shaderChain.joinToString(" → ")
             return BuiltChain(
-                listOf(UserShaderGlEffect(custom, onConfigured = telemetry.addShader(label))),
+                listOf(
+                    UserShaderGlEffect(custom, targetSize = chainTargetSize, onConfigured = telemetry.addShader(label)),
+                ),
                 telemetry,
+                sourceDependent = chainTargetSize != null,
             )
         }
         if (!anime.isEmpty) {

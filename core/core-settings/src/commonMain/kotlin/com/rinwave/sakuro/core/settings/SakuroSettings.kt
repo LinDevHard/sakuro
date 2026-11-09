@@ -37,6 +37,13 @@ class SakuroSettings(
     private val _adaptiveEnabled = MutableStateFlow(settings.getBoolean(KEY_ADAPTIVE, true))
     val adaptiveEnabled: StateFlow<Boolean> = _adaptiveEnabled.asStateFlow()
 
+    /**
+     * Cap upscaling at the physical screen resolution (DisplayUpscaleLimit).
+     * Off = unlimited, as the preset asks — for comparisons and benchmarks.
+     */
+    private val _upscaleDisplayLimit = MutableStateFlow(settings.getBoolean(KEY_UPSCALE_DISPLAY_LIMIT, true))
+    val upscaleDisplayLimit: StateFlow<Boolean> = _upscaleDisplayLimit.asStateFlow()
+
     /** Master switch for swipes/pinch in the player (FEATURES.md §3.2); taps and long-press always work. */
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
@@ -102,6 +109,11 @@ class SakuroSettings(
         _adaptiveEnabled.value = enabled
     }
 
+    fun setUpscaleDisplayLimit(enabled: Boolean) {
+        settings.putBoolean(KEY_UPSCALE_DISPLAY_LIMIT, enabled)
+        _upscaleDisplayLimit.value = enabled
+    }
+
     fun setGesturesEnabled(enabled: Boolean) {
         settings.putBoolean(KEY_GESTURES, enabled)
         _gesturesEnabled.value = enabled
@@ -142,6 +154,7 @@ class SakuroSettings(
         private const val KEY_PRESET = "upscale_preset_id"
         private const val KEY_DEBUG_OVERLAY = "debug_overlay"
         private const val KEY_ADAPTIVE = "adaptive_enabled"
+        private const val KEY_UPSCALE_DISPLAY_LIMIT = "upscale_display_limit"
         private const val KEY_GESTURES = "player_gestures"
         private const val KEY_GESTURE_BRIGHTNESS = "player_gesture_brightness"
         private const val KEY_GESTURE_VOLUME = "player_gesture_volume"

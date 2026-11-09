@@ -84,6 +84,7 @@ import com.rinwave.sakuro.core.player.UpscaleRuntimeState
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders
+import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
 import com.rinwave.sakuro.core.upscale.ShaderTunable
 import com.rinwave.sakuro.core.upscale.ThermalLevel
 import com.rinwave.sakuro.navigation.LiveShader
@@ -121,6 +122,9 @@ import sakuro.composeapp.generated.resources.player_pin_title
 import sakuro.composeapp.generated.resources.player_playback_speed
 import sakuro.composeapp.generated.resources.player_processing_degraded
 import sakuro.composeapp.generated.resources.player_processing_disabled
+import sakuro.composeapp.generated.resources.player_processing_display_limited
+import sakuro.composeapp.generated.resources.player_processing_display_reason
+import sakuro.composeapp.generated.resources.player_processing_display_skipped
 import sakuro.composeapp.generated.resources.player_processing_pending
 import sakuro.composeapp.generated.resources.player_processing_reason_frame_drops
 import sakuro.composeapp.generated.resources.player_processing_reason_low_battery
@@ -223,8 +227,20 @@ fun PlayerScreen(component: PlayerComponent) {
         adaptiveDecision,
         debugStats.upscaleRuntimeState,
         debugStats.upscaleRuntimeReason,
+        debugStats.upscaleDisplayLimit,
     ) {
         adaptiveDecision?.let { processingReporter.report(it, debugStats) }
+    }
+    // The screen-limit notice is informational: show it for a few seconds each
+    // time it changes instead of covering the video for the whole playback.
+    var expiredDisplayNotice by remember { mutableStateOf<ProcessingNotice?>(null) }
+    LaunchedEffect(processingNotice as? ProcessingNotice.DisplayLimited) {
+        val notice = processingNotice as? ProcessingNotice.DisplayLimited ?: return@LaunchedEffect
+        delay(DISPLAY_NOTICE_MS)
+        expiredDisplayNotice = notice
+    }
+    val visibleNotice = processingNotice?.takeUnless {
+        it is ProcessingNotice.DisplayLimited && it == expiredDisplayNotice
     }
 
     val systemControls = rememberPlayerSystemControls()
@@ -557,7 +573,7 @@ fun PlayerScreen(component: PlayerComponent) {
         }
 
         AnimatedVisibility(
-            visible = processingNotice != null && !inPip,
+            visible = visibleNotice != null && !inPip,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier
@@ -565,7 +581,7 @@ fun PlayerScreen(component: PlayerComponent) {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(top = 64.dp, start = 12.dp, end = 12.dp),
         ) {
-            processingNotice?.let { ProcessingStatusBanner(it) }
+            visibleNotice?.let { ProcessingStatusBanner(it) }
         }
 
         if (debugEnabled && !inPip) {
@@ -645,6 +661,13 @@ private fun ProcessingStatusBanner(notice: ProcessingNotice) {
             notice.level,
         )
         ProcessingNotice.RuntimePending -> stringResource(Res.string.player_processing_pending)
+        is ProcessingNotice.DisplayLimited -> when (notice.status.kind) {
+            DisplayLimitStatus.Kind.LIMITED -> stringResource(
+                Res.string.player_processing_display_limited,
+                notice.status.effectiveFactor.factorText(),
+            )
+            DisplayLimitStatus.Kind.SKIPPED -> stringResource(Res.string.player_processing_display_skipped)
+        }
         is ProcessingNotice.RuntimeFallback -> stringResource(
             if (notice.state == UpscaleRuntimeState.PASSTHROUGH) {
                 Res.string.player_processing_unavailable
@@ -659,6 +682,10 @@ private fun ProcessingStatusBanner(notice: ProcessingNotice) {
             notice.reason
                 ?: stringResource(Res.string.player_processing_reason_unknown)
         ProcessingNotice.RuntimePending -> null
+        is ProcessingNotice.DisplayLimited -> stringResource(
+            Res.string.player_processing_display_reason,
+            notice.status.screenHeight,
+        )
     }
 
     Surface(
@@ -699,6 +726,11 @@ private fun ProcessingStatusBanner(notice: ProcessingNotice) {
         }
     }
 }
+
+/** 2.0 → "2", 1.5 → "1.5", 1.33 → "1.33". */
+private fun Float.factorText(): String = if (this % 1f == 0f) toInt().toString() else toString()
+
+private const val DISPLAY_NOTICE_MS = 5_000L
 
 @Composable
 private fun AdaptiveReason.localizedText(): String = when (this) {

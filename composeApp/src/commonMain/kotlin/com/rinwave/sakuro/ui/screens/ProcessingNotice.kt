@@ -4,6 +4,7 @@ import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
+import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.describe
 
@@ -17,6 +18,9 @@ sealed interface ProcessingNotice {
     ) : ProcessingNotice
 
     data object RuntimePending : ProcessingNotice
+
+    /** The screen limit reduced or dropped the upscale; informational, shown briefly. */
+    data class DisplayLimited(val status: DisplayLimitStatus) : ProcessingNotice
 
     data class RuntimeFallback(
         val state: UpscaleRuntimeState,
@@ -40,7 +44,7 @@ fun processingNotice(
             outcome = if (decision.effective.isEnabled) ProcessingOutcome.REDUCED else ProcessingOutcome.DISABLED,
         )
         stats.upscaleRuntimeState == UpscaleRuntimeState.PENDING -> ProcessingNotice.RuntimePending
-        else -> null
+        else -> stats.upscaleDisplayLimit?.let { ProcessingNotice.DisplayLimited(it) }
     }
 }
 
@@ -81,6 +85,9 @@ class ProcessingStatusReporter(private val log: (String) -> Unit) {
                 "${current.reason?.singleLine() ?: "unknown reason"}; " +
                 "requested=$requested; effective=$effective"
             ProcessingNotice.RuntimePending -> "processing runtime pending; requested=$requested; effective=$effective"
+            is ProcessingNotice.DisplayLimited -> "processing screen limit ${current.status.kind.name.lowercase()}: " +
+                "×${current.status.requestedFactor ?: "chain"} → ×${current.status.effectiveFactor} " +
+                "(screen ${current.status.screenHeight}p); effective=$effective"
             null -> "processing L${decision.level}"
         }
     }

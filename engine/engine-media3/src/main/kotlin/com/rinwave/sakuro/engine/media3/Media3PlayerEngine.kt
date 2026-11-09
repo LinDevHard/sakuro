@@ -1,8 +1,10 @@
 package com.rinwave.sakuro.engine.media3
 
 import android.content.Context
+import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.SystemClock
+import android.view.Display
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -14,6 +16,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
+import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -30,6 +33,9 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
+import com.rinwave.sakuro.core.upscale.DisplaySize
+import com.rinwave.sakuro.core.upscale.DisplayUpscaleLimit
 import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +90,10 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     /** Source height used when the current effect chain was built; 0 means unknown. */
     private val effectSourceSize = EffectSourceSize()
     private var effectChainTelemetry = EffectChainTelemetry()
+
+    /** Off until the player opts in, so benchmarks stay unlimited. */
+    private var displayLimitEnabled = false
+    private var displayLimitStatus: DisplayLimitStatus? = null
 
     private var videoDecoderName: String? = null
     private var audioDecoderName: String? = null
@@ -305,15 +315,36 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         player.playWhenReady = wasPlaying
     }
 
+    override fun setUpscaleDisplayLimit(enabled: Boolean) {
+        if (enabled == displayLimitEnabled) return
+        displayLimitEnabled = enabled
+        applyUpscale(currentProfile)
+    }
+
     override fun release() {
         scope.cancel()
         player.release()
     }
 
     private fun setEffectsInternal() {
+        val sourceWidth = _state.value.videoWidth
         val sourceHeight = _state.value.videoHeight
-        val built = UpscaleEffectChain.build(appContext, currentProfile, sourceHeight)
-        effectSourceSize.onEffectsBuilt(if (built.sourceDependent) sourceHeight else -1)
+        val limit = if (displayLimitEnabled) {
+            DisplayUpscaleLimit.apply(currentProfile, sourceWidth, sourceHeight, physicalDisplaySize())
+        } else {
+            null
+        }
+        displayLimitStatus = limit?.status
+        val built = UpscaleEffectChain.build(
+            appContext,
+            limit?.profile ?: currentProfile,
+            sourceHeight,
+            chainTargetSize = limit?.let { Size(it.screenWidth, it.screenHeight) },
+        )
+        // Until the source size is known the limit cannot be decided, so a limited
+        // chain must be rebuilt once the first frame size arrives.
+        val sourceDependent = built.sourceDependent || (displayLimitEnabled && currentProfile.isEnabled)
+        effectSourceSize.onEffectsBuilt(if (sourceDependent) sourceHeight else -1)
         effectChainTelemetry = built.telemetry
         runCatching {
             player.setVideoEffects(built.effects)
@@ -321,6 +352,17 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             built.telemetry.fail(it.message ?: it.javaClass.simpleName)
             _state.update { s -> s.copy(errorMessage = "Failed to apply effects: ${it.message}") }
         }
+    }
+
+    /**
+     * The panel's native mode, not the window: Android TV often renders UI (and
+     * the SurfaceView) at 1080p on a 4K panel while video is shown at 4K.
+     */
+    private fun physicalDisplaySize(): DisplaySize? {
+        val display = appContext.getSystemService(DisplayManager::class.java)
+            ?.getDisplay(Display.DEFAULT_DISPLAY) ?: return null
+        val mode = display.mode
+        return DisplaySize(mode.physicalWidth, mode.physicalHeight)
     }
 
     private fun buildStats(): DebugStats {
@@ -350,8 +392,10 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
             upscalePasses = applied.effects,
             upscaleRuntimeState = applied.runtimeState,
             upscaleRuntimeReason = applied.degradedReasons.takeIf { it.isNotEmpty() }?.joinToString("; "),
+            upscaleDisplayLimit = displayLimitStatus,
             extras = buildMap {
                 audioDecoderName?.let { put("audio decoder", it) }
+                displayLimitStatus?.let { put("screen limit", it.technicalText()) }
                 if (applied.pending) put("shader graph", "pending")
                 if (applied.degradedReasons.isNotEmpty()) {
                     put("shader graph", "degraded: ${applied.degradedReasons.joinToString("; ")}")
@@ -375,6 +419,11 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         val elapsedMs = now - previous.second
         if (frames < 0 || elapsedMs <= 0) return null
         return frames * MS_IN_SECOND_F / elapsedMs
+    }
+
+    private fun DisplayLimitStatus.technicalText(): String = when (kind) {
+        DisplayLimitStatus.Kind.LIMITED -> "upscale ×$requestedFactor → ×$effectiveFactor (screen ${screenHeight}p)"
+        DisplayLimitStatus.Kind.SKIPPED -> "upscale skipped (screen ${screenHeight}p)"
     }
 
     private fun Format.bitrateKbps(): Int? {

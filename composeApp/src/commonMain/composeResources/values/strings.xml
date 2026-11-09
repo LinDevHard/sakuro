@@ -218,4 +218,9 @@
     <string name="player_processing_reason_low_battery">Low battery: %1$d%%</string>
     <string name="player_processing_reason_unknown">The video engine did not report a reason</string>
     <string name="seek_seconds">%1$d s</string>
+    <string name="settings_display_limit_title">Limit upscaling to screen</string>
+    <string name="settings_display_limit_desc">Skips or reduces upscaling when the screen cannot show the extra detail, saving heat and battery. Turn off to always upscale as the preset says (comparisons, tests).</string>
+    <string name="player_processing_display_limited">Upscale ×%1$s · limited by screen</string>
+    <string name="player_processing_display_skipped">Upscale skipped · not needed on this screen</string>
+    <string name="player_processing_display_reason">This screen shows the video at up to %1$dp</string>
 </resources>

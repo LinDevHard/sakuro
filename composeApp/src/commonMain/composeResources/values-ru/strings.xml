@@ -218,4 +218,9 @@
     <string name="player_processing_reason_low_battery">Низкий заряд: %1$d%%</string>
     <string name="player_processing_reason_unknown">Движок не сообщил причину</string>
     <string name="seek_seconds">%1$d сек</string>
+    <string name="settings_display_limit_title">Ограничивать апскейл экраном</string>
+    <string name="settings_display_limit_desc">Пропускает или уменьшает апскейл, когда экран не может показать дополнительную детализацию, — меньше нагрев и расход батареи. Выключите, чтобы апскейл всегда шёл как в пресете (сравнения, тесты).</string>
+    <string name="player_processing_display_limited">Апскейл ×%1$s · ограничен экраном</string>
+    <string name="player_processing_display_skipped">Апскейл пропущен · не нужен на этом экране</string>
+    <string name="player_processing_display_reason">Экран показывает это видео максимум в %1$dp</string>
 </resources>
