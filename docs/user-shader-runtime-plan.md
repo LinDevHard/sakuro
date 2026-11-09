@@ -60,6 +60,15 @@ everywhere — import rejects it) or `Unsupported` (valid, but this GPU lacks ES
 or FP16 — import keeps it with a warning, since mpv or another device may run
 it). `ShaderInspector.support()` feeds the preset editor chips and the imported
 list; the debug overlay and the bench bundle (`device.gpu`) show the probe.
+**Still images (2026-11-09):** `UserShaderImageProcessor(document, paramValues,
+targetSize)` runs the same graph on a `Bitmap` in its own offscreen ES 3 context
+(`OffscreenEgl`, shared with the GPU probe) and returns
+`UserShaderImageResult(bitmap, stats)`. It is `Closeable`, serialized, and meant
+for a background thread. Output alpha is 1 (transparency is dropped), input is
+treated as sRGB, and both sides must fit `GL_MAX_TEXTURE_SIZE`. The library's
+first instrumented tests (`src/androidTest`, `connectedDebugAndroidTest`) cover
+orientation and colours, ×2 passes, real ravu-r3 and the `targetSize` gate on
+the device GPU; they reuse `src/test/resources` as assets.
 
 **Stage model.** Media3 hands us one RGB texture after decode; mpv hooks a richer pipeline.
 Mapping:
