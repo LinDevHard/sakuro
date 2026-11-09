@@ -57,12 +57,23 @@ Useful options:
 ```bash
 ./sakuro-bench device-bundle --bundle bundle.zip --baseline media3_off
 ./sakuro-bench device-bundle --bundle bundle.zip --ref-dir masters --out report
+./sakuro-bench device-bundle --bundle bundle.zip --ref-video master_1080.mp4 --out report
 ```
 
 `--baseline` picks the alignment anchor (by default the `*_off` mode). `--ref-dir`
 enables full-reference metrics: put ground-truth frames named `t0.png`, `t1.png`,
 … — one per capture point — into that folder. A bundle folder that is already
 unpacked works in place of the zip.
+
+`--ref-video` is the easier way to get full-reference metrics: pass the
+high-resolution master of the clip the phone played (e.g. play `clip_480.mp4` on
+the device, pass `clip_1080.mp4` here). For every capture timestamp in the
+manifest, ffmpeg decodes the frame a player would show at that moment (the last
+frame with pts ≤ timestamp) and fits it into the bundle's output size with black
+bars. The reference then goes through no engine on the device, so Media3 and mpv
+are judged against the same frame. If the master has no colour-matrix tag, the
+matrix is guessed from its resolution (HD and up → BT.709, like mpv); the run
+prints which one it used. `--ref-dir` and `--ref-video` are mutually exclusive.
 
 This scenario supersedes manual screenshotting: the frames are pixel-stable
 across devices (no display cutouts, scaling, or HW-overlay black frames), and

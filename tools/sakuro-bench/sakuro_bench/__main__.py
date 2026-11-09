@@ -13,7 +13,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import __version__, device_bundle, fr, images, mpv_backend, nr, report
+from . import __version__, device_bundle, fr, images, mpv_backend, nr, refvideo, report
 
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 _REF_NAMES = {"ref", "reference", "master", "gt", "ground_truth"}
@@ -137,6 +137,16 @@ def cmd_device_bundle(args) -> int:
         for warning in bundle.warnings():
             print(f"  ! {warning}")
 
+        ref_info = None
+        if args.ref_video:
+            fr.ensure_ffmpeg()
+            ref_info = refvideo.probe(args.ref_video)
+            out_size = (int(bundle.manifest.get("outputWidth") or 1920),
+                        int(bundle.manifest.get("outputHeight") or 1080))
+            print(f"reference video: {ref_info.width}×{ref_info.height}, matrix {ref_info.matrix}"
+                  + (" (untagged, guessed)" if ref_info.guessed else "")
+                  + f", {'full' if ref_info.full_range else 'limited'} range → {out_size[0]}×{out_size[1]}")
+
         group_links = []
         for index, ts in enumerate(timestamps):
             files = bundle.captures_at(index)
@@ -149,9 +159,14 @@ def cmd_device_bundle(args) -> int:
 
             ref_frame = None
             ref_path = _ref_for(args.ref_dir, index)
-            if ref_path:
+            rf = None
+            if ref_info is not None:
+                rf = refvideo.frame_at(args.ref_video, ts, out_size, ref_info)
+                ref_path = f"{args.ref_video} @ {ts} ms"
+            elif ref_path:
                 fr.ensure_ffmpeg()
                 rf = images.load(str(ref_path), "ref")
+            if rf is not None:
                 rf = images.resize_to(rf, aligned[baseline].size)
                 rf, _ = images.align_translation(aligned[baseline], rf)
                 ref_frame = rf
@@ -405,7 +420,10 @@ def main(argv=None) -> int:
     db = sub.add_parser("device-bundle", help="report from the app's in-app benchmark bundle (zip)")
     db.add_argument("--bundle", required=True, help="bundle zip exported by the app (or an unpacked folder)")
     db.add_argument("--baseline", help="anchor mode for alignment (default: the *_off mode)")
-    db.add_argument("--ref-dir", help="folder with ground-truth frames t0.png, t1.png… for FR metrics")
+    ref = db.add_mutually_exclusive_group()
+    ref.add_argument("--ref-dir", help="folder with ground-truth frames t0.png, t1.png… for FR metrics")
+    ref.add_argument("--ref-video", help="high-resolution master of the played clip; reference frames "
+                                         "are decoded from it at the bundle's capture timestamps")
     db.add_argument("--out", default="report", help="report folder (default ./report)")
     db.set_defaults(func=cmd_device_bundle)
 
