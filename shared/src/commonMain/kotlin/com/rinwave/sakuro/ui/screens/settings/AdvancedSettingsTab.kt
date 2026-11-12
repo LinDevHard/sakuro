@@ -18,8 +18,8 @@ import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Gauge
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.navigation.AdvancedSettingsComponent
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.settings_adaptive_desc

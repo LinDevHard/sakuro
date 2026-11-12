@@ -12,9 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.navigation.PlayerComponent
-import com.rinwave.sakuro.ui.theme.SakuroColors
 
 /** "Stats for nerds" (FEATURES.md §4): a monospaced, unobtrusive overlay. */
 @Composable

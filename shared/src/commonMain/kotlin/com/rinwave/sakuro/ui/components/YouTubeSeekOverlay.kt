@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Lucide
-import com.rinwave.sakuro.ui.theme.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.seek_seconds

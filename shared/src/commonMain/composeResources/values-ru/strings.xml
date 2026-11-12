@@ -53,13 +53,6 @@
     <string name="preset_shader_tunables_hint">Значения, которые шейдеры отдают наружу; нетронутые остаются по умолчанию</string>
     <string name="preset_shader_reset">Сбросить</string>
     <string name="preset_shader_chain_hint">Упорядоченная цепочка встроенных и импортированных шейдеров; заменяет встроенную обработку</string>
-    <string name="shader_role_upscale">апскейл</string>
-    <string name="shader_role_sharpen">резкость</string>
-    <string name="shader_role_denoise">шумодав</string>
-    <string name="shader_role_utility">служебный</string>
-    <string name="shader_cost_low">лёгкий</string>
-    <string name="shader_cost_medium">средний</string>
-    <string name="shader_cost_high">тяжёлый</string>
     <string name="shader_imported">импортирован</string>
     <string name="settings_bench">Бенчмарк</string>
     <string name="settings_bench_desc">Замерить пресеты на этом устройстве и выгрузить отчёт</string>
@@ -139,18 +132,8 @@
     <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
-    <string name="engine_mpv">libmpv</string>
-    <string name="engine_media3">Media3 (ExoPlayer)</string>
-    <string name="engine_fake">Fake (отладка UI)</string>
-    <string name="engine_media3_hint">Родной движок Android, апскейл через цепочку GlEffect</string>
-    <string name="engine_mpv_hint">libmpv: широкое декодирование, пресеты на лету без re-prepare</string>
-    <string name="engine_fake_hint">Заглушка для отладки UI без воспроизведения</string>
 
     <!-- Content classes -->
-    <string name="content_anime">Аниме</string>
-    <string name="content_cartoon">Мультфильм</string>
-    <string name="content_live_action">Съёмка</string>
-    <string name="content_any">Любой</string>
 
     <!-- Preset editor -->
     <string name="preset_new">Новый пресет</string>
@@ -163,22 +146,8 @@
     <string name="preset_denoise">Шумоподавление</string>
 
     <!-- Built-in presets -->
-    <string name="preset_off_name">Выкл</string>
-    <string name="preset_off_desc">Оригинальная картинка без обработки</string>
-    <string name="preset_anime_sd_name">Аниме SD</string>
-    <string name="preset_anime_sd_desc">2× CNN-апскейл с лёгким шумоподавлением для SD-аниме и слабых рипов</string>
-    <string name="preset_anime_hd_name">Аниме HD</string>
-    <string name="preset_anime_hd_desc">1.5× CNN-апскейл для 720p/1080p-аниме без дополнительной резкости</string>
-    <string name="preset_live_light_name">Съёмка, лёгкий</string>
-    <string name="preset_live_light_desc">Деликатная резкость без апскейла — для реальной съёмки</string>
-    <string name="preset_auto_name">Авто</string>
-    <string name="preset_auto_desc">Пресет подбирается по классу контента</string>
 
     <!-- Preset chain summary (for user presets) -->
-    <string name="chain_none">Без обработки</string>
-    <string name="chain_upscale">апскейл ×%1$s</string>
-    <string name="chain_sharpness">резкость %1$s</string>
-    <string name="chain_denoise">шумоподавление %1$s</string>
 
     <!-- Preset messages -->
     <string name="msg_imported">Импортирован %1$s</string>

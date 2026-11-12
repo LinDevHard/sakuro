@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.rinwave.sakuro.ui.theme.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 
 /**
  * A titled card that groups related settings. The header shows an accented icon,

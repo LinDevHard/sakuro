@@ -14,10 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.ShaderTunable
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.preset_shader_reset

@@ -10,6 +10,7 @@ import androidx.media3.ui.PlayerView
 import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
 
 /** Media3 renders into a [PlayerView], which also draws subtitles. */

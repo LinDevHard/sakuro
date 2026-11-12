@@ -6,8 +6,8 @@ import androidx.compose.runtime.getValue
 import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.formatMultiplier
 import com.rinwave.sakuro.navigation.ControlsSettingsComponent
-import com.rinwave.sakuro.ui.formatMultiplier
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.settings_controls

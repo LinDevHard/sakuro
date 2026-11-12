@@ -23,6 +23,7 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.componentScope
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders

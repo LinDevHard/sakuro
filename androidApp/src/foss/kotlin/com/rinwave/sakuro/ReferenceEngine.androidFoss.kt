@@ -2,7 +2,7 @@ package com.rinwave.sakuro
 
 import android.content.Context
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
-import com.rinwave.sakuro.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 
 /** F-Droid builds deliberately contain no prebuilt libmpv runtime. */
 @Suppress("UnusedParameter")

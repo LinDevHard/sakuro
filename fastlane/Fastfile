@@ -29,6 +29,7 @@ platform :android do
       gradle_path: gradle_wrapper,
       project_dir: project_root
     )
+    sh(File.join(project_root, "scripts/check-compose-strings.sh"))
     sh(File.join(project_root, "scripts/verify-release-licenses.sh"))
   end
 

@@ -54,13 +54,6 @@
     <string name="preset_shader_tunables_hint">シェーダーが公開する値。変更しなければ既定値のままです</string>
     <string name="preset_shader_reset">リセット</string>
     <string name="preset_shader_chain_hint">内蔵およびインポート済みシェーダーの順序付きチェーン。内蔵処理を置き換えます</string>
-    <string name="shader_role_upscale">アップスケール</string>
-    <string name="shader_role_sharpen">シャープ化</string>
-    <string name="shader_role_denoise">ノイズ除去</string>
-    <string name="shader_role_utility">ユーティリティ</string>
-    <string name="shader_cost_low">軽量</string>
-    <string name="shader_cost_medium">中負荷</string>
-    <string name="shader_cost_high">高負荷</string>
     <string name="shader_imported">インポート済み</string>
     <string name="settings_bench">ベンチマーク</string>
     <string name="settings_bench_desc">この端末でプリセットを計測し、レポートを書き出します</string>
@@ -140,18 +133,8 @@
     <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
-    <string name="engine_mpv">libmpv</string>
-    <string name="engine_media3">Media3 (ExoPlayer)</string>
-    <string name="engine_fake">Fake (UIデバッグ)</string>
-    <string name="engine_media3_hint">Android ネイティブエンジン、GlEffect チェーンでアップスケール</string>
-    <string name="engine_mpv_hint">libmpv: 幅広いデコード、再準備なしでプリセットを即時適用</string>
-    <string name="engine_fake_hint">再生なしで UI をデバッグするためのモック</string>
 
     <!-- Content classes -->
-    <string name="content_anime">アニメ</string>
-    <string name="content_cartoon">カートゥーン</string>
-    <string name="content_live_action">実写</string>
-    <string name="content_any">すべて</string>
 
     <!-- Preset editor -->
     <string name="preset_new">新しいプリセット</string>
@@ -164,22 +147,8 @@
     <string name="preset_denoise">ノイズ除去</string>
 
     <!-- Built-in presets -->
-    <string name="preset_off_name">オフ</string>
-    <string name="preset_off_desc">処理なしの元の映像</string>
-    <string name="preset_anime_sd_name">アニメ SD</string>
-    <string name="preset_anime_sd_desc">SD アニメや低品質リップ向けの2× CNN アップスケールと軽いノイズ除去</string>
-    <string name="preset_anime_hd_name">アニメ HD</string>
-    <string name="preset_anime_hd_desc">720p/1080p アニメ向けの1.5× CNN アップスケール（追加のシャープ化なし）</string>
-    <string name="preset_live_light_name">実写ライト</string>
-    <string name="preset_live_light_desc">アップスケールなしの控えめなシャープ化 — 実写映像向け</string>
-    <string name="preset_auto_name">自動</string>
-    <string name="preset_auto_desc">コンテンツの種類に応じてプリセットを選択します</string>
 
     <!-- Preset chain summary (for user presets) -->
-    <string name="chain_none">処理なし</string>
-    <string name="chain_upscale">アップスケール ×%1$s</string>
-    <string name="chain_sharpness">シャープネス %1$s</string>
-    <string name="chain_denoise">ノイズ除去 %1$s</string>
 
     <!-- Preset messages -->
     <string name="msg_imported">%1$s をインポートしました</string>

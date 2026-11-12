@@ -19,12 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.Lucide
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.SubtitlePreferences
+import com.rinwave.sakuro.core.ui.hint
+import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.navigation.PlaybackSettingsComponent
-import com.rinwave.sakuro.ui.hint
-import com.rinwave.sakuro.ui.label
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.settings_engine

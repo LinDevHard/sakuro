@@ -15,7 +15,7 @@ object ModuleRules {
     fun isAllowed(from: String, to: String): Boolean = when {
         from == to -> true
         from == MODEL || from == DESIGN_SYSTEM -> false
-        from == CORE_UI -> to in setOf(MODEL, PLAYER, DESIGN_SYSTEM)
+        from == CORE_UI -> to in setOf(MODEL, PLAYER, UPSCALE, DESIGN_SYSTEM)
         from.isCore() -> to == MODEL
         from.isEngine() -> to in setOf(MODEL, PLAYER, UPSCALE) || to.isLib()
         from.isFeature() -> to.isCore()

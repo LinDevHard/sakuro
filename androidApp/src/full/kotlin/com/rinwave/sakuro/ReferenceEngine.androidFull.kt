@@ -10,10 +10,10 @@ import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.engine.mpv.MpvEngineFactory
 import com.rinwave.sakuro.engine.mpv.MpvPlayerEngine
 import com.rinwave.sakuro.engine.mpv.MpvScaleMode
-import com.rinwave.sakuro.ui.VideoSurfaceRenderer
 
 internal fun referenceEngineFactories(context: Context): List<PlayerEngineFactory> =
     listOf(MpvEngineFactory(context))

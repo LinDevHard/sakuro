@@ -14,6 +14,7 @@ import com.rinwave.sakuro.core.media.VideoItem
 import com.rinwave.sakuro.core.media.VideoSection
 import com.rinwave.sakuro.core.media.toFolders
 import com.rinwave.sakuro.core.media.toSections
+import com.rinwave.sakuro.core.ui.componentScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

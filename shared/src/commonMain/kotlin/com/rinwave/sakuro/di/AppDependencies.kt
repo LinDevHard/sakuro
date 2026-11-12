@@ -6,6 +6,7 @@ import com.rinwave.sakuro.core.media.MediaLibrary
 import com.rinwave.sakuro.core.media.PlaybackHistoryStore
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
 import com.rinwave.sakuro.core.upscale.NoopShaderInspector
 import com.rinwave.sakuro.core.upscale.NoopUserShaderStore
@@ -14,7 +15,6 @@ import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.core.upscale.UserShaderStore
-import com.rinwave.sakuro.ui.VideoSurfaceRenderer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 

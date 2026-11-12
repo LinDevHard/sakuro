@@ -16,7 +16,10 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
 
+            implementation(project(":core:core-designsystem"))
+            implementation(project(":core:core-model"))
             implementation(project(":core:core-player"))
+            implementation(project(":core:core-ui"))
             implementation(project(":core:core-upscale"))
             implementation(project(":core:core-media"))
             implementation(project(":core:core-detect"))

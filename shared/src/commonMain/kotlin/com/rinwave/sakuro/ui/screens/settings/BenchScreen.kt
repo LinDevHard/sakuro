@@ -36,11 +36,11 @@ import com.rinwave.sakuro.bench.BenchStage
 import com.rinwave.sakuro.bench.BenchState
 import com.rinwave.sakuro.bench.BenchSurface
 import com.rinwave.sakuro.bench.rememberBenchRunner
+import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.ui.displayName
+import com.rinwave.sakuro.core.ui.label
+import com.rinwave.sakuro.core.ui.rememberVideoFilePicker
 import com.rinwave.sakuro.navigation.BenchComponent
-import com.rinwave.sakuro.ui.displayName
-import com.rinwave.sakuro.ui.label
-import com.rinwave.sakuro.ui.rememberVideoFilePicker
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.bench_cancel

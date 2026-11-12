@@ -18,9 +18,11 @@ class ModuleRulesTest {
     }
 
     @Test
-    fun coreUiMayUseModelPlayerAndDesignSystem() {
+    fun coreUiMayUseModelPlayerUpscaleAndDesignSystem() {
         assertTrue(ModuleRules.isAllowed(":core:core-ui", ":core:core-model"))
         assertTrue(ModuleRules.isAllowed(":core:core-ui", ":core:core-player"))
+        assertTrue(ModuleRules.isAllowed(":core:core-ui", ":core:core-upscale"))
+        assertFalse(ModuleRules.isAllowed(":core:core-ui", ":core:core-media"))
         assertTrue(ModuleRules.isAllowed(":core:core-ui", ":core:core-designsystem"))
         assertFalse(ModuleRules.isAllowed(":core:core-ui", ":core:core-data"))
         assertFalse(ModuleRules.isAllowed(":core:core-designsystem", ":core:core-model"))

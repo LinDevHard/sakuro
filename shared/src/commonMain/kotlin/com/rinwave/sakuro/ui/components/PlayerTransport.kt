@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pause
 import com.composables.icons.lucide.Play
-import com.rinwave.sakuro.ui.theme.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.player_pause

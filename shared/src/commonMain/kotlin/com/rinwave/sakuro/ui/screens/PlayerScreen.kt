@@ -74,6 +74,9 @@ import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
+import com.rinwave.sakuro.core.designsystem.EclipseLoader
+import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.designsystem.formatTime
 import com.rinwave.sakuro.core.model.DisplayLimitStatus
 import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.ThermalLevel
@@ -84,6 +87,10 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
+import com.rinwave.sakuro.core.ui.VideoSurface
+import com.rinwave.sakuro.core.ui.displayDescription
+import com.rinwave.sakuro.core.ui.displayName
+import com.rinwave.sakuro.core.ui.rememberSubtitleFilePicker
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders
@@ -92,14 +99,10 @@ import com.rinwave.sakuro.navigation.LiveShader
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
-import com.rinwave.sakuro.ui.VideoSurface
-import com.rinwave.sakuro.ui.components.EclipseLoader
 import com.rinwave.sakuro.ui.components.PlayPauseButton
 import com.rinwave.sakuro.ui.components.SakuroSeekBar
 import com.rinwave.sakuro.ui.components.SkipButton
 import com.rinwave.sakuro.ui.components.YouTubeSeekOverlay
-import com.rinwave.sakuro.ui.displayDescription
-import com.rinwave.sakuro.ui.displayName
 import com.rinwave.sakuro.ui.gestures.LevelSwipeSession
 import com.rinwave.sakuro.ui.gestures.PinchZoomSession
 import com.rinwave.sakuro.ui.gestures.PlayerGestureCallbacks
@@ -109,9 +112,6 @@ import com.rinwave.sakuro.ui.gestures.detectPlayerGestures
 import com.rinwave.sakuro.ui.logProcessingStatus
 import com.rinwave.sakuro.ui.rememberIsInPip
 import com.rinwave.sakuro.ui.rememberPlayerSystemControls
-import com.rinwave.sakuro.ui.rememberSubtitleFilePicker
-import com.rinwave.sakuro.ui.theme.SakuroColors
-import com.rinwave.sakuro.ui.util.formatTime
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res

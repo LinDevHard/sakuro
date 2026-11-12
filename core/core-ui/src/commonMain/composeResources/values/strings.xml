@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chain_denoise">denoise %1$s</string>
+    <string name="chain_none">No processing</string>
+    <string name="chain_sharpness">sharpness %1$s</string>
+    <string name="chain_upscale">upscale ×%1$s</string>
+    <string name="content_anime">Anime</string>
+    <string name="content_any">Any</string>
+    <string name="content_cartoon">Cartoon</string>
+    <string name="content_live_action">Live-action</string>
+    <string name="engine_fake">Fake (UI debugging)</string>
+    <string name="engine_fake_hint">Mock for UI debugging without playback</string>
+    <string name="engine_media3">Media3 (ExoPlayer)</string>
+    <string name="engine_media3_hint">Native Android engine, upscale through a GlEffect chain</string>
+    <string name="engine_mpv">libmpv</string>
+    <string name="engine_mpv_hint">libmpv: broad decoding, live presets without re-prepare</string>
+    <string name="preset_anime_hd_desc">1.5× CNN upscale for 720p/1080p anime, no extra sharpening</string>
+    <string name="preset_anime_hd_name">Anime HD</string>
+    <string name="preset_anime_sd_desc">2× CNN upscale with light denoise for SD anime and weak rips</string>
+    <string name="preset_anime_sd_name">Anime SD</string>
+    <string name="preset_auto_desc">The preset is chosen by content class</string>
+    <string name="preset_auto_name">Auto</string>
+    <string name="preset_live_light_desc">Gentle sharpening without upscaling — for live-action footage</string>
+    <string name="preset_live_light_name">Live-action light</string>
+    <string name="preset_off_desc">The original picture with no processing</string>
+    <string name="preset_off_name">Off</string>
+    <string name="shader_cost_high">heavy</string>
+    <string name="shader_cost_low">light</string>
+    <string name="shader_cost_medium">medium</string>
+    <string name="shader_role_denoise">denoise</string>
+    <string name="shader_role_sharpen">sharpen</string>
+    <string name="shader_role_upscale">upscale</string>
+    <string name="shader_role_utility">utility</string>
+</resources>

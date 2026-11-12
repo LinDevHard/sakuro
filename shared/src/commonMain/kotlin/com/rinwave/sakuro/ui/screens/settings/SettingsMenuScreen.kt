@@ -34,8 +34,8 @@ import com.composables.icons.lucide.Info
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
 import com.composables.icons.lucide.Sparkles
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.navigation.SettingsMenuComponent
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.about_version

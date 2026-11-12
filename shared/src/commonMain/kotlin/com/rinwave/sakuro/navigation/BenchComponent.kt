@@ -6,6 +6,7 @@ import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.ui.componentScope
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShader
 import com.rinwave.sakuro.core.upscale.BundledShaders

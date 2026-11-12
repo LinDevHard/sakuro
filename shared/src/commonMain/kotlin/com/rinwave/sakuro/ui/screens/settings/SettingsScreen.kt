@@ -30,8 +30,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.Lucide
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.navigation.SettingsComponent
-import com.rinwave.sakuro.ui.theme.SakuroColors
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.action_back

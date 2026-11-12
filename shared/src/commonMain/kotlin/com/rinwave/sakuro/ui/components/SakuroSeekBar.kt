@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.rinwave.sakuro.ui.theme.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 
 /**
  * A custom seek bar: draggable, scrubbable and tap-to-seek, with the thumb
