@@ -8,20 +8,30 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.rinwave.sakuro.core.detect.CompositeContentClassifier
+import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.detect.FfmpegFrameSampler
 import com.rinwave.sakuro.core.detect.FilenameContentClassifier
 import com.rinwave.sakuro.core.detect.FrameContentClassifier
+import com.rinwave.sakuro.core.media.MediaLibrary
 import com.rinwave.sakuro.core.media.SampleVideoLibrary
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
+import com.rinwave.sakuro.core.upscale.NoopShaderInspector
+import com.rinwave.sakuro.core.upscale.NoopUserShaderStore
+import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.StaticDeviceStatusMonitor
-import com.rinwave.sakuro.di.AppDependencies
-import com.rinwave.sakuro.di.appModule
+import com.rinwave.sakuro.core.upscale.UserShaderStore
+import com.rinwave.sakuro.di.VideoSurfaceRenderers
+import com.rinwave.sakuro.di.appModules
 import com.rinwave.sakuro.engine.fake.FakeEngineFactory
 import com.rinwave.sakuro.navigation.RootComponent
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
+import org.koin.dsl.module
 
 /**
  * Desktop target — a sandbox for fast UI iteration (ARCHITECTURE.md §3.2):
@@ -30,17 +40,26 @@ import org.koin.core.context.startKoin
 fun main() {
     startKoin {
         modules(
-            appModule(
-                settings = SakuroSettings(defaultEngine = EngineType.FAKE),
-                mediaLibrary = SampleVideoLibrary(),
-                engineRegistry = EngineRegistry(listOf(FakeEngineFactory())),
-                deviceStatusMonitor = StaticDeviceStatusMonitor(),
-                // As on Android: the file name answers immediately, frames (system
-                // ffmpeg, if present) replace the result with a more confident one.
-                contentClassifier = CompositeContentClassifier(
-                    FilenameContentClassifier(),
-                    FrameContentClassifier(FfmpegFrameSampler()),
-                ),
+            appModules(
+                module {
+                    single { SakuroSettings(defaultEngine = EngineType.FAKE) }
+                    single<MediaLibrary> { SampleVideoLibrary() }
+                    single { EngineRegistry(listOf(FakeEngineFactory())) }
+                    single<DeviceStatusMonitor> { StaticDeviceStatusMonitor() }
+                    // As on Android: the file name answers immediately, frames (system
+                    // ffmpeg, if present) replace the result with a more confident one.
+                    single<ContentClassifier> {
+                        CompositeContentClassifier(
+                            FilenameContentClassifier(),
+                            FrameContentClassifier(FfmpegFrameSampler()),
+                        )
+                    }
+                    single<UserShaderStore> { NoopUserShaderStore() }
+                    single<ShaderInspector> { NoopShaderInspector() }
+                    single { GpuInfoProvider { null } }
+                    // No renderers: the fake engine falls back to the synthetic surface.
+                    single<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers) { emptyList() }
+                },
             ),
         )
     }
@@ -48,7 +67,7 @@ fun main() {
     val lifecycle = LifecycleRegistry()
     val root = RootComponent(
         componentContext = DefaultComponentContext(lifecycle),
-        deps = GlobalContext.get().get<AppDependencies>(),
+        factories = GlobalContext.get().get(),
     )
 
     application {

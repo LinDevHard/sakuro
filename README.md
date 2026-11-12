@@ -136,7 +136,10 @@ See [tools/sakuro-bench/README.md](tools/sakuro-bench/README.md) for the full me
 ```text
 androidApp/            Android entry point: Activity, Application, flavors, signing, R8
 desktopApp/            Desktop UI sandbox entry point and packaging
-shared/                Compose UI, navigation and DI composition root
+shared/                Composition root: navigation (RootComponent), Koin assembly, App()
+feature/feature-*/     Library, player, settings and benchmark features
+core/core-designsystem/ Theme, typography and generic components
+core/core-ui/          Shared presentation helpers: labels, video surfaces, pickers, PiP
 core/core-model/       Shared domain types (profiles, content class, engine type, media source)
 core/core-player/      PlayerEngine API, state, tracks, debug stats, engine registry
 core/core-upscale/     Upscale profiles, built-in presets, stores, adaptive controller

@@ -48,36 +48,81 @@ A shared `PlayerEngine` interface remains useful for tests and tooling, but the 
 
 ```text
 gradle/libs.versions.toml   version catalog
-build-logic/                convention plugins for KMP, Compose, Android, flavors
+build-logic/                convention plugins and the module-graph rules (ModuleRules)
+config/                     detekt config, module-graph allowlist (kept empty)
 
-androidApp/                 Android entry point, flavors, signing, packaging
-desktopApp/                 desktop UI sandbox entry point and packaging
-shared/                     app UI, navigation, DI composition root (KMP library)
-  src/commonMain            Compose UI, Decompose components, Koin wiring, Coil
-  src/androidMain           Android platform bridges (PiP, pickers, thumbnails, bench runner)
-  src/desktopMain           desktop platform bridges
-  src/iosMain               Future target after Android Media3 work stabilizes
+androidApp/                 Android entry point: Activity, Application, manifest, flavors,
+                            signing, R8, engine + renderer registration (libmpv only in `full`)
+desktopApp/                 desktop UI sandbox entry point and packaging (fake engine)
+shared/                     composition root: RootComponent (navigation), Koin assembly, App()
 
-core/                       KMP logic libraries without UI
-  core-model/               shared domain types; every other core module depends only on it
-  core-player/              PlayerEngine, PlayerState, tracks, controller, DebugStats
-  core-upscale/             UpscaleProfile/Preset, built-ins, import/export, AdaptiveController
-  core-detect/              ContentClassifier for anime/cartoon/live-action
-  core-media/               local library model, metadata, scanner
-  core-settings/            preset, theme, debug, and app settings
+feature/                    self-contained features: Decompose component + Compose screen
+  feature-library/          local catalog: videos/folders, sorting, thumbnails
+  feature-player/           player screen, transport, gestures, session, diagnostics
+  feature-settings/         settings stack: playback, upscale, controls, advanced, about
+  feature-bench/            on-device benchmark and report bundle
 
-engine/                     PlayerEngine implementations and reference tools
-  engine-media3/            Android product engine: Media3/ExoPlayer + GLSL ES effects
-  engine-mpv/               Developer/reference libmpv path for shader parity, capture, and comparisons
-  engine-fake/              FakePlayerEngine for desktop and tests
+core/                       KMP libraries
+  core-model/               shared domain types; the bottom of the graph
+  core-player/              PlayerEngine API, state, tracks, engine registry, surface output
+  core-upscale/             presets, shader catalog, adaptive control, preset stores
+  core-detect/              content classification (file name, frame samples)
+  core-media/               library model, MediaStore / desktop samples, history, prefs
+  core-settings/            app settings (multiplatform-settings)
+  core-designsystem/        theme, Inter typography, generic components and scaffolds
+  core-ui/                  presentation helpers over domain types: labels, video-surface
+                            contract, file pickers, PiP bridge, diagnostics sharing
+
+engine/                     PlayerEngine implementations
+  engine-media3/            product engine: Media3/ExoPlayer + GLSL ES effects
+  engine-mpv/               reference libmpv engine (full flavor only)
+  engine-fake/              fake engine for desktop and tests
 
 lib/                        Sakuro-independent libraries (candidates for standalone publishing)
   media3-usershader/        mpv user-shader runtime for Media3: parser, graph planner, one GlEffect
-
-iosApp/                     Future wrapper after the Android product runtime stabilizes
 ```
 
-Core logic lives in `core/*`; UI and navigation live in `shared`, entry points in `androidApp`/`desktopApp`; each engine is isolated under `engine/*` and depends only on `:core:core-player` (engine-media3 also uses `:lib:media3-usershader`). Modules under `lib/*` must not depend on any Sakuro module. `androidApp` wires Media3 for product builds, `desktopApp` and tests use the fake engine, and libmpv is wired only in the `full` flavor for developer/reference workflows.
+### Dependency rules
+
+The graph is flat and enforced by `./gradlew checkModuleGraph` (ModuleRules in
+`build-logic`); `config/module-graph-allowlist.txt` holds temporary exceptions
+and may only shrink.
+
+| Module | May depend on |
+|---|---|
+| `core-model`, `core-designsystem`, `lib/*` | nothing in Sakuro |
+| other `core-*` | `core-model` |
+| `core-ui` | `core-model`, `core-player`, `core-upscale`, `core-designsystem` |
+| `engine/*` | `core-model`, `core-player`, `core-upscale`, `lib/*` |
+| `feature/*` | `core/*` only — never another feature or an engine |
+| `shared` | `feature/*`, `core/*` |
+| `androidApp`, `desktopApp` | `shared`, `engine/*`, `core/*` |
+
+### Features and navigation
+
+- A feature's public surface is its component, its `*ComponentFactory`, its
+  `*Output` sealed interface, its screen and its Koin module. Kotlin explicit
+  API mode (the `sakuro.feature` convention plugin) makes everything else
+  `internal`.
+- There are no `api`/`impl` module pairs. Add a `:feature:x:api` module only
+  when another feature has to call into `x`.
+- Features never navigate. They emit outputs (`OpenVideo`, `Finished`, `Back`,
+  `OpenSettings`, `OpenBench`); `RootComponent` in `shared` maps them to stack
+  operations.
+- Engine-specific code stays out of features: engines bind surfaces through
+  `SurfaceVideoOutput`, the app registers one `VideoSurfaceRenderer` per engine,
+  and device details reach features through core contracts such as
+  `GpuInfoProvider`.
+- Each Compose module owns its strings (`scripts/check-compose-strings.sh`
+  requires `values-ru`/`values-ja` for every key and forbids a key in two modules).
+
+### Dependency injection
+
+`shared` exposes `appModules(platform)`: the shared stores, every feature's Koin
+module and the platform module. Each app module provides the platform contract
+documented on `appModules` (settings, media library, engine registry, device
+monitor, classifier, shader store/inspector, GPU info, video-surface renderers);
+`AppModulesTest` resolves the whole graph against that contract.
 
 ### 3.1 JetBrains Alignment
 

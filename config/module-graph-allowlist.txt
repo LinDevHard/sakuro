@@ -1,5 +1,2 @@
 # Temporary exceptions to ModuleRules (build-logic). One ":from -> :to" per line.
 # Entries may only be removed; checkModuleGraph fails on stale ones.
-
-# Task 10 removes this: the fake engine wiring moves out of :shared.
-:shared -> :engine:engine-fake

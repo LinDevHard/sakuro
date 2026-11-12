@@ -23,7 +23,6 @@ kotlin {
             implementation(project(":core:core-media"))
             implementation(project(":core:core-detect"))
             implementation(project(":core:core-settings"))
-            implementation(project(":engine:engine-fake"))
             implementation(project(":feature:feature-bench"))
             implementation(project(":feature:feature-library"))
             implementation(project(":feature:feature-player"))
@@ -45,6 +44,11 @@ kotlin {
             // androidMain only: desktop has no video decoder, so a placeholder is used there.
             implementation(libs.coil.compose)
             implementation(libs.coil.video)
+        }
+
+        val desktopTest by getting
+        desktopTest.dependencies {
+            implementation(project(":core:core-settings"))
         }
 
         val desktopMain by getting

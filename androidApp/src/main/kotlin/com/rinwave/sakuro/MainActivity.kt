@@ -16,7 +16,8 @@ import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.rinwave.sakuro.core.ui.PipActionReceiver
 import com.rinwave.sakuro.core.ui.PipBridge
-import com.rinwave.sakuro.di.AppDependencies
+import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.di.VideoSurfaceRenderers
 import com.rinwave.sakuro.navigation.RootComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -31,11 +32,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val deps = GlobalContext.get().get<AppDependencies>()
-        root = RootComponent(defaultComponentContext(), deps)
+        val koin = GlobalContext.get()
+        root = RootComponent(defaultComponentContext(), koin.get())
+        val renderers = koin.get<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers)
 
         setContent {
-            App(root, deps.videoSurfaceRenderers)
+            App(root, renderers)
         }
 
         if (savedInstanceState == null) {
