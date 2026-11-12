@@ -127,6 +127,7 @@ monitor, classifier, shader store/inspector, GPU info, video-surface renderers);
 ### 3.1 JetBrains Alignment
 
 - `shared` + `androidApp`/`desktopApp` (+ future `iosApp`) follows the KMP layout required by AGP 9: the application module does not apply `kotlin.multiplatform`.
+- KMP libraries use AGP's `com.android.kotlin.multiplatform.library` plugin (convention `sakuro.kmp.library`); their Android namespace is derived from the module path and their Android unit tests run as `testAndroidHostTest`. Android-only modules use AGP 9's built-in Kotlin, without the `kotlin-android` plugin.
 - The default hierarchy template owns intermediate source sets such as `appleMain`.
 - Targets are `androidTarget()`, `jvm("desktop")`, and iOS targets.
 - Interfaces + DI are preferred over `expect/actual` unless a declaration is truly platform-specific.

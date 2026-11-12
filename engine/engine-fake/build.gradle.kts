@@ -11,7 +11,3 @@ kotlin {
         }
     }
 }
-
-android {
-    namespace = "com.rinwave.sakuro.engine.fake"
-}

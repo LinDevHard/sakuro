@@ -3,10 +3,10 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // Android-only Sakuro library (platform-bound engines): JVM 17, detekt.
+// AGP 9 compiles Kotlin itself (built-in Kotlin); no kotlin-android plugin.
 // The module only has to declare its namespace in android {} and its dependencies.
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
     id("sakuro.detekt")
     id("sakuro.module-rules")
 }
@@ -28,4 +28,11 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
     }
+}
+
+dependencies {
+    // Built-in Kotlin does not pick kotlin-test's JUnit variant from kotlin("test")
+    // the way the kotlin-android plugin did; name it explicitly.
+    "testImplementation"(kotlin("test-junit"))
+    "androidTestImplementation"(kotlin("test-junit"))
 }

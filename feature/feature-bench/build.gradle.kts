@@ -17,7 +17,3 @@ kotlin {
         }
     }
 }
-
-android {
-    namespace = "com.rinwave.sakuro.feature.bench"
-}

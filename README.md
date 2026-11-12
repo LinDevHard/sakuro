@@ -1,8 +1,8 @@
 # Sakuro
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF.svg)](https://kotlinlang.org/)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF.svg)](https://kotlinlang.org/)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.12.2-4285F4.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Android](https://img.shields.io/badge/Android-minSdk%2026-3DDC84.svg)](gradle/libs.versions.toml)
 [![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
 [![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)

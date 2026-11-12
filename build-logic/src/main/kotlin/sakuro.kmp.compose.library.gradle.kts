@@ -19,13 +19,15 @@ kotlin {
     }
 }
 
-compose.resources {
-    packageOfResClass = "com.rinwave.sakuro." + resourcePackageSuffix(path) + ".resources"
+kotlin {
+    android {
+        // Compose Resources are packaged as Android assets/resources of the library.
+        androidResources {
+            enable = true
+        }
+    }
 }
 
-fun resourcePackageSuffix(projectPath: String): String {
-    val parts = projectPath.trim(':').split(':')
-    val group = parts.first()
-    val name = parts.last().removePrefix("$group-").replace("-", "")
-    return if (parts.size == 1) group else "$group.$name"
+compose.resources {
+    packageOfResClass = "com.rinwave.sakuro." + sakuroModuleSuffix(path) + ".resources"
 }

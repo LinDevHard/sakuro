@@ -14,7 +14,6 @@ fun signingSecret(name: String): String = providers.environmentVariable(name).or
 // Android entry point: Activity, Application, manifest, flavors, signing and R8.
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     id("sakuro.detekt")

@@ -57,7 +57,3 @@ kotlin {
         }
     }
 }
-
-android {
-    namespace = "com.rinwave.sakuro.shared"
-}
