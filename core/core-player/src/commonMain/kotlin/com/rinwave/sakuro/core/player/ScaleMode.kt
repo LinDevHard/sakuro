@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.core.player
 
 /**
  * Frame scaling mode (FEATURES.md §3.1): fit — fit the whole frame, fill — stretch

@@ -27,14 +27,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.media3.common.util.UnstableApi
 import com.rinwave.sakuro.AppInfo
-import com.rinwave.sakuro.attachReferenceEngineSurface
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
-import com.rinwave.sakuro.detachReferenceEngineSurface
+import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.engine.media3.DeviceGpu
-import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -292,8 +290,8 @@ internal class AndroidBenchRunner(
                 batteryTempC = batteryTempC(),
             )
         } finally {
-            // A reference engine must let go before the next engine takes the shared surface.
-            runCatching { detachReferenceEngineSurface(engine) }
+            // The engine must let go before the next one takes the shared surface.
+            runCatching { (engine as? SurfaceVideoOutput)?.detachSurface() }
             runCatching { engine.release() }
         }
         return BenchModeResult(
@@ -365,12 +363,11 @@ internal class AndroidBenchRunner(
     )
 
     private fun attachSurface(engine: PlayerEngine, view: SurfaceView) {
-        when (engine) {
-            is Media3PlayerEngine -> engine.player.setVideoSurfaceHolder(view.holder)
-            else -> if (!attachReferenceEngineSurface(engine, view)) {
-                error("engine ${engine.javaClass.simpleName} has no surface output")
-            }
-        }
+        val output = engine as? SurfaceVideoOutput
+            ?: error("engine ${engine.javaClass.simpleName} has no surface output")
+        output.attachSurface(view.holder)
+        output.resizeSurface(OUT_WIDTH, OUT_HEIGHT)
+        output.prepareForCapture()
     }
 
     /** One [PixelCopy] of the surface buffer at its fixed 1920×1080 size. */

@@ -3,6 +3,7 @@ package com.rinwave.sakuro.engine.mpv
 import android.content.Context
 import android.net.Uri
 import android.view.Surface
+import android.view.SurfaceHolder
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.ExternalSubtitle
@@ -11,6 +12,7 @@ import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
 import com.rinwave.sakuro.core.player.PlayerState
+import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
@@ -41,7 +43,7 @@ enum class MpvScaleMode { FIT, FILL, ZOOM }
  * are opened through a file descriptor (`fdclose://`) — libmpv has no access
  * to the ContentResolver.
  */
-class MpvPlayerEngine(private val context: Context) : PlayerEngine {
+class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     private val mpv: MPVLib = checkNotNull(MPVLib.create(context)) { "MPVLib.create() returned null" }
     private val shaderStore = MpvShaderStore(context)
@@ -254,7 +256,11 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         mpv.destroy()
     }
 
-    // --- Surface binding (called by VideoSurface from composeApp) ---
+    // --- Surface binding (SurfaceVideoOutput; used by the mpv renderer and the bench) ---
+
+    override fun attachSurface(holder: SurfaceHolder) = attachSurface(holder.surface)
+
+    override fun prepareForCapture() = setExactSeeking(true)
 
     fun attachSurface(surface: Surface) {
         if (released.get()) return
@@ -272,7 +278,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         }
     }
 
-    fun resizeSurface(width: Int, height: Int) {
+    override fun resizeSurface(width: Int, height: Int) {
         if (released.get()) return
         mpv.setPropertyString("android-surface-size", "${width}x$height")
         // Entering/leaving PiP does not recreate the surface, only resizes it;
@@ -287,7 +293,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine {
         }
     }
 
-    fun detachSurface() {
+    override fun detachSurface() {
         if (released.get()) return
         surfaceAttached = false
         mpv.setPropertyString("vo", "null")

@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.ui.gestures
 
-import com.rinwave.sakuro.ui.ScaleMode
+import com.rinwave.sakuro.core.player.ScaleMode
 
 /**
  * Pure math for player gestures (FEATURES.md §3.1): a session lives from the start

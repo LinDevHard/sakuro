@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         root = RootComponent(defaultComponentContext(), deps)
 
         setContent {
-            App(root)
+            App(root, deps.videoSurfaceRenderers)
         }
 
         if (savedInstanceState == null) {

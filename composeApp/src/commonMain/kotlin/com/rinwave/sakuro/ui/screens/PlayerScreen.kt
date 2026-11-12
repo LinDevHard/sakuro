@@ -77,6 +77,7 @@ import com.composables.icons.lucide.Volume2
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
+import com.rinwave.sakuro.core.player.ScaleMode
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -91,7 +92,6 @@ import com.rinwave.sakuro.navigation.LiveShader
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode
 import com.rinwave.sakuro.ui.PipEffect
-import com.rinwave.sakuro.ui.ScaleMode
 import com.rinwave.sakuro.ui.VideoSurface
 import com.rinwave.sakuro.ui.components.EclipseLoader
 import com.rinwave.sakuro.ui.components.PlayPauseButton

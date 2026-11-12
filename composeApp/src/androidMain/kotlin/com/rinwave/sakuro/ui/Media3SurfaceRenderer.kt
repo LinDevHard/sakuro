@@ -8,39 +8,41 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.player.ScaleMode
 import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
-import com.rinwave.sakuro.referenceVideoSurface
 
-@OptIn(UnstableApi::class)
-@Composable
-actual fun VideoSurface(
-    engine: PlayerEngine,
-    scaleMode: ScaleMode,
-    modifier: Modifier,
-    subtitles: SubtitlePreferences,
-) {
-    if (referenceVideoSurface(engine, scaleMode, modifier)) return
-    when (engine) {
-        is Media3PlayerEngine -> AndroidView(
+/** Media3 renders into a [PlayerView], which also draws subtitles. */
+class Media3SurfaceRenderer : VideoSurfaceRenderer {
+
+    override fun canRender(engine: PlayerEngine): Boolean = engine is Media3PlayerEngine
+
+    @OptIn(UnstableApi::class)
+    @Composable
+    override fun Render(
+        engine: PlayerEngine,
+        scaleMode: ScaleMode,
+        subtitles: SubtitlePreferences,
+        modifier: Modifier,
+    ) {
+        val media3 = engine as Media3PlayerEngine
+        AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
                     useController = false
                     resizeMode = scaleMode.toResizeMode()
                     keepScreenOn = true
-                    player = engine.player
+                    player = media3.player
                     applySubtitlePreferences(subtitles)
                 }
             },
             update = { view ->
-                view.player = engine.player
+                view.player = media3.player
                 view.resizeMode = scaleMode.toResizeMode()
                 view.applySubtitlePreferences(subtitles)
             },
             modifier = modifier,
         )
-
-        else -> FakeVideoSurface(engine, modifier)
     }
 }
 

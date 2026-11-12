@@ -5,6 +5,7 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.SystemClock
 import android.view.Display
+import android.view.SurfaceHolder
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -30,6 +31,7 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
 import com.rinwave.sakuro.core.player.PlayerState
 import com.rinwave.sakuro.core.player.SubtitlePreferences
+import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -61,7 +63,7 @@ import kotlinx.coroutines.launch
  * playback position and play/pause state.
  */
 @OptIn(UnstableApi::class)
-class Media3PlayerEngine(context: Context) : PlayerEngine {
+class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     private val appContext: Context = context.applicationContext
 
@@ -326,6 +328,13 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         scope.cancel()
         player.release()
     }
+
+    // SurfaceVideoOutput: raw-surface binding for the benchmark; playback uses PlayerView.
+    override fun attachSurface(holder: SurfaceHolder) = player.setVideoSurfaceHolder(holder)
+
+    override fun resizeSurface(width: Int, height: Int) = Unit
+
+    override fun detachSurface() = player.clearVideoSurface()
 
     private fun setEffectsInternal() {
         val sourceWidth = _state.value.videoWidth

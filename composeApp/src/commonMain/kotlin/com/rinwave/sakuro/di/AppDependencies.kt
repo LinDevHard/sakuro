@@ -14,6 +14,7 @@ import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.core.upscale.UserShaderStore
+import com.rinwave.sakuro.ui.VideoSurfaceRenderer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -30,6 +31,7 @@ class AppDependencies(
     val userShaderStore: UserShaderStore,
     val shaderInspector: ShaderInspector,
     val playbackHistory: PlaybackHistoryStore,
+    val videoSurfaceRenderers: List<VideoSurfaceRenderer>,
 )
 
 /** Builds the DI graph: platform implementations come from outside, the rest is built here. */
@@ -42,6 +44,7 @@ fun appModule(
     contentClassifier: ContentClassifier,
     userShaderStore: UserShaderStore = NoopUserShaderStore(),
     shaderInspector: ShaderInspector = NoopShaderInspector(),
+    videoSurfaceRenderers: List<VideoSurfaceRenderer> = emptyList(),
 ): Module = module {
     single { settings }
     single { mediaLibrary }
@@ -53,5 +56,7 @@ fun appModule(
     single { PresetStores(user = UserPresetStore(), pinned = PinnedPresetStore()) }
     single { userShaderStore }
     single { shaderInspector }
-    single { AppDependencies(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single {
+        AppDependencies(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), videoSurfaceRenderers)
+    }
 }
