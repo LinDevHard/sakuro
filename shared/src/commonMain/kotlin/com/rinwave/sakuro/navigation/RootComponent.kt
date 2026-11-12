@@ -13,6 +13,9 @@ import com.rinwave.sakuro.di.AppDependencies
 import com.rinwave.sakuro.feature.library.LibraryComponent
 import com.rinwave.sakuro.feature.library.LibraryComponentFactory
 import com.rinwave.sakuro.feature.library.LibraryOutput
+import com.rinwave.sakuro.feature.settings.SettingsComponent
+import com.rinwave.sakuro.feature.settings.SettingsComponentFactory
+import com.rinwave.sakuro.feature.settings.SettingsOutput
 import kotlinx.serialization.Serializable
 
 /** The Decompose navigation root: Library ↔ Player / Settings. */
@@ -31,15 +34,27 @@ class RootComponent(
 
         @Serializable
         data object Settings : Config
+
+        @Serializable
+        data object Bench : Config
     }
 
     sealed interface Child {
         class Library(val component: LibraryComponent) : Child
         class Player(val component: PlayerComponent) : Child
         class Settings(val component: SettingsComponent) : Child
+        class Bench(val component: BenchComponent) : Child
     }
 
     private val navigation = StackNavigation<Config>()
+
+    private val settingsFactory = SettingsComponentFactory(
+        deps.settings,
+        deps.engineRegistry,
+        deps.presetStores,
+        deps.userShaderStore,
+        deps.shaderInspector,
+    )
 
     private val libraryFactory =
         LibraryComponentFactory(deps.mediaLibrary, deps.libraryPreferences, deps.playbackHistory)
@@ -91,13 +106,20 @@ class RootComponent(
         )
 
         is Config.Settings -> Child.Settings(
-            SettingsComponent(
+            settingsFactory.create(componentContext) { output ->
+                when (output) {
+                    SettingsOutput.Back -> navigation.pop()
+                    SettingsOutput.OpenBench -> navigation.push(Config.Bench)
+                }
+            },
+        )
+
+        is Config.Bench -> Child.Bench(
+            BenchComponent(
                 componentContext = componentContext,
-                settings = deps.settings,
                 engineRegistry = deps.engineRegistry,
                 presetStores = deps.presetStores,
                 userShaderStore = deps.userShaderStore,
-                shaderInspector = deps.shaderInspector,
                 onBack = navigation::pop,
             ),
         )

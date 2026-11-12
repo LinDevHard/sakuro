@@ -1,11 +1,11 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import kotlinx.coroutines.flow.StateFlow
 
 /** Controls tab: player gestures (master + per-gesture switches) and their sensitivity. */
-class ControlsSettingsComponent(
+internal class ControlsSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
 ) : ComponentContext by componentContext {

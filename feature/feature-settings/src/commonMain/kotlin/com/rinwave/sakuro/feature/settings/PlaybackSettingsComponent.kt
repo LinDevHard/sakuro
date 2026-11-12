@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.model.EngineType
@@ -8,7 +8,7 @@ import com.rinwave.sakuro.core.settings.SakuroSettings
 import kotlinx.coroutines.flow.StateFlow
 
 /** Playback tab: which engine drives decoding and rendering. */
-class PlaybackSettingsComponent(
+internal class PlaybackSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     engineRegistry: EngineRegistry,

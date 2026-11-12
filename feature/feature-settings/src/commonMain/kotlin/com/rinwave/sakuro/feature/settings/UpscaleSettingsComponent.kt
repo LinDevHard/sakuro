@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.model.UpscaleProfile
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /** Upscale tab: the default preset plus management of user presets and shaders. */
-class UpscaleSettingsComponent(
+internal class UpscaleSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     presetStores: PresetStores,

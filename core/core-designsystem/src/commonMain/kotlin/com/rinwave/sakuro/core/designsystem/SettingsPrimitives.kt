@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.core.designsystem
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,14 +28,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.rinwave.sakuro.core.designsystem.SakuroColors
 
 /**
  * A titled card that groups related settings. The header shows an accented icon,
  * a title and an optional one-line description; [content] renders the rows.
  */
 @Composable
-internal fun SettingsPanel(
+fun SettingsPanel(
     title: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
@@ -84,7 +83,7 @@ internal fun SettingsPanel(
 
 /** A hairline divider inset to align with row content. */
 @Composable
-internal fun PanelDivider() {
+fun PanelDivider() {
     Box(
         Modifier
             .fillMaxWidth()
@@ -95,7 +94,7 @@ internal fun PanelDivider() {
 }
 
 @Composable
-internal fun SettingSwitchRow(
+fun SettingSwitchRow(
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -134,7 +133,7 @@ internal fun SettingSwitchRow(
 }
 
 @Composable
-internal fun SettingSliderRow(
+fun SettingSliderRow(
     title: String,
     valueText: String,
     value: Float,

@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -35,27 +35,28 @@ import com.composables.icons.lucide.Scale
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Star
 import com.composables.icons.lucide.Zap
+import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
-import com.rinwave.sakuro.navigation.AboutSettingsComponent
+import com.rinwave.sakuro.core.designsystem.SettingsPanel
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.about_credits
+import com.rinwave.sakuro.feature.settings.resources.about_credits_text
+import com.rinwave.sakuro.feature.settings.resources.about_link_donate
+import com.rinwave.sakuro.feature.settings.resources.about_link_donate_desc
+import com.rinwave.sakuro.feature.settings.resources.about_link_github
+import com.rinwave.sakuro.feature.settings.resources.about_link_github_desc
+import com.rinwave.sakuro.feature.settings.resources.about_link_issues
+import com.rinwave.sakuro.feature.settings.resources.about_link_issues_desc
+import com.rinwave.sakuro.feature.settings.resources.about_link_license
+import com.rinwave.sakuro.feature.settings.resources.about_link_license_desc
+import com.rinwave.sakuro.feature.settings.resources.about_link_releases
+import com.rinwave.sakuro.feature.settings.resources.about_link_releases_desc
+import com.rinwave.sakuro.feature.settings.resources.about_links
+import com.rinwave.sakuro.feature.settings.resources.about_made_by
+import com.rinwave.sakuro.feature.settings.resources.about_open_source
+import com.rinwave.sakuro.feature.settings.resources.about_tagline
+import com.rinwave.sakuro.feature.settings.resources.about_version
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.about_credits
-import sakuro.composeapp.generated.resources.about_credits_text
-import sakuro.composeapp.generated.resources.about_link_donate
-import sakuro.composeapp.generated.resources.about_link_donate_desc
-import sakuro.composeapp.generated.resources.about_link_github
-import sakuro.composeapp.generated.resources.about_link_github_desc
-import sakuro.composeapp.generated.resources.about_link_issues
-import sakuro.composeapp.generated.resources.about_link_issues_desc
-import sakuro.composeapp.generated.resources.about_link_license
-import sakuro.composeapp.generated.resources.about_link_license_desc
-import sakuro.composeapp.generated.resources.about_link_releases
-import sakuro.composeapp.generated.resources.about_link_releases_desc
-import sakuro.composeapp.generated.resources.about_links
-import sakuro.composeapp.generated.resources.about_made_by
-import sakuro.composeapp.generated.resources.about_open_source
-import sakuro.composeapp.generated.resources.about_tagline
-import sakuro.composeapp.generated.resources.about_version
 
 @Composable
 internal fun AboutSettingsTab(component: AboutSettingsComponent) {

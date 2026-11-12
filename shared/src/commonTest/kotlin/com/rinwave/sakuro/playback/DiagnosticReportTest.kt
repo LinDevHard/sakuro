@@ -1,8 +1,8 @@
 package com.rinwave.sakuro.playback
 
-import com.rinwave.sakuro.AppInfo
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
+import com.rinwave.sakuro.core.ui.AppInfo
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse

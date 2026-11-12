@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,11 +18,11 @@ import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.ShaderTunable
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.preset_shader_reset
+import com.rinwave.sakuro.feature.settings.resources.preset_shader_tunables
+import com.rinwave.sakuro.feature.settings.resources.preset_shader_tunables_hint
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.preset_shader_reset
-import sakuro.composeapp.generated.resources.preset_shader_tunables
-import sakuro.composeapp.generated.resources.preset_shader_tunables_hint
 import kotlin.math.abs
 import kotlin.math.roundToInt
 

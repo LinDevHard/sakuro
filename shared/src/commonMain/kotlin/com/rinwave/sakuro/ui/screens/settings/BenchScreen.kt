@@ -37,6 +37,7 @@ import com.rinwave.sakuro.bench.BenchState
 import com.rinwave.sakuro.bench.BenchSurface
 import com.rinwave.sakuro.bench.rememberBenchRunner
 import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.ui.displayName
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.core.ui.rememberVideoFilePicker

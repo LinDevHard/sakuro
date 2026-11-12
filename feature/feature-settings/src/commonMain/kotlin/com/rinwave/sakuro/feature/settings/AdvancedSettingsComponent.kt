@@ -1,11 +1,11 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import kotlinx.coroutines.flow.StateFlow
 
 /** Advanced tab: adaptive shader switching, the screen limit, the debug overlay and the benchmark. */
-class AdvancedSettingsComponent(
+internal class AdvancedSettingsComponent(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     val onOpenBench: () -> Unit,

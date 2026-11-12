@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.DelicateDecomposeApi
@@ -8,9 +8,9 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
-import com.rinwave.sakuro.AppInfo
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.AppInfo
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UserShaderStore
@@ -21,15 +21,17 @@ import kotlinx.serialization.Serializable
  * section pushes its own screen onto an inner stack (drill-down navigation). Each
  * section is a dedicated Decompose child with its own state and lifecycle.
  */
-class SettingsComponent(
+public class SettingsComponent internal constructor(
     componentContext: ComponentContext,
     private val settings: SakuroSettings,
     private val engineRegistry: EngineRegistry,
     private val presetStores: PresetStores,
     private val userShaderStore: UserShaderStore,
     private val shaderInspector: ShaderInspector,
-    val onBack: () -> Unit,
+    private val onOutput: (SettingsOutput) -> Unit,
 ) : ComponentContext by componentContext {
+
+    internal val onBack: () -> Unit = { onOutput(SettingsOutput.Back) }
 
     @Serializable
     private sealed interface Config {
@@ -49,25 +51,21 @@ class SettingsComponent(
         data object Advanced : Config
 
         @Serializable
-        data object Bench : Config
-
-        @Serializable
         data object About : Config
     }
 
-    sealed interface Child {
+    internal sealed interface Child {
         class Menu(val component: SettingsMenuComponent) : Child
         class Playback(val component: PlaybackSettingsComponent) : Child
         class Upscale(val component: UpscaleSettingsComponent) : Child
         class Controls(val component: ControlsSettingsComponent) : Child
         class Advanced(val component: AdvancedSettingsComponent) : Child
-        class Bench(val component: BenchComponent) : Child
         class About(val component: AboutSettingsComponent) : Child
     }
 
     private val navigation = StackNavigation<Config>()
 
-    val stack: Value<ChildStack<*, Child>> = childStack(
+    internal val stack: Value<ChildStack<*, Child>> = childStack(
         source = navigation,
         serializer = Config.serializer(),
         initialConfiguration = Config.Menu,
@@ -106,24 +104,14 @@ class SettingsComponent(
             AdvancedSettingsComponent(
                 componentContext = componentContext,
                 settings = settings,
-                onOpenBench = { navigation.push(Config.Bench) },
-            ),
-        )
-
-        is Config.Bench -> Child.Bench(
-            BenchComponent(
-                componentContext = componentContext,
-                engineRegistry = engineRegistry,
-                presetStores = presetStores,
-                userShaderStore = userShaderStore,
-                onBack = ::pop,
+                onOpenBench = { onOutput(SettingsOutput.OpenBench) },
             ),
         )
 
         is Config.About -> Child.About(AboutSettingsComponent(componentContext))
     }
 
-    fun pop() {
+    internal fun pop() {
         navigation.pop()
     }
 }

@@ -4,6 +4,14 @@ plugins {
     id("sakuro.kmp.compose.library")
 }
 
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.lucide.icons)
+        }
+    }
+}
+
 android {
     namespace = "com.rinwave.sakuro.core.designsystem"
 }

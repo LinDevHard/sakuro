@@ -1,4 +1,4 @@
-package com.rinwave.sakuro
+package com.rinwave.sakuro.core.ui
 
 /**
  * Static app metadata surfaced on the About screen. Keep [VERSION] in sync with

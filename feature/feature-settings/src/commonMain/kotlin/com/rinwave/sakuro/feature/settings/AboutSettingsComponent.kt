@@ -1,10 +1,10 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
-import com.rinwave.sakuro.AppInfo
+import com.rinwave.sakuro.core.ui.AppInfo
 
 /** About tab: version, project links and credits. */
-class AboutSettingsComponent(
+internal class AboutSettingsComponent(
     componentContext: ComponentContext,
 ) : ComponentContext by componentContext {
 

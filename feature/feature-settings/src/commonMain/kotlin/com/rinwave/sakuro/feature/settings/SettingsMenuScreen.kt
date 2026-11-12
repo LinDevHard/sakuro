@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -35,21 +35,21 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
 import com.composables.icons.lucide.Sparkles
 import com.rinwave.sakuro.core.designsystem.SakuroColors
-import com.rinwave.sakuro.navigation.SettingsMenuComponent
+import com.rinwave.sakuro.core.designsystem.SettingsTopBar
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.about_version
+import com.rinwave.sakuro.feature.settings.resources.settings_about
+import com.rinwave.sakuro.feature.settings.resources.settings_controls
+import com.rinwave.sakuro.feature.settings.resources.settings_section_about_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_section_advanced_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_section_controls_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_section_playback_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_section_upscale_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_tab_advanced
+import com.rinwave.sakuro.feature.settings.resources.settings_tab_playback
+import com.rinwave.sakuro.feature.settings.resources.settings_tab_upscale
+import com.rinwave.sakuro.feature.settings.resources.settings_title
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.about_version
-import sakuro.composeapp.generated.resources.settings_about
-import sakuro.composeapp.generated.resources.settings_controls
-import sakuro.composeapp.generated.resources.settings_section_about_desc
-import sakuro.composeapp.generated.resources.settings_section_advanced_desc
-import sakuro.composeapp.generated.resources.settings_section_controls_desc
-import sakuro.composeapp.generated.resources.settings_section_playback_desc
-import sakuro.composeapp.generated.resources.settings_section_upscale_desc
-import sakuro.composeapp.generated.resources.settings_tab_advanced
-import sakuro.composeapp.generated.resources.settings_tab_playback
-import sakuro.composeapp.generated.resources.settings_tab_upscale
-import sakuro.composeapp.generated.resources.settings_title
 
 @Composable
 internal fun SettingsMenuScreen(component: SettingsMenuComponent) {

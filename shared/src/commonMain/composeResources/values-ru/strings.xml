@@ -3,38 +3,13 @@
     <!-- Actions / common -->
     <string name="action_back">Назад</string>
     <string name="action_open_file">Открыть файл</string>
-    <string name="action_cancel">Отмена</string>
-    <string name="action_save">Сохранить</string>
-    <string name="action_create">Создать</string>
-    <string name="action_delete">Удалить</string>
-    <string name="action_edit">Изменить</string>
-    <string name="action_export_clipboard">Скопировать в буфер</string>
-    <string name="action_from_clipboard">Из буфера</string>
-    <string name="value_off">выкл</string>
 
     <!-- Library -->
 
     <!-- Settings -->
-    <string name="settings_title">Настройки</string>
-    <string name="settings_engine">Движок воспроизведения</string>
-    <string name="settings_default_preset">Пресет апскейла по умолчанию</string>
-    <string name="settings_custom_presets">Свои пресеты</string>
-    <string name="settings_custom_presets_empty">Пока нет своих пресетов — создайте новый или вставьте из буфера обмена.</string>
-    <string name="settings_shaders">Шейдеры (.glsl)</string>
-    <string name="settings_shaders_empty">Импортируйте user-шейдеры mpv (FSRCNNX, ravu, KrigBilateral…) и собирайте из них цепочки в пресетах.</string>
-    <string name="action_import_file">Импорт файла</string>
-    <string name="msg_shader_imported">Шейдер импортирован: %1$s</string>
-    <string name="msg_shader_rejected">Шейдер отклонён: %1$s</string>
-    <string name="preset_shader_chain">Цепочка шейдеров</string>
     <string name="player_shader_direct">Шейдер без пресета</string>
     <string name="player_shader_none">Нет</string>
-    <string name="preset_shader_tunables">Параметры шейдеров</string>
-    <string name="preset_shader_tunables_hint">Значения, которые шейдеры отдают наружу; нетронутые остаются по умолчанию</string>
-    <string name="preset_shader_reset">Сбросить</string>
-    <string name="preset_shader_chain_hint">Упорядоченная цепочка встроенных и импортированных шейдеров; заменяет встроенную обработку</string>
-    <string name="shader_imported">импортирован</string>
-    <string name="settings_bench">Бенчмарк</string>
-    <string name="settings_bench_desc">Замерить пресеты на этом устройстве и выгрузить отчёт</string>
+    <string name="bench_title">Бенчмарк</string>
     <string name="bench_video">Видео</string>
     <string name="bench_pick_video">Выбрать видео</string>
     <string name="bench_engines">Движки</string>
@@ -57,83 +32,27 @@
     <string name="bench_share">Поделиться архивом</string>
     <string name="bench_failed">Бенчмарк не удался: %1$s</string>
     <string name="bench_unsupported">Бенчмарк доступен только на Android</string>
-    <string name="settings_controls">Управление</string>
-    <string name="settings_player_gestures">Жесты в плеере</string>
-    <string name="settings_player_gestures_desc">Общий выключатель свайпов и пинча</string>
-    <string name="settings_gesture_brightness">Свайп яркости</string>
-    <string name="settings_gesture_brightness_desc">Вертикальный свайп по левой части</string>
-    <string name="settings_gesture_volume">Свайп громкости</string>
-    <string name="settings_gesture_volume_desc">Вертикальный свайп по правой части</string>
-    <string name="settings_gesture_seek">Свайп перемотки</string>
-    <string name="settings_gesture_seek_desc">Горизонтальный свайп для перемотки</string>
-    <string name="settings_gesture_zoom">Пинч-зум</string>
-    <string name="settings_gesture_zoom_desc">Вписать / заполнить / свободный зум кадра</string>
-    <string name="settings_swipe_sensitivity">Чувствительность свайпов</string>
     <string name="settings_debug">Отладка</string>
-    <string name="settings_adaptive_title">Адаптивная смена шейдеров</string>
-    <string name="settings_adaptive_desc">Упрощает цепочку при нагреве или просадке FPS. Отключите для чистых замеров — пресет применяется как выбран.</string>
-    <string name="settings_debug_overlay">Оверлей отладки</string>
-    <string name="settings_debug_overlay_desc">Stats for nerds поверх плеера</string>
-    <string name="settings_about">О приложении</string>
     <string name="settings_tab_overview">Обзор</string>
-    <string name="settings_tab_playback">Плеер</string>
-    <string name="settings_tab_upscale">Апскейл</string>
-    <string name="settings_tab_advanced">Расширенные</string>
     <string name="settings_tab_about">О приложении</string>
-    <string name="settings_quality_mode">Адаптивное качество</string>
     <string name="settings_fixed_quality">Фиксированное качество</string>
     <string name="settings_custom_count">Своих: %1$d</string>
 
     <!-- Settings menu (section list) -->
-    <string name="settings_section_playback_desc">Движок декодирования и рендера</string>
-    <string name="settings_section_upscale_desc">Пресет по умолчанию и свои цепочки</string>
-    <string name="settings_section_controls_desc">Жесты плеера и чувствительность</string>
-    <string name="settings_section_advanced_desc">Адаптивное качество и отладка</string>
-    <string name="settings_section_about_desc">Версия, ссылки и благодарности</string>
 
     <!-- About -->
-    <string name="about_tagline">Реалтайм-апскейл видео</string>
-    <string name="about_version">Версия %1$s</string>
-    <string name="about_made_by">Сделано в Rinwave</string>
-    <string name="about_open_source">Открытый код · GPLv3</string>
-    <string name="about_links">Ссылки</string>
-    <string name="about_link_github">GitHub</string>
-    <string name="about_link_github_desc">Исходный код — будем рады звёздочке</string>
-    <string name="about_link_releases">Релизы</string>
-    <string name="about_link_releases_desc">История изменений и загрузки</string>
-    <string name="about_link_issues">Сообщить о проблеме</string>
-    <string name="about_link_issues_desc">Баги и идеи для новых функций</string>
-    <string name="about_link_donate">Поддержать проект</string>
-    <string name="about_link_donate_desc">Угостить команду кофе</string>
-    <string name="about_link_license">Лицензия</string>
-    <string name="about_link_license_desc">GNU GPL v3.0</string>
-    <string name="about_credits">Собрано на</string>
-    <string name="about_credits_text">Anime4K · mpv · Media3 / ExoPlayer · Compose Multiplatform · Inter</string>
 
     <!-- Engines -->
 
     <!-- Content classes -->
 
     <!-- Preset editor -->
-    <string name="preset_new">Новый пресет</string>
-    <string name="preset_edit">Изменить пресет</string>
-    <string name="preset_name">Имя</string>
-    <string name="preset_content_class">Класс контента</string>
-    <string name="preset_content_class_hint">mpv использует шейдеры Anime4K для аниме и мультфильмов</string>
-    <string name="preset_upscale">Апскейл</string>
-    <string name="preset_sharpness">Резкость</string>
-    <string name="preset_denoise">Шумоподавление</string>
 
     <!-- Built-in presets -->
 
     <!-- Preset chain summary (for user presets) -->
 
     <!-- Preset messages -->
-    <string name="msg_imported">Импортирован %1$s</string>
-    <string name="msg_invalid_preset">В буфере обмена нет корректного пресета</string>
-    <string name="msg_copied">%1$s скопирован в буфер</string>
-    <string name="msg_deleted">%1$s удалён</string>
-    <string name="msg_saved">Сохранён %1$s</string>
 
     <!-- Player -->
     <string name="player_stats_for_nerds">Stats for nerds</string>
@@ -166,12 +85,7 @@
     <string name="player_processing_reason_low_battery">Низкий заряд: %1$d%%</string>
     <string name="player_processing_reason_unknown">Движок не сообщил причину</string>
     <string name="seek_seconds">%1$d сек</string>
-    <string name="settings_display_limit_title">Ограничивать апскейл экраном</string>
-    <string name="settings_display_limit_desc">Пропускает или уменьшает апскейл, когда экран не может показать дополнительную детализацию, — меньше нагрев и расход батареи. Выключите, чтобы апскейл всегда шёл как в пресете (сравнения, тесты).</string>
     <string name="player_processing_display_limited">Апскейл ×%1$s · ограничен экраном</string>
     <string name="player_processing_display_skipped">Апскейл пропущен · не нужен на этом экране</string>
     <string name="player_processing_display_reason">Экран показывает это видео максимум в %1$dp</string>
-    <string name="msg_shader_imported_unsupported">Шейдер импортирован: %1$s. На этом устройстве он не запустится: %2$s</string>
-    <string name="shader_unsupported_badge">Не поддерживается на этом устройстве</string>
-    <string name="shader_unsupported_reason">Не поддерживается на этом устройстве: %1$s</string>
 </resources>

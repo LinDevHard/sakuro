@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -19,27 +19,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.Lucide
+import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SettingSliderRow
+import com.rinwave.sakuro.core.designsystem.SettingSwitchRow
+import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.ui.hint
 import com.rinwave.sakuro.core.ui.label
-import com.rinwave.sakuro.navigation.PlaybackSettingsComponent
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.settings_engine
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_delay
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_delay_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_earlier
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_font
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_language
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_language_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_later
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_position
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_reset
+import com.rinwave.sakuro.feature.settings.resources.settings_subtitles
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.settings_engine
-import sakuro.composeapp.generated.resources.settings_subtitle_background
-import sakuro.composeapp.generated.resources.settings_subtitle_background_hint
-import sakuro.composeapp.generated.resources.settings_subtitle_delay
-import sakuro.composeapp.generated.resources.settings_subtitle_delay_hint
-import sakuro.composeapp.generated.resources.settings_subtitle_earlier
-import sakuro.composeapp.generated.resources.settings_subtitle_font
-import sakuro.composeapp.generated.resources.settings_subtitle_language
-import sakuro.composeapp.generated.resources.settings_subtitle_language_hint
-import sakuro.composeapp.generated.resources.settings_subtitle_later
-import sakuro.composeapp.generated.resources.settings_subtitle_position
-import sakuro.composeapp.generated.resources.settings_subtitle_reset
-import sakuro.composeapp.generated.resources.settings_subtitles
 
 @Composable
 internal fun PlaybackSettingsTab(component: PlaybackSettingsComponent) {

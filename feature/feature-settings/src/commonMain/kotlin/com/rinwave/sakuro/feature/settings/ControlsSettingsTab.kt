@@ -1,27 +1,30 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Lucide
+import com.rinwave.sakuro.core.designsystem.PanelDivider
+import com.rinwave.sakuro.core.designsystem.SettingSliderRow
+import com.rinwave.sakuro.core.designsystem.SettingSwitchRow
+import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.formatMultiplier
-import com.rinwave.sakuro.navigation.ControlsSettingsComponent
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.settings_controls
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_brightness
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_brightness_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_seek
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_seek_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_volume
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_volume_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_zoom
+import com.rinwave.sakuro.feature.settings.resources.settings_gesture_zoom_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_player_gestures
+import com.rinwave.sakuro.feature.settings.resources.settings_player_gestures_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_swipe_sensitivity
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.settings_controls
-import sakuro.composeapp.generated.resources.settings_gesture_brightness
-import sakuro.composeapp.generated.resources.settings_gesture_brightness_desc
-import sakuro.composeapp.generated.resources.settings_gesture_seek
-import sakuro.composeapp.generated.resources.settings_gesture_seek_desc
-import sakuro.composeapp.generated.resources.settings_gesture_volume
-import sakuro.composeapp.generated.resources.settings_gesture_volume_desc
-import sakuro.composeapp.generated.resources.settings_gesture_zoom
-import sakuro.composeapp.generated.resources.settings_gesture_zoom_desc
-import sakuro.composeapp.generated.resources.settings_player_gestures
-import sakuro.composeapp.generated.resources.settings_player_gestures_desc
-import sakuro.composeapp.generated.resources.settings_swipe_sensitivity
 
 // 0.5×..2× with a 0.25 step gives 5 intermediate slider ticks.
 private const val SENSITIVITY_STEPS = 5

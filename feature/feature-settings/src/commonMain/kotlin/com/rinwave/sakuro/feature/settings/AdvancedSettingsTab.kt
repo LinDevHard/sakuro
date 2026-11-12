@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -18,19 +18,21 @@ import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.Gauge
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
+import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
-import com.rinwave.sakuro.navigation.AdvancedSettingsComponent
+import com.rinwave.sakuro.core.designsystem.SettingSwitchRow
+import com.rinwave.sakuro.core.designsystem.SettingsPanel
+import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.settings_adaptive_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_adaptive_title
+import com.rinwave.sakuro.feature.settings.resources.settings_bench
+import com.rinwave.sakuro.feature.settings.resources.settings_bench_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_debug_overlay
+import com.rinwave.sakuro.feature.settings.resources.settings_debug_overlay_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_display_limit_desc
+import com.rinwave.sakuro.feature.settings.resources.settings_display_limit_title
+import com.rinwave.sakuro.feature.settings.resources.settings_quality_mode
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.settings_adaptive_desc
-import sakuro.composeapp.generated.resources.settings_adaptive_title
-import sakuro.composeapp.generated.resources.settings_bench
-import sakuro.composeapp.generated.resources.settings_bench_desc
-import sakuro.composeapp.generated.resources.settings_debug_overlay
-import sakuro.composeapp.generated.resources.settings_debug_overlay_desc
-import sakuro.composeapp.generated.resources.settings_display_limit_desc
-import sakuro.composeapp.generated.resources.settings_display_limit_title
-import sakuro.composeapp.generated.resources.settings_quality_mode
 
 @Composable
 internal fun AdvancedSettingsTab(component: AdvancedSettingsComponent) {
