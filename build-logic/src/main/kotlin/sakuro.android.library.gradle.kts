@@ -8,6 +8,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("sakuro.detekt")
+    id("sakuro.module-rules")
 }
 
 private val libs = the<VersionCatalogsExtension>().named("libs")

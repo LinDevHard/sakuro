@@ -19,6 +19,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     id("sakuro.detekt")
+    id("sakuro.module-rules")
 }
 
 kotlin {
