@@ -47,7 +47,7 @@ with Sakuro's dedicated app-signing key.
 5. Submit/update `com.rinwave.sakuro.yml` in the separate `fdroiddata`
    repository, selecting the `foss` Gradle flavor.
 
-Suggested fdroiddata build block for version 0.1.3:
+Suggested fdroiddata build block for version 0.1.4:
 
 ```yaml
 Categories:
@@ -61,20 +61,21 @@ RepoType: git
 Repo: https://github.com/LinDevHard/sakuro.git
 
 Builds:
-  - versionName: 0.1.3
-    versionCode: 4
+  - versionName: 0.1.4
+    versionCode: 5
     commit: <full release commit SHA>
+    subdir: androidApp
     gradle:
       - foss
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: gradle.properties|sakuro.versionCode=(\d+)|.|sakuro.versionName=(.+)
-CurrentVersion: 0.1.3
-CurrentVersionCode: 4
+CurrentVersion: 0.1.4
+CurrentVersionCode: 5
 ```
 
-Use the immutable commit SHA tagged as `v0.1.3` after the release commit is
+Use the immutable commit SHA tagged as `v0.1.4` after the release commit is
 ready.
 
 For upstream-signed reproducible builds, the metadata also uses:

@@ -6,11 +6,21 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+## 0.1.4
+
 - Rebuilt the Anime SD and Anime HD presets on Anime4K Upscale CNN x2 S and
   dropped their Sharpen pass (Restore CNN). On-device benchmarks scored plain
   Upscale S highest; the old Restore + Upscale chains mostly added
   oversharpening. Anime chains now always use the small Upscale CNN; the
   medium model stays available in custom shader chains.
+- Restructured the project into feature modules (library, player, settings,
+  benchmark) over a flat core layer, with entry points in `androidApp` and
+  `desktopApp`. The Android module moved from `composeApp` to `androidApp`, so
+  F-Droid builds now use `subdir: androidApp`. The module graph is enforced by
+  `checkModuleGraph`.
+- CI now runs Android Lint, strict detekt and a translation check.
+- Added missing Japanese translations for the playback session and subtitle
+  settings.
 
 ## 0.1.3
 

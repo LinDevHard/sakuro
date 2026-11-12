@@ -1,0 +1,1 @@
+Anime presets now use the Anime4K Upscale CNN x2 S model without the extra sharpening pass. Added missing Japanese translations for playback and subtitle settings. Internal restructuring into feature modules.
