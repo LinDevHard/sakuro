@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.feature.library
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +13,7 @@ import coil3.video.videoFramePercent
 private const val THUMBNAIL_FRAME_PERCENT = 0.2
 
 @Composable
-actual fun VideoThumbnail(uri: String, modifier: Modifier) {
+internal actual fun VideoThumbnail(uri: String, modifier: Modifier) {
     val request = ImageRequest.Builder(LocalPlatformContext.current)
         .data(uri)
         .videoFramePercent(THUMBNAIL_FRAME_PERCENT)

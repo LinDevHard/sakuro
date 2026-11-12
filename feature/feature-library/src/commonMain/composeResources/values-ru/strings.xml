@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_refresh">Обновить</string>
+    <string name="action_settings">Настройки</string>
+    <string name="folder_other">Другое</string>
+    <string name="library_empty_subtitle">Разрешите доступ к медиатеке или откройте файл вручную</string>
+    <string name="library_empty_title">Видео не найдены</string>
+    <string name="section_earlier">Ранее</string>
+    <string name="section_this_month">В этом месяце</string>
+    <string name="section_this_week">На этой неделе</string>
+    <string name="section_today">Сегодня</string>
+    <string name="section_yesterday">Вчера</string>
+    <string name="sort">Сортировка</string>
+    <string name="sort_ascending">По возрастанию</string>
+    <string name="sort_by">Сортировать по</string>
+    <string name="sort_descending">По убыванию</string>
+    <string name="sort_field_date_added">Дате добавления</string>
+    <string name="sort_field_duration">Длительности</string>
+    <string name="sort_field_name">Имени</string>
+    <string name="sort_field_resolution">Разрешению</string>
+    <string name="sort_field_size">Размеру</string>
+    <string name="tab_folders">Папки</string>
+    <string name="tab_videos">Видео</string>
+    <string name="entry_connect_library">Подключить медиатеку</string>
+    <string name="entry_library_access_description">Откройте видео без доступа к медиатеке или разрешите доступ, чтобы видеть видео с устройства.</string>
+    <string name="entry_open_one_file">Открыть один файл</string>
+    <string name="library_back">Назад</string>
+</resources>

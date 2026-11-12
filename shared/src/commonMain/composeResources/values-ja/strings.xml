@@ -3,8 +3,6 @@
 <resources>
     <!-- Actions / common -->
     <string name="action_back">戻る</string>
-    <string name="action_settings">設定</string>
-    <string name="action_refresh">更新</string>
     <string name="action_open_file">ファイルを開く</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_save">保存</string>
@@ -16,25 +14,6 @@
     <string name="value_off">オフ</string>
 
     <!-- Library -->
-    <string name="library_empty_title">動画が見つかりません</string>
-    <string name="library_empty_subtitle">メディアライブラリへのアクセスを許可するか、ファイルを手動で開いてください</string>
-    <string name="tab_videos">動画</string>
-    <string name="tab_folders">フォルダ</string>
-    <string name="sort">並べ替え</string>
-    <string name="sort_by">並べ替え基準</string>
-    <string name="sort_ascending">昇順</string>
-    <string name="sort_descending">降順</string>
-    <string name="sort_field_date_added">追加日</string>
-    <string name="sort_field_name">名前</string>
-    <string name="sort_field_size">サイズ</string>
-    <string name="sort_field_duration">再生時間</string>
-    <string name="sort_field_resolution">解像度</string>
-    <string name="section_today">今日</string>
-    <string name="section_yesterday">昨日</string>
-    <string name="section_this_week">今週</string>
-    <string name="section_this_month">今月</string>
-    <string name="section_earlier">それ以前</string>
-    <string name="folder_other">その他</string>
 
     <!-- Settings -->
     <string name="settings_title">設定</string>

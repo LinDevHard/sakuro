@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens
+package com.rinwave.sakuro.feature.library
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -78,31 +78,27 @@ import com.rinwave.sakuro.core.media.VideoItem
 import com.rinwave.sakuro.core.media.VideoSection
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.core.ui.rememberVideoFilePicker
-import com.rinwave.sakuro.navigation.LibraryComponent
-import com.rinwave.sakuro.navigation.LibraryComponent.Tab
-import com.rinwave.sakuro.ui.VideoThumbnail
-import com.rinwave.sakuro.ui.label
-import com.rinwave.sakuro.ui.rememberConnectMediaLibrary
+import com.rinwave.sakuro.feature.library.LibraryComponent.Tab
+import com.rinwave.sakuro.feature.library.resources.Res
+import com.rinwave.sakuro.feature.library.resources.action_refresh
+import com.rinwave.sakuro.feature.library.resources.action_settings
+import com.rinwave.sakuro.feature.library.resources.entry_connect_library
+import com.rinwave.sakuro.feature.library.resources.entry_library_access_description
+import com.rinwave.sakuro.feature.library.resources.entry_open_one_file
+import com.rinwave.sakuro.feature.library.resources.folder_other
+import com.rinwave.sakuro.feature.library.resources.library_back
+import com.rinwave.sakuro.feature.library.resources.library_empty_subtitle
+import com.rinwave.sakuro.feature.library.resources.library_empty_title
+import com.rinwave.sakuro.feature.library.resources.sort
+import com.rinwave.sakuro.feature.library.resources.sort_ascending
+import com.rinwave.sakuro.feature.library.resources.sort_by
+import com.rinwave.sakuro.feature.library.resources.sort_descending
+import com.rinwave.sakuro.feature.library.resources.tab_folders
+import com.rinwave.sakuro.feature.library.resources.tab_videos
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.action_back
-import sakuro.composeapp.generated.resources.action_refresh
-import sakuro.composeapp.generated.resources.action_settings
-import sakuro.composeapp.generated.resources.entry_connect_library
-import sakuro.composeapp.generated.resources.entry_library_access_description
-import sakuro.composeapp.generated.resources.entry_open_one_file
-import sakuro.composeapp.generated.resources.folder_other
-import sakuro.composeapp.generated.resources.library_empty_subtitle
-import sakuro.composeapp.generated.resources.library_empty_title
-import sakuro.composeapp.generated.resources.sort
-import sakuro.composeapp.generated.resources.sort_ascending
-import sakuro.composeapp.generated.resources.sort_by
-import sakuro.composeapp.generated.resources.sort_descending
-import sakuro.composeapp.generated.resources.tab_folders
-import sakuro.composeapp.generated.resources.tab_videos
 
 @Composable
-fun LibraryScreen(component: LibraryComponent) {
+public fun LibraryScreen(component: LibraryComponent) {
     val state by component.state.collectAsState()
     val progress by component.progress.collectAsState()
     val openFilePicker = rememberVideoFilePicker(component::onFilePicked)
@@ -127,7 +123,7 @@ fun LibraryScreen(component: LibraryComponent) {
                 .padding(padding)
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
-            LibraryHeader(onRefresh = component::refresh, onSettings = component.onOpenSettings)
+            LibraryHeader(onRefresh = component::refresh, onSettings = component::openSettings)
             if (connectLibrary != null) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
                     Text(
@@ -244,7 +240,7 @@ private fun CatalogControls(
             IconButton(onClick = onBack) {
                 Icon(
                     Lucide.ArrowLeft,
-                    stringResource(Res.string.action_back),
+                    stringResource(Res.string.library_back),
                     tint = SakuroColors.TextPrimary,
                     modifier = Modifier.size(22.dp),
                 )

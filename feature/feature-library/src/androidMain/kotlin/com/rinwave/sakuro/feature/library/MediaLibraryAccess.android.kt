@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.feature.library
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.rinwave.sakuro.core.media.LibraryEvents
 
 @Composable
-actual fun rememberConnectMediaLibrary(): (() -> Unit)? {
+internal actual fun rememberConnectMediaLibrary(): (() -> Unit)? {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

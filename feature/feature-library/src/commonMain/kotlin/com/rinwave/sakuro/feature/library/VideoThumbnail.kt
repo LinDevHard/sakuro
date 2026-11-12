@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.feature.library
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -9,4 +9,4 @@ import androidx.compose.ui.Modifier
  * Coil has no video decoder on the JVM, so the card placeholder remains below.
  */
 @Composable
-expect fun VideoThumbnail(uri: String, modifier: Modifier)
+internal expect fun VideoThumbnail(uri: String, modifier: Modifier)

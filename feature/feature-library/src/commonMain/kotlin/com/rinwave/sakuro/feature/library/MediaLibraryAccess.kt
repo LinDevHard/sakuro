@@ -1,7 +1,7 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.feature.library
 
 import androidx.compose.runtime.Composable
 
 /** Null when platform library permission is already available or is unnecessary. */
 @Composable
-expect fun rememberConnectMediaLibrary(): (() -> Unit)?
+internal expect fun rememberConnectMediaLibrary(): (() -> Unit)?

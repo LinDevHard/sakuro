@@ -13,8 +13,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.rinwave.sakuro.core.designsystem.SakuroTheme
 import com.rinwave.sakuro.core.ui.LocalVideoSurfaceRenderers
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.feature.library.LibraryScreen
 import com.rinwave.sakuro.navigation.RootComponent
-import com.rinwave.sakuro.ui.screens.LibraryScreen
 import com.rinwave.sakuro.ui.screens.PlayerScreen
 import com.rinwave.sakuro.ui.screens.settings.SettingsScreen
 

@@ -10,6 +10,9 @@ import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.di.AppDependencies
+import com.rinwave.sakuro.feature.library.LibraryComponent
+import com.rinwave.sakuro.feature.library.LibraryComponentFactory
+import com.rinwave.sakuro.feature.library.LibraryOutput
 import kotlinx.serialization.Serializable
 
 /** The Decompose navigation root: Library ↔ Player / Settings. */
@@ -38,6 +41,9 @@ class RootComponent(
 
     private val navigation = StackNavigation<Config>()
 
+    private val libraryFactory =
+        LibraryComponentFactory(deps.mediaLibrary, deps.libraryPreferences, deps.playbackHistory)
+
     val stack: Value<ChildStack<*, Child>> = childStack(
         source = navigation,
         serializer = Config.serializer(),
@@ -58,14 +64,12 @@ class RootComponent(
 
     private fun createChild(config: Config, componentContext: ComponentContext): Child = when (config) {
         is Config.Library -> Child.Library(
-            LibraryComponent(
-                componentContext = componentContext,
-                mediaLibrary = deps.mediaLibrary,
-                preferences = deps.libraryPreferences,
-                history = deps.playbackHistory,
-                onOpenVideo = ::openVideo,
-                onOpenSettings = { navigation.push(Config.Settings) },
-            ),
+            libraryFactory.create(componentContext) { output ->
+                when (output) {
+                    is LibraryOutput.OpenVideo -> openVideo(output.uri, output.title)
+                    LibraryOutput.OpenSettings -> navigation.push(Config.Settings)
+                }
+            },
         )
 
         is Config.Player -> Child.Player(

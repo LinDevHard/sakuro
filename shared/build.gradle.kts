@@ -25,6 +25,7 @@ kotlin {
             implementation(project(":core:core-detect"))
             implementation(project(":core:core-settings"))
             implementation(project(":engine:engine-fake"))
+            implementation(project(":feature:feature-library"))
 
             implementation(libs.decompose)
             implementation(libs.decompose.extensions.compose)

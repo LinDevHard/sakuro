@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_settings">Settings</string>
+    <string name="folder_other">Other</string>
+    <string name="library_empty_subtitle">Allow media-library access or open a file manually</string>
+    <string name="library_empty_title">No videos found</string>
+    <string name="section_earlier">Earlier</string>
+    <string name="section_this_month">This month</string>
+    <string name="section_this_week">This week</string>
+    <string name="section_today">Today</string>
+    <string name="section_yesterday">Yesterday</string>
+    <string name="sort">Sort</string>
+    <string name="sort_ascending">Ascending</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_descending">Descending</string>
+    <string name="sort_field_date_added">Date added</string>
+    <string name="sort_field_duration">Duration</string>
+    <string name="sort_field_name">Name</string>
+    <string name="sort_field_resolution">Resolution</string>
+    <string name="sort_field_size">Size</string>
+    <string name="tab_folders">Folders</string>
+    <string name="tab_videos">Videos</string>
+    <string name="entry_connect_library">Connect library</string>
+    <string name="entry_library_access_description">Open a video without library access, or allow access to show videos from your device.</string>
+    <string name="entry_open_one_file">Open one file</string>
+    <string name="library_back">Back</string>
+</resources>

@@ -1,24 +1,24 @@
-package com.rinwave.sakuro.ui
+package com.rinwave.sakuro.feature.library
 
 import androidx.compose.runtime.Composable
 import com.rinwave.sakuro.core.media.DateBucket
 import com.rinwave.sakuro.core.media.LibrarySort
+import com.rinwave.sakuro.feature.library.resources.Res
+import com.rinwave.sakuro.feature.library.resources.section_earlier
+import com.rinwave.sakuro.feature.library.resources.section_this_month
+import com.rinwave.sakuro.feature.library.resources.section_this_week
+import com.rinwave.sakuro.feature.library.resources.section_today
+import com.rinwave.sakuro.feature.library.resources.section_yesterday
+import com.rinwave.sakuro.feature.library.resources.sort_field_date_added
+import com.rinwave.sakuro.feature.library.resources.sort_field_duration
+import com.rinwave.sakuro.feature.library.resources.sort_field_name
+import com.rinwave.sakuro.feature.library.resources.sort_field_resolution
+import com.rinwave.sakuro.feature.library.resources.sort_field_size
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.section_earlier
-import sakuro.composeapp.generated.resources.section_this_month
-import sakuro.composeapp.generated.resources.section_this_week
-import sakuro.composeapp.generated.resources.section_today
-import sakuro.composeapp.generated.resources.section_yesterday
-import sakuro.composeapp.generated.resources.sort_field_date_added
-import sakuro.composeapp.generated.resources.sort_field_duration
-import sakuro.composeapp.generated.resources.sort_field_name
-import sakuro.composeapp.generated.resources.sort_field_resolution
-import sakuro.composeapp.generated.resources.sort_field_size
 
 /** Localized labels for library (core-media) enums; moves with the library feature. */
 @Composable
-fun LibrarySort.label(): String = stringResource(
+internal fun LibrarySort.label(): String = stringResource(
     when (this) {
         LibrarySort.DateAdded -> Res.string.sort_field_date_added
         LibrarySort.Name -> Res.string.sort_field_name
@@ -29,7 +29,7 @@ fun LibrarySort.label(): String = stringResource(
 )
 
 @Composable
-fun DateBucket.label(): String = stringResource(
+internal fun DateBucket.label(): String = stringResource(
     when (this) {
         DateBucket.TODAY -> Res.string.section_today
         DateBucket.YESTERDAY -> Res.string.section_yesterday

@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.navigation
+package com.rinwave.sakuro.feature.library
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackCallback
@@ -20,18 +20,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class LibraryComponent(
+public class LibraryComponent internal constructor(
     componentContext: ComponentContext,
     private val mediaLibrary: MediaLibrary,
     private val preferences: LibraryPreferencesStore,
     history: PlaybackHistoryStore,
-    private val onOpenVideo: (uri: String, title: String) -> Unit,
-    val onOpenSettings: () -> Unit,
+    private val onOutput: (LibraryOutput) -> Unit,
 ) : ComponentContext by componentContext {
 
-    enum class Tab { Videos, Folders }
+    internal enum class Tab { Videos, Folders }
 
-    data class State(
+    internal data class State(
         val isLoading: Boolean = true,
         val tab: Tab = Tab.Videos,
         val sortOrder: SortOrder = SortOrder(),
@@ -51,8 +50,8 @@ class LibraryComponent(
     private var loadedOnce = false
 
     private val _state = MutableStateFlow(State(sortOrder = preferences.sortOrder.value))
-    val state: StateFlow<State> = _state.asStateFlow()
-    val progress = history.entries
+    internal val state: StateFlow<State> = _state.asStateFlow()
+    internal val progress = history.entries
 
     /** The system back button exits an opened folder to the top level. */
     private val backCallback = BackCallback(isEnabled = false) { onBack() }
@@ -67,7 +66,7 @@ class LibraryComponent(
     }
 
     /** Manual refresh: asks the system to re-index storage, then re-reads the library. */
-    fun refresh() {
+    internal fun refresh() {
         mediaLibrary.requestSystemRescan()
         reload()
     }
@@ -82,25 +81,25 @@ class LibraryComponent(
         }
     }
 
-    fun selectTab(tab: Tab) {
+    internal fun selectTab(tab: Tab) {
         if (tab == _state.value.tab && _state.value.openFolder == null) return
         emit(rebuild(_state.value.copy(tab = tab, openFolder = null)))
     }
 
-    fun openFolder(name: String) {
+    internal fun openFolder(name: String) {
         emit(rebuild(_state.value.copy(tab = Tab.Folders, openFolder = name)))
     }
 
     /** From an opened folder — back to the list. */
-    fun onBack() {
+    internal fun onBack() {
         if (_state.value.openFolder == null) return
         emit(rebuild(_state.value.copy(openFolder = null)))
     }
 
-    fun setSortField(field: LibrarySort) =
+    internal fun setSortField(field: LibrarySort) =
         applySort(SortOrder(field, field.defaultDescending))
 
-    fun toggleSortDirection() = _state.value.sortOrder.let {
+    internal fun toggleSortDirection() = _state.value.sortOrder.let {
         applySort(it.copy(descending = !it.descending))
     }
 
@@ -134,7 +133,9 @@ class LibraryComponent(
         )
     }
 
-    fun onVideoClick(item: VideoItem) = onOpenVideo(item.uri, item.title)
+    internal fun onVideoClick(item: VideoItem) = onOutput(LibraryOutput.OpenVideo(item.uri, item.title))
 
-    fun onFilePicked(uri: String, title: String) = onOpenVideo(uri, title)
+    internal fun onFilePicked(uri: String, title: String) = onOutput(LibraryOutput.OpenVideo(uri, title))
+
+    internal fun openSettings() = onOutput(LibraryOutput.OpenSettings)
 }
