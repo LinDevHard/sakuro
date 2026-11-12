@@ -25,6 +25,7 @@ kotlin {
             implementation(project(":core:core-detect"))
             implementation(project(":core:core-settings"))
             implementation(project(":engine:engine-fake"))
+            implementation(project(":feature:feature-bench"))
             implementation(project(":feature:feature-library"))
             implementation(project(":feature:feature-settings"))
 
@@ -40,8 +41,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
             implementation(libs.kotlinx.coroutines.android)
-            // The on-device bench probes the GPU through the Media3 engine.
-            implementation(project(":engine:engine-media3"))
             // Preview thumbnails in the library (ARCHITECTURE.md: Coil 3).
             // androidMain only: desktop has no video decoder, so a placeholder is used there.
             implementation(libs.coil.compose)

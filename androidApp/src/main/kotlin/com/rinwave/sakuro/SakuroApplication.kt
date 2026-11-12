@@ -11,6 +11,7 @@ import com.rinwave.sakuro.core.detect.FrameContentClassifier
 import com.rinwave.sakuro.core.detect.RetrieverFrameSampler
 import com.rinwave.sakuro.core.media.MediaStoreVideoLibrary
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.GpuInfo
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AndroidDeviceStatusMonitor
@@ -59,8 +60,22 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                     shaderInspector = Media3ShaderInspector(this@SakuroApplication),
                     // Same order as the engines: Media3 first, then the flavor's reference engines.
                     videoSurfaceRenderers = listOf(Media3SurfaceRenderer()) + referenceSurfaceRenderers(),
+                    gpuInfo = ::probeGpu,
                 ),
             )
         }
     }
+}
+
+/** GPU details from the Media3 engine's shader-runtime probe (bench reports). */
+private fun probeGpu(): GpuInfo? = DeviceGpu.capabilities?.let {
+    GpuInfo(
+        renderer = it.renderer,
+        vendor = it.vendor,
+        glVersion = it.glVersion,
+        glesMajor = it.glesMajor,
+        glesMinor = it.glesMinor,
+        fp16Renderable = it.fp16Renderable,
+        compute = it.es31,
+    )
 }

@@ -10,6 +10,9 @@ import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.di.AppDependencies
+import com.rinwave.sakuro.feature.bench.BenchComponent
+import com.rinwave.sakuro.feature.bench.BenchComponentFactory
+import com.rinwave.sakuro.feature.bench.BenchOutput
 import com.rinwave.sakuro.feature.library.LibraryComponent
 import com.rinwave.sakuro.feature.library.LibraryComponentFactory
 import com.rinwave.sakuro.feature.library.LibraryOutput
@@ -54,6 +57,13 @@ class RootComponent(
         deps.presetStores,
         deps.userShaderStore,
         deps.shaderInspector,
+    )
+
+    private val benchFactory = BenchComponentFactory(
+        deps.engineRegistry,
+        deps.presetStores,
+        deps.userShaderStore,
+        deps.gpuInfo,
     )
 
     private val libraryFactory =
@@ -115,13 +125,11 @@ class RootComponent(
         )
 
         is Config.Bench -> Child.Bench(
-            BenchComponent(
-                componentContext = componentContext,
-                engineRegistry = deps.engineRegistry,
-                presetStores = deps.presetStores,
-                userShaderStore = deps.userShaderStore,
-                onBack = navigation::pop,
-            ),
+            benchFactory.create(componentContext) { output ->
+                when (output) {
+                    BenchOutput.Back -> navigation.pop()
+                }
+            },
         )
     }
 }

@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.ui.screens.settings
+package com.rinwave.sakuro.feature.bench
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -32,48 +32,52 @@ import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.Layers
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Sparkles
-import com.rinwave.sakuro.bench.BenchStage
-import com.rinwave.sakuro.bench.BenchState
-import com.rinwave.sakuro.bench.BenchSurface
-import com.rinwave.sakuro.bench.rememberBenchRunner
 import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.designsystem.SettingsDetailScaffold
 import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.ui.displayName
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.core.ui.rememberVideoFilePicker
-import com.rinwave.sakuro.navigation.BenchComponent
+import com.rinwave.sakuro.feature.bench.resources.Res
+import com.rinwave.sakuro.feature.bench.resources.bench_cancel
+import com.rinwave.sakuro.feature.bench.resources.bench_done
+import com.rinwave.sakuro.feature.bench.resources.bench_done_desc
+import com.rinwave.sakuro.feature.bench.resources.bench_engines
+import com.rinwave.sakuro.feature.bench.resources.bench_estimate
+import com.rinwave.sakuro.feature.bench.resources.bench_failed
+import com.rinwave.sakuro.feature.bench.resources.bench_pick_video
+import com.rinwave.sakuro.feature.bench.resources.bench_presets
+import com.rinwave.sakuro.feature.bench.resources.bench_presets_hint
+import com.rinwave.sakuro.feature.bench.resources.bench_progress
+import com.rinwave.sakuro.feature.bench.resources.bench_run
+import com.rinwave.sakuro.feature.bench.resources.bench_shaders
+import com.rinwave.sakuro.feature.bench.resources.bench_shaders_all
+import com.rinwave.sakuro.feature.bench.resources.bench_shaders_hint
+import com.rinwave.sakuro.feature.bench.resources.bench_shaders_imported
+import com.rinwave.sakuro.feature.bench.resources.bench_share
+import com.rinwave.sakuro.feature.bench.resources.bench_stage_capturing
+import com.rinwave.sakuro.feature.bench.resources.bench_stage_packing
+import com.rinwave.sakuro.feature.bench.resources.bench_stage_playing
+import com.rinwave.sakuro.feature.bench.resources.bench_stage_starting
+import com.rinwave.sakuro.feature.bench.resources.bench_title
+import com.rinwave.sakuro.feature.bench.resources.bench_unsupported
+import com.rinwave.sakuro.feature.bench.resources.bench_video
 import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.bench_cancel
-import sakuro.composeapp.generated.resources.bench_done
-import sakuro.composeapp.generated.resources.bench_done_desc
-import sakuro.composeapp.generated.resources.bench_engines
-import sakuro.composeapp.generated.resources.bench_estimate
-import sakuro.composeapp.generated.resources.bench_failed
-import sakuro.composeapp.generated.resources.bench_pick_video
-import sakuro.composeapp.generated.resources.bench_presets
-import sakuro.composeapp.generated.resources.bench_presets_hint
-import sakuro.composeapp.generated.resources.bench_progress
-import sakuro.composeapp.generated.resources.bench_run
-import sakuro.composeapp.generated.resources.bench_shaders
-import sakuro.composeapp.generated.resources.bench_shaders_all
-import sakuro.composeapp.generated.resources.bench_shaders_hint
-import sakuro.composeapp.generated.resources.bench_shaders_imported
-import sakuro.composeapp.generated.resources.bench_share
-import sakuro.composeapp.generated.resources.bench_stage_capturing
-import sakuro.composeapp.generated.resources.bench_stage_packing
-import sakuro.composeapp.generated.resources.bench_stage_playing
-import sakuro.composeapp.generated.resources.bench_stage_starting
-import sakuro.composeapp.generated.resources.bench_unsupported
-import sakuro.composeapp.generated.resources.bench_video
 
 /**
  * Benchmark setup and progress: pick a video, choose the engine × preset
  * matrix, run it, then share the resulting bundle with `tools/sakuro-bench`.
  */
 @Composable
-internal fun BenchScreen(component: BenchComponent) {
-    val runner = rememberBenchRunner(component.engineRegistry)
+public fun BenchScreen(component: BenchComponent) {
+    SettingsDetailScaffold(stringResource(Res.string.bench_title), component.onBack) {
+        BenchContent(component)
+    }
+}
+
+@Composable
+private fun BenchContent(component: BenchComponent) {
+    val runner = rememberBenchRunner(component.engineRegistry, component.gpuInfo)
     if (runner == null) {
         Text(
             stringResource(Res.string.bench_unsupported),

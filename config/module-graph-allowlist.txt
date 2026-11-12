@@ -1,6 +1,5 @@
 # Temporary exceptions to ModuleRules (build-logic). One ":from -> :to" per line.
 # Entries may only be removed; checkModuleGraph fails on stale ones.
 
-# Tasks 6-10 remove these: the bench and the fake-surface preview move out of :shared.
+# Task 10 removes this: the fake engine wiring moves out of :shared.
 :shared -> :engine:engine-fake
-:shared -> :engine:engine-media3

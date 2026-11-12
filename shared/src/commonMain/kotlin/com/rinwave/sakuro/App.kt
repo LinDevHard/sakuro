@@ -11,17 +11,13 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.rinwave.sakuro.core.designsystem.SakuroTheme
-import com.rinwave.sakuro.core.designsystem.SettingsDetailScaffold
 import com.rinwave.sakuro.core.ui.LocalVideoSurfaceRenderers
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.feature.bench.BenchScreen
 import com.rinwave.sakuro.feature.library.LibraryScreen
 import com.rinwave.sakuro.feature.settings.SettingsScreen
 import com.rinwave.sakuro.navigation.RootComponent
 import com.rinwave.sakuro.ui.screens.PlayerScreen
-import com.rinwave.sakuro.ui.screens.settings.BenchScreen
-import org.jetbrains.compose.resources.stringResource
-import sakuro.composeapp.generated.resources.Res
-import sakuro.composeapp.generated.resources.bench_title
 
 @Composable
 fun App(root: RootComponent, videoSurfaceRenderers: List<VideoSurfaceRenderer> = emptyList()) {
@@ -42,10 +38,7 @@ private fun AppContent(root: RootComponent) {
                     is RootComponent.Child.Library -> LibraryScreen(instance.component)
                     is RootComponent.Child.Player -> PlayerScreen(instance.component)
                     is RootComponent.Child.Settings -> SettingsScreen(instance.component)
-                    is RootComponent.Child.Bench ->
-                        SettingsDetailScaffold(stringResource(Res.string.bench_title), instance.component.onBack) {
-                            BenchScreen(instance.component)
-                        }
+                    is RootComponent.Child.Bench -> BenchScreen(instance.component)
                 }
             }
         }

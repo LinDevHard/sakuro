@@ -1,8 +1,9 @@
-package com.rinwave.sakuro.bench
+package com.rinwave.sakuro.feature.bench
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
 /** One benchmarked configuration: an engine rendering a preset or a single shader. */
-data class BenchConfigItem(
+internal data class BenchConfigItem(
     val engine: EngineType,
     val profile: UpscaleProfile,
 ) {
@@ -25,9 +26,9 @@ data class BenchConfigItem(
 private val UNSAFE_IN_PATH = Regex("[^A-Za-z0-9._-]+")
 
 /** Stage of the currently benchmarked configuration. */
-enum class BenchStage { STARTING, PLAYING, CAPTURING, PACKING }
+internal enum class BenchStage { STARTING, PLAYING, CAPTURING, PACKING }
 
-sealed interface BenchState {
+internal sealed interface BenchState {
     data object Idle : BenchState
 
     data class Running(
@@ -53,7 +54,7 @@ sealed interface BenchState {
  * metrics, captures frames at fixed timestamps and packs everything into a
  * single zip bundle for `tools/sakuro-bench` (`device-bundle` command).
  */
-interface BenchRunner {
+internal interface BenchRunner {
     val state: StateFlow<BenchState>
 
     fun start(video: MediaSource, configs: List<BenchConfigItem>)
@@ -66,7 +67,7 @@ interface BenchRunner {
 
 /** Platform benchmark runner; null — benchmarking is not supported here (desktop). */
 @Composable
-expect fun rememberBenchRunner(engineRegistry: EngineRegistry): BenchRunner?
+internal expect fun rememberBenchRunner(engineRegistry: EngineRegistry, gpuInfo: GpuInfoProvider): BenchRunner?
 
 /**
  * The surface the benchmark renders into. Compose it while the bench screen is
@@ -74,12 +75,12 @@ expect fun rememberBenchRunner(engineRegistry: EngineRegistry): BenchRunner?
  * the whole run.
  */
 @Composable
-expect fun BenchSurface(runner: BenchRunner, modifier: Modifier)
+internal expect fun BenchSurface(runner: BenchRunner, modifier: Modifier)
 
 // --- Bundle manifest (schema shared with tools/sakuro-bench) ---
 
 @Serializable
-data class BenchManifest(
+internal data class BenchManifest(
     val schema: Int = 1,
     val createdAtMs: Long,
     val appVersion: String,
@@ -92,7 +93,7 @@ data class BenchManifest(
 )
 
 @Serializable
-data class BenchDevice(
+internal data class BenchDevice(
     val manufacturer: String,
     val model: String,
     val sdk: Int,
@@ -103,7 +104,7 @@ data class BenchDevice(
 
 /** What the user-shader runtime found on this GPU — explains passthrough modes in a report. */
 @Serializable
-data class BenchGpu(
+internal data class BenchGpu(
     val renderer: String,
     val vendor: String,
     val glVersion: String,
@@ -114,7 +115,7 @@ data class BenchGpu(
 )
 
 @Serializable
-data class BenchVideo(
+internal data class BenchVideo(
     val title: String,
     val durationMs: Long,
     val width: Int,
@@ -122,7 +123,7 @@ data class BenchVideo(
 )
 
 @Serializable
-data class BenchModeResult(
+internal data class BenchModeResult(
     val mode: String,
     val engine: String,
     val presetId: String,
@@ -135,7 +136,7 @@ data class BenchModeResult(
 )
 
 @Serializable
-data class BenchMetrics(
+internal data class BenchMetrics(
     /** load() → READY. */
     val startupMs: Long? = null,
     /** load() → first frame on the output surface. */

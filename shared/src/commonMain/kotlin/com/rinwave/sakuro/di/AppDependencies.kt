@@ -4,6 +4,7 @@ import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.media.LibraryPreferencesStore
 import com.rinwave.sakuro.core.media.MediaLibrary
 import com.rinwave.sakuro.core.media.PlaybackHistoryStore
+import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
@@ -32,6 +33,7 @@ class AppDependencies(
     val shaderInspector: ShaderInspector,
     val playbackHistory: PlaybackHistoryStore,
     val videoSurfaceRenderers: List<VideoSurfaceRenderer>,
+    val gpuInfo: GpuInfoProvider,
 )
 
 /** Builds the DI graph: platform implementations come from outside, the rest is built here. */
@@ -45,6 +47,7 @@ fun appModule(
     userShaderStore: UserShaderStore = NoopUserShaderStore(),
     shaderInspector: ShaderInspector = NoopShaderInspector(),
     videoSurfaceRenderers: List<VideoSurfaceRenderer> = emptyList(),
+    gpuInfo: GpuInfoProvider = GpuInfoProvider { null },
 ): Module = module {
     single { settings }
     single { mediaLibrary }
@@ -57,6 +60,10 @@ fun appModule(
     single { userShaderStore }
     single { shaderInspector }
     single {
-        AppDependencies(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), videoSurfaceRenderers)
+        AppDependencies(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            videoSurfaceRenderers,
+            gpuInfo,
+        )
     }
 }

@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.bench
+package com.rinwave.sakuro.feature.bench
 
 import android.app.Activity
 import android.content.Context
@@ -18,21 +18,19 @@ import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.WindowManager
-import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
-import androidx.media3.common.util.UnstableApi
+import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.core.ui.AppInfo
-import com.rinwave.sakuro.engine.media3.DeviceGpu
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,9 +51,9 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 
 @Composable
-actual fun rememberBenchRunner(engineRegistry: EngineRegistry): BenchRunner? {
+internal actual fun rememberBenchRunner(engineRegistry: EngineRegistry, gpuInfo: GpuInfoProvider): BenchRunner? {
     val context = LocalContext.current
-    return remember(engineRegistry) { AndroidBenchRunner(context, engineRegistry) }
+    return remember(engineRegistry, gpuInfo) { AndroidBenchRunner(context, engineRegistry, gpuInfo) }
 }
 
 /**
@@ -66,7 +64,7 @@ actual fun rememberBenchRunner(engineRegistry: EngineRegistry): BenchRunner? {
  * regardless of the view's on-screen size, display density or cutouts.
  */
 @Composable
-actual fun BenchSurface(runner: BenchRunner, modifier: Modifier) {
+internal actual fun BenchSurface(runner: BenchRunner, modifier: Modifier) {
     val android = runner as? AndroidBenchRunner ?: return
     AndroidView(
         factory = { context ->
@@ -94,10 +92,10 @@ actual fun BenchSurface(runner: BenchRunner, modifier: Modifier) {
  * capturing the same frames from every configuration. Everything lands in one
  * zip bundle consumed by `tools/sakuro-bench device-bundle`.
  */
-@OptIn(UnstableApi::class)
 internal class AndroidBenchRunner(
     context: Context,
     private val registry: EngineRegistry,
+    private val gpuInfo: GpuInfoProvider,
 ) : BenchRunner {
 
     private val appContext = context.applicationContext
@@ -339,7 +337,7 @@ internal class AndroidBenchRunner(
         model = Build.MODEL,
         sdk = Build.VERSION.SDK_INT,
         abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty(),
-        gpu = DeviceGpu.capabilities?.let {
+        gpu = gpuInfo.gpuInfo()?.let {
             BenchGpu(
                 renderer = it.renderer,
                 vendor = it.vendor,
@@ -347,7 +345,7 @@ internal class AndroidBenchRunner(
                 glesMajor = it.glesMajor,
                 glesMinor = it.glesMinor,
                 fp16Renderable = it.fp16Renderable,
-                compute = it.es31,
+                compute = it.compute,
             )
         },
     )
