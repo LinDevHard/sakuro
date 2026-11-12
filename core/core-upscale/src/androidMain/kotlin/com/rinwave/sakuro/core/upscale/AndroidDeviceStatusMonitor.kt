@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Android source for the adaptive controller (ARCHITECTURE.md §5):
+ * Android source for the adaptive controller (docs/architecture.md §5):
  * thermal status (API 29+), power-save mode and battery level.
  * Lives for the whole process lifetime — listeners are never unregistered.
  */

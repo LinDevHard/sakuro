@@ -3,7 +3,7 @@ package com.rinwave.sakuro.core.upscale
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlinx.serialization.json.Json
 
-/** Import/export presets via a file or a string (FEATURES.md §2.2). */
+/** Import/export presets via a file or a string (docs/product/features.md §2.2). */
 object ProfileCodec {
 
     private val json = Json {

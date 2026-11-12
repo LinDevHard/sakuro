@@ -49,7 +49,7 @@ internal data class PlayerGestureConfig(
 )
 
 /**
- * Player swipes and pinch (FEATURES.md §3.1) on top of detectTapGestures:
+ * Player swipes and pinch (docs/product/features.md §3.1) on top of detectTapGestures:
  * below the touchSlop threshold events are not consumed (taps and long-press live
  * in a sibling pointerInput); above it they are consumed and the tap detector is cancelled.
  * If events are already consumed (long-press speed-up), the gesture does not start.

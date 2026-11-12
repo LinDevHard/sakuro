@@ -34,7 +34,7 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
 /**
- * Desktop target — a sandbox for fast UI iteration (ARCHITECTURE.md §3.2):
+ * Desktop target — a sandbox for fast UI iteration (docs/architecture.md §3.2):
  * there is no real playback, the engine is FakePlayerEngine.
  */
 fun main() {

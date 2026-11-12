@@ -8,14 +8,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * A single playback-engine abstraction (ARCHITECTURE.md §4).
+ * A single playback-engine abstraction (docs/architecture.md §4).
  * The UI works only with this interface and does not know the concrete engine.
  */
 interface PlayerEngine {
 
     val state: StateFlow<PlayerState>
 
-    /** "Stats for nerds" — data for the debug overlay (FEATURES.md §4). */
+    /** "Stats for nerds" — data for the debug overlay (docs/product/features.md §4). */
     val debugStats: Flow<DebugStats>
 
     fun load(media: MediaSource)

@@ -82,4 +82,4 @@ Future optional services, if added, must be documented here before release.
 
 ## Security Reports
 
-For privacy or security issues, follow [SECURITY.md](SECURITY.md). Please do not publish sensitive reports as public issues before triage.
+For privacy or security issues, follow [SECURITY.md](../.github/SECURITY.md). Please do not publish sensitive reports as public issues before triage.

@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * A video-processing preset (FEATURES.md §2): an abstract chain of passes
+ * A video-processing preset (docs/product/features.md §2): an abstract chain of passes
  * that each engine applies with the means available to it
  * (libmpv → a `.glsl` chain, Media3 → a `GlEffect` chain).
  * Passes incompatible with an engine degrade (are skipped).

@@ -11,7 +11,7 @@ enum class UpscaleRuntimeState {
     PASSTHROUGH,
 }
 
-/** Data for the "stats for nerds" debug overlay (FEATURES.md §4.1). */
+/** Data for the "stats for nerds" debug overlay (docs/product/features.md §4.1). */
 data class DebugStats(
     val engine: String = "",
     val videoCodec: String? = null,

@@ -72,7 +72,7 @@ Actions in the signing job are pinned to immutable commit SHAs.
 
 ## Dependency and asset licenses
 
-`scripts/verify-release-licenses.sh` resolves the actual FOSS release runtime
+`tools/ci/verify-release-licenses.sh` resolves the actual FOSS release runtime
 graph. Every external component group must match an explicitly reviewed SPDX
 entry in `licenses/dependency-policy.tsv`; new dependency groups fail CI until
 reviewed. The same gate checks that all vendored shader/font notices are

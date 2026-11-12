@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /**
- * The second detection layer (FEATURES.md §1): statistics over frame samples.
+ * The second detection layer (docs/product/features.md §1): statistics over frame samples.
  * Three downscale-robust features tell drawn content from live footage:
  * flat fills (neighboring pixels match), a poor quantized palette,
  * and an "empty middle" of the gradient histogram — anime has fills and hard

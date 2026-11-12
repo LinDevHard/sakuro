@@ -7,7 +7,7 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 /**
- * Desktop frame sampler via system ffmpeg/ffprobe (ARCHITECTURE.md §3.2:
+ * Desktop frame sampler via system ffmpeg/ffprobe (docs/architecture.md §3.2:
  * desktop is a sandbox, no need to bundle a decoder just for detection). Best-effort:
  * no binaries in PATH, unreadable file, unparseable output — an empty list,
  * frame detection simply stays silent. The position grid matches the Android sampler:

@@ -3,7 +3,7 @@
 > Project: **Sakuro** (`com.rinwave.sakuro`)
 > Date: 2026-07-02
 > Status: recorded stack decisions.
-> Related: [DESIGN.md](DESIGN.md), [FEATURES.md](FEATURES.md), [BRAND.md](BRAND.md).
+> Related: [design.md](product/design.md), [features.md](product/features.md), [brand.md](product/brand.md).
 
 ---
 
@@ -113,7 +113,7 @@ and may only shrink.
   `SurfaceVideoOutput`, the app registers one `VideoSurfaceRenderer` per engine,
   and device details reach features through core contracts such as
   `GpuInfoProvider`.
-- Each Compose module owns its strings (`scripts/check-compose-strings.sh`
+- Each Compose module owns its strings (`tools/ci/check-compose-strings.sh`
   requires `values-ru`/`values-ja` for every key and forbids a key in two modules).
 
 ### Dependency injection

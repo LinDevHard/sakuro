@@ -12,7 +12,7 @@ enum class ThermalLevel {
     CRITICAL,
 }
 
-/** Device-status snapshot for the adaptive controller (ARCHITECTURE.md §5). */
+/** Device-status snapshot for the adaptive controller (docs/architecture.md §5). */
 data class DeviceStatus(
     val thermal: ThermalLevel = ThermalLevel.NONE,
     val powerSaveMode: Boolean = false,

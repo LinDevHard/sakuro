@@ -3,7 +3,7 @@ package com.rinwave.sakuro.feature.player
 import androidx.compose.runtime.Composable
 
 /**
- * System controls for the player's swipe gestures (FEATURES.md §3.1):
+ * System controls for the player's swipe gestures (docs/product/features.md §3.1):
  * screen brightness and media volume, values normalized to 0..1.
  */
 internal interface PlayerSystemControls {

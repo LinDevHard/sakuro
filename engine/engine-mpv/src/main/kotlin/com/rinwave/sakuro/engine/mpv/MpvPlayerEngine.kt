@@ -31,11 +31,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Frame scaling mode for mpv; the UI maps its ScaleMode here (pinch gesture, FEATURES.md §3.1). */
+/** Frame scaling mode for mpv; the UI maps its ScaleMode here (pinch gesture, docs/product/features.md §3.1). */
 enum class MpvScaleMode { FIT, FILL, ZOOM }
 
 /**
- * Engine #2 (ARCHITECTURE.md §2): libmpv via a prebuilt JNI wrapper
+ * Engine #2 (docs/architecture.md §2): libmpv via a prebuilt JNI wrapper
  * `dev.jdtech.mpv:libmpv` (Findroid's libmpv-android fork).
  *
  * Differences from Media3: rendering goes to a plain [Surface] (not PlayerView), upscale

@@ -4,10 +4,7 @@
 # Public project documentation and GitHub community files.
 /README.md @LinDevHard
 /CHANGELOG.md @LinDevHard
-/PRIVACY.md @LinDevHard
-/SECURITY.md @LinDevHard
-/CONTRIBUTING.md @LinDevHard
-/CODE_OF_CONDUCT.md @LinDevHard
+/docs/ @LinDevHard
 /.github/ @LinDevHard
 
 # Android app and shared UI.
@@ -18,6 +15,10 @@
 # Core logic and playback engines.
 /core/ @LinDevHard
 /engine/ @LinDevHard
+/feature/ @LinDevHard
+/lib/ @LinDevHard
+/build-logic/ @LinDevHard
+/config/ @LinDevHard
 
 # Benchmark tooling.
-/tools/sakuro-bench/ @LinDevHard
+/tools/ @LinDevHard

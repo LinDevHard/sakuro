@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
             incomingVideoJob = handleIncomingVideo(intent, root::openVideo)
         }
 
-        // PiP when minimized during playback (FEATURES.md §3.1):
+        // PiP when minimized during playback (docs/product/features.md §3.1):
         // on 12+ the system enters it itself (autoEnter), earlier — onUserLeaveHint.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             lifecycleScope.launch {

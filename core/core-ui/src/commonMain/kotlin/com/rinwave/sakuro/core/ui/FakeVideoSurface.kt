@@ -25,7 +25,7 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 
 /**
  * Draws the fake engine's "frame": a twilight gradient and the "eclipse" ring
- * from the brand (BRAND.md §3) as a progress indicator.
+ * from the brand (docs/product/brand.md §3) as a progress indicator.
  */
 @Composable
 fun FakeVideoSurface(engine: PlayerEngine, modifier: Modifier = Modifier) {

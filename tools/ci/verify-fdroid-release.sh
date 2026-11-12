@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 apk_path="${1:-$repo_root/androidApp/build/outputs/apk/foss/release/androidApp-foss-release-unsigned.apk}"
 
 if [[ ! -f "$apk_path" ]]; then

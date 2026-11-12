@@ -36,7 +36,7 @@ internal class UpscaleSettingsComponent(
 
     val presetId: StateFlow<String> = settings.presetId
 
-    /** Built-in + user presets (FEATURES.md §2.2) — candidates for the default. */
+    /** Built-in + user presets (docs/product/features.md §2.2) — candidates for the default. */
     val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
         .map { user -> BuiltInPresets.all + user }
         .stateIn(scope, SharingStarted.Eagerly, BuiltInPresets.all + userPresets.presets.value)

@@ -32,7 +32,7 @@ android {
         versionName = releaseVersionName
     }
 
-    // Two flavors (ARCHITECTURE.md §6): foss — F-Droid, full — reference/benchmark.
+    // Two flavors (docs/architecture.md §6): foss — F-Droid, full — reference/benchmark.
     // foss intentionally excludes the prebuilt libmpv AAR and all mpv-specific code.
     flavorDimensions += "distribution"
     productFlavors {

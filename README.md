@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
 [![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)
 
-![Sakuro neon logo banner](assets/branding/sakuro-readme-banner.webp)
+![Sakuro neon logo banner](tools/branding/sakuro-readme-banner.webp)
 
 Sakuro is a Kotlin Multiplatform video player focused on local Android playback and real-time upscaling through Media3.
 
@@ -52,13 +52,13 @@ The app is designed around a quiet full-screen player, a focused local library, 
 
 Useful project documents:
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - module boundaries, engine strategy, flavors, and licensing notes.
-- [FEATURES.md](FEATURES.md) - product feature map and implementation ownership.
-- [DESIGN.md](DESIGN.md) - interface principles, layout direction, and visual tokens.
-- [BRAND.md](BRAND.md) - name, voice, logo, palette, and asset rules.
+- [architecture.md](docs/architecture.md) - module boundaries, engine strategy, flavors, and licensing notes.
+- [features.md](docs/product/features.md) - product feature map and implementation ownership.
+- [design.md](docs/product/design.md) - interface principles, layout direction, and visual tokens.
+- [brand.md](docs/product/brand.md) - name, voice, logo, palette, and asset rules.
 - [CHANGELOG.md](CHANGELOG.md) - notable changes by version.
-- [PRIVACY.md](PRIVACY.md) - local data handling and benchmark privacy notes.
-- [Release pipeline](docs/releasing.md) - versioning, licenses, signing, R8, and store artifacts.
+- [privacy.md](docs/privacy.md) - local data handling and benchmark privacy notes.
+- [Release pipeline](docs/release/releasing.md) - versioning, licenses, signing, R8, and store artifacts.
 
 ## Build And Run
 
@@ -93,7 +93,7 @@ bundle install
 bundle exec fastlane android ci
 ```
 
-See [docs/fdroid.md](docs/fdroid.md) for metadata, tagging and submission details.
+See [docs/release/fdroid.md](docs/release/fdroid.md) for metadata, tagging and submission details.
 
 Run the desktop UI sandbox:
 
@@ -151,24 +151,27 @@ engine/engine-mpv/     Developer/reference libmpv path, shader store, mpv proper
 engine/engine-fake/    Fake engine for desktop UI and tests
 lib/media3-usershader/ Standalone mpv user-shader runtime for Media3 (no Sakuro deps)
 build-logic/           Shared Gradle convention plugins
+config/                detekt config, module-graph allowlist, dependency license policy
+docs/                  Architecture, product (features, design, brand), privacy, release, plans
+tools/ci/              Release and quality gate scripts used by fastlane/CI
+tools/branding/        Source branding assets and the app icon generator
 tools/sakuro-bench/    Local benchmark utility for shader/output comparisons
 licenses/              Third-party license texts for vendored assets
-assets/branding/       Source branding assets
 ```
 
 ## Licensing
 
-Sakuro is currently distributed under the [GNU General Public License v3.0](LICENSE) because libmpv is present in the repository. Product builds should avoid shipping libmpv unless that GPL and APK-size tradeoff is intentional. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses/).
+Sakuro is currently distributed under the [GNU General Public License v3.0](LICENSE) because libmpv is present in the repository. Product builds should avoid shipping libmpv unless that GPL and APK-size tradeoff is intentional. Vendored Anime4K shaders and Inter font assets keep their original licenses under [licenses/](licenses).
 
-Review [ARCHITECTURE.md](ARCHITECTURE.md) for licensing notes around engines, flavors, and third-party dependencies.
+Review [architecture.md](docs/architecture.md) for licensing notes around engines, flavors, and third-party dependencies.
 
 ## Contributing
 
 Small, focused contributions are welcome: build issues, documentation corrections, reproducible playback bugs, benchmark improvements, and test-backed engine fixes are easiest to review.
 
-Before opening a pull request, read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Before opening a pull request, read [CONTRIBUTING.md](.github/CONTRIBUTING.md) and the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
 
-For security reports, please follow [SECURITY.md](SECURITY.md) and do not open a public issue.
+For security reports, please follow [SECURITY.md](.github/SECURITY.md) and do not open a public issue.
 
 When reporting playback or quality problems, include:
 

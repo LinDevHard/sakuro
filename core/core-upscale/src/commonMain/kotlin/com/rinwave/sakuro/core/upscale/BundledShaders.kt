@@ -9,7 +9,7 @@ enum class BundledShaderRole { UPSCALE, SHARPEN, DENOISE, UTILITY }
 enum class ShaderCost { LOW, MEDIUM, HIGH }
 
 /**
- * A shader vendored into the app (FEATURES.md §2): available in preset chains
+ * A shader vendored into the app (docs/product/features.md §2): available in preset chains
  * without importing, next to the user's own files. Chains reference shaders by
  * bare file name; an imported file with the same name shadows the bundled one
  * (engines resolve the imported directory first).

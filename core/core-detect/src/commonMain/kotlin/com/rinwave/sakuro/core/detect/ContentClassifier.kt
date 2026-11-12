@@ -4,7 +4,7 @@ import com.rinwave.sakuro.core.model.ContentClass
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Automatic content-class detection (FEATURES.md §1): determines the image style
+ * Automatic content-class detection (docs/product/features.md §1): determines the image style
  * for automatic preset selection. Independent of the playback engine — it works
  * over metadata and (in future implementations) frame samples.
  */
@@ -26,7 +26,7 @@ data class ClassificationRequest(
 
 /**
  * Detection result: class + confidence (0..1) — both are shown
- * in the debug overlay (FEATURES.md §4.1).
+ * in the debug overlay (docs/product/features.md §4.1).
  */
 data class ContentDetection(
     val contentClass: ContentClass,

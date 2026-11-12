@@ -1,7 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// Desktop/JVM UI sandbox entry point (ARCHITECTURE.md §3.2): FakePlayerEngine only.
+// Desktop/JVM UI sandbox entry point (docs/architecture.md §3.2): FakePlayerEngine only.
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)

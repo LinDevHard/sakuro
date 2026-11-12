@@ -11,7 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlin.random.Random
 
 /**
- * User preset store (FEATURES.md §2.2): creation, editing,
+ * User preset store (docs/product/features.md §2.2): creation, editing,
  * deletion and string import/export via [ProfileCodec]. Built-in presets
  * ([BuiltInPresets]) are not stored and cannot be overwritten.
  *

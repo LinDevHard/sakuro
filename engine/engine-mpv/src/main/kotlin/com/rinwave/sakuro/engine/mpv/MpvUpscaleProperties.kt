@@ -22,7 +22,7 @@ internal data class MpvRenderConfig(
 )
 
 /**
- * Translates the abstract [UpscalePass] chain into an mpv configuration (ARCHITECTURE.md §4).
+ * Translates the abstract [UpscalePass] chain into an mpv configuration (docs/architecture.md §4).
  *
  * Selection order mirrors Media3 exactly:
  * 1. an explicit [UpscaleProfile.shaderChain] replaces everything;

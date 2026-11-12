@@ -40,7 +40,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
             implementation(libs.kotlinx.coroutines.android)
-            // Preview thumbnails in the library (ARCHITECTURE.md: Coil 3).
+            // Preview thumbnails in the library (docs/architecture.md: Coil 3).
             // androidMain only: desktop has no video decoder, so a placeholder is used there.
             implementation(libs.coil.compose)
             implementation(libs.coil.video)

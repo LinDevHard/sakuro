@@ -15,7 +15,7 @@ import com.rinwave.sakuro.engine.media3.anime4k.Anime4KChain
 import kotlin.math.roundToInt
 
 /**
- * Builds a `GlEffect` chain from the abstract [UpscaleProfile] (ARCHITECTURE.md §4):
+ * Builds a `GlEffect` chain from the abstract [UpscaleProfile] (docs/architecture.md §4):
  * - an explicit [UpscaleProfile.shaderChain] → one [UserShaderGlEffect] with the
  *   merged custom chain;
  * - anime/cartoon → a single [UserShaderGlEffect] with the canonical multi-pass

@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.media
 
-/** Desktop target — a UI sandbox (ARCHITECTURE.md §3.2): the library is filled with samples. */
+/** Desktop target — a UI sandbox (docs/architecture.md §3.2): the library is filled with samples. */
 class SampleVideoLibrary : MediaLibrary {
 
     override suspend fun scan(): List<VideoItem> {

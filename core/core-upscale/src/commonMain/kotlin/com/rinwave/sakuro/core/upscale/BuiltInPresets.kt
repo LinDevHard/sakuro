@@ -5,7 +5,7 @@ import com.rinwave.sakuro.core.model.UpscalePass
 import com.rinwave.sakuro.core.model.UpscaleProfile
 
 /**
- * Built-in presets for content classes (FEATURES.md §2.2).
+ * Built-in presets for content classes (docs/product/features.md §2.2).
  * On Media3 they are applied as ported GLSL ES passes, on libmpv as native `.glsl`.
  *
  * The anime presets are built on Anime4K Upscale CNN x2 S with no Sharpen pass

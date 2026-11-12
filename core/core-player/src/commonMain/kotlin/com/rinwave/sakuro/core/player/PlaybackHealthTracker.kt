@@ -7,7 +7,7 @@ import kotlin.time.TimeSource
 /**
  * Computes [PlaybackHealth] from [DebugStats] snapshots: the share of dropped frames
  * over the window between snapshots relative to the expected frame count (fps × time).
- * Fed into the adaptive controller (ARCHITECTURE.md §5).
+ * Fed into the adaptive controller (docs/architecture.md §5).
  */
 class PlaybackHealthTracker(
     private val timeSource: TimeSource = TimeSource.Monotonic,

@@ -3,7 +3,7 @@ package com.rinwave.sakuro.core.ui
 import androidx.compose.runtime.Composable
 
 /**
- * Picture-in-Picture (FEATURES.md §3.1 "swipe down — PiP/minimize"):
+ * Picture-in-Picture (docs/product/features.md §3.1 "swipe down — PiP/minimize"):
  * on Android the player goes into PiP when the app is minimized during
  * playback (auto-enter on 12+, onUserLeaveHint earlier); swipe down
  * is taken by the brightness/volume gesture. Desktop — no-op.

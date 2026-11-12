@@ -30,7 +30,7 @@ class SakuroSettings(
     val debugOverlay: StateFlow<Boolean> = _debugOverlay.asStateFlow()
 
     /**
-     * Adaptive preset degradation (ARCHITECTURE.md §5): thermals/drops/power-saving
+     * Adaptive preset degradation (docs/architecture.md §5): thermals/drops/power-saving
      * simplify the applied chain. Turning it off pins the selected preset as-is —
      * needed for clean quality measurements (sakuro-bench).
      */
@@ -44,7 +44,10 @@ class SakuroSettings(
     private val _upscaleDisplayLimit = MutableStateFlow(settings.getBoolean(KEY_UPSCALE_DISPLAY_LIMIT, true))
     val upscaleDisplayLimit: StateFlow<Boolean> = _upscaleDisplayLimit.asStateFlow()
 
-    /** Master switch for swipes/pinch in the player (FEATURES.md §3.2); taps and long-press always work. */
+    /**
+     * Master switch for swipes/pinch in the player (docs/product/features.md §3.2);
+     * taps and long-press always work.
+     */
     private val _gesturesEnabled = MutableStateFlow(settings.getBoolean(KEY_GESTURES, true))
     val gesturesEnabled: StateFlow<Boolean> = _gesturesEnabled.asStateFlow()
 
@@ -61,7 +64,7 @@ class SakuroSettings(
     private val _gestureZoom = MutableStateFlow(settings.getBoolean(KEY_GESTURE_ZOOM, true))
     val gestureZoom: StateFlow<Boolean> = _gestureZoom.asStateFlow()
 
-    /** Swipe sensitivity multiplier (FEATURES.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
+    /** Swipe sensitivity multiplier (docs/product/features.md §3.2), [SENSITIVITY_MIN]..[SENSITIVITY_MAX]. */
     private val _gestureSensitivity = MutableStateFlow(
         settings.getFloat(KEY_GESTURE_SENSITIVITY, SENSITIVITY_DEFAULT)
             .coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX),

@@ -3,7 +3,7 @@
 > Project: **Sakuro** (`com.rinwave.sakuro`)
 > Date: 2026-07-02
 > Status: design direction and decisions.
-> Related: [ARCHITECTURE.md](ARCHITECTURE.md).
+> Related: [architecture.md](../architecture.md).
 
 ## 1. Direction
 
@@ -31,7 +31,7 @@ Principles:
 
 ## 4. Color And Theme
 
-- Base: dark cinematic plum/twilight palette from [BRAND.md](BRAND.md).
+- Base: dark cinematic plum/twilight palette from [brand.md](brand.md).
 - Material 3 is the token foundation, extended with brand colors:
   - `background #120A17`, `surface #1E1226`, `surfaceElevated #2A1A34`, `twilight #4A2A5A`
   - `accentSakura #EC8FC0`, `accentLavender #A57FD6`, `glowMagenta #C94F9C`

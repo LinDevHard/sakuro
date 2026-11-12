@@ -1,5 +1,5 @@
 /**
- * The allowed project-to-project edges (ARCHITECTURE.md §3): a flat graph where
+ * The allowed project-to-project edges (docs/architecture.md §3): a flat graph where
  * core modules depend only on `:core:core-model`, features only on core, and
  * engines/features never on each other. Unknown modules may depend on nothing,
  * so a temporary edge has to be listed in `config/module-graph-allowlist.txt`.

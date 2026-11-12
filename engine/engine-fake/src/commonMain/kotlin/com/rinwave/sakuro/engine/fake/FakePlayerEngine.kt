@@ -28,7 +28,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * A stub engine for the desktop sandbox and UI debugging (ARCHITECTURE.md §3.2):
+ * A stub engine for the desktop sandbox and UI debugging (docs/architecture.md §3.2):
  * simulates progress, metadata and upscaling without native dependencies.
  */
 class FakePlayerEngine : PlayerEngine {

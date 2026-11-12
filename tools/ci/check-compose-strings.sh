@@ -4,7 +4,7 @@
 # and no key may be defined by two modules.
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 python3 - "$repo_root" <<'PY'
 import pathlib

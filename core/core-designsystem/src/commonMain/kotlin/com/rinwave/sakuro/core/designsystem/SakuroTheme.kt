@@ -19,7 +19,7 @@ import com.rinwave.sakuro.core.designsystem.resources.inter_regular
 import com.rinwave.sakuro.core.designsystem.resources.inter_semibold
 import org.jetbrains.compose.resources.Font
 
-/** Brand palette (BRAND.md §2). */
+/** Brand palette (docs/product/brand.md §2). */
 object SakuroColors {
     val Background = Color(0xFF120A17)
     val Surface = Color(0xFF1E1226)
@@ -60,7 +60,7 @@ private val SakuroShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-/** Inter (variable design, static weights) — the single UI font (DESIGN.md §3). */
+/** Inter (variable design, static weights) — the single UI font (docs/product/design.md §3). */
 @Composable
 private fun interFontFamily() = FontFamily(
     Font(Res.font.inter_regular, FontWeight.Normal),

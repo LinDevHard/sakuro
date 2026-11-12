@@ -80,7 +80,7 @@ public class PlayerComponent internal constructor(
     private val _processingDisabled = MutableStateFlow(false)
     internal val processingDisabled = _processingDisabled.asStateFlow()
 
-    /** "Auto" + built-in + user presets (FEATURES.md §2.2). */
+    /** "Auto" + built-in + user presets (docs/product/features.md §2.2). */
     internal val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
         .map { user -> listOf(AUTO_PRESET) + BuiltInPresets.all + user }
         .stateIn(scope, SharingStarted.Eagerly, listOf(AUTO_PRESET) + BuiltInPresets.all + userPresets.presets.value)
@@ -90,7 +90,7 @@ public class PlayerComponent internal constructor(
     /** Whether adaptive preset degradation is enabled (for the debug overlay indicator). */
     internal val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
 
-    /** Master switch for swipes/pinch in the player (FEATURES.md §3.2). */
+    /** Master switch for swipes/pinch in the player (docs/product/features.md §3.2). */
     internal val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
 
     /** Per-gesture switches, honoured only while [gesturesEnabled] is on. */
@@ -99,7 +99,7 @@ public class PlayerComponent internal constructor(
     internal val gestureSeek: StateFlow<Boolean> = settings.gestureSeek
     internal val gestureZoom: StateFlow<Boolean> = settings.gestureZoom
 
-    /** Swipe sensitivity multiplier (FEATURES.md §3.2). */
+    /** Swipe sensitivity multiplier (docs/product/features.md §3.2). */
     internal val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
 
     /** The user's choice (including "auto"); the actually applied chain may differ. */
@@ -132,7 +132,7 @@ public class PlayerComponent internal constructor(
         )
 
     /**
-     * The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin,
+     * The preset is pinned to this file (docs/product/features.md §1.3): the sheet's choice changes the pin,
      * not the global default.
      */
     internal val isPinned: StateFlow<Boolean> = pinnedPresets.pins
@@ -192,7 +192,7 @@ public class PlayerComponent internal constructor(
             contentClassifier.classify(ClassificationRequest(uri = media.uri, title = media.title))
                 .collect { _detection.value = it }
         }
-        // The adaptive loop (ARCHITECTURE.md §5): the decision is recomputed on every
+        // The adaptive loop (docs/architecture.md §5): the decision is recomputed on every
         // debug-stats snapshot and on any change of preset/class/device state.
         scope.launch {
             combine(

@@ -25,7 +25,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The eclipse logo mark (BRAND.md §3): a rotating arc-ring over a dim ring rim.
+ * The eclipse logo mark (docs/product/brand.md §3): a rotating arc-ring over a dim ring rim.
  * Used as a loading/buffering indicator.
  */
 @Composable

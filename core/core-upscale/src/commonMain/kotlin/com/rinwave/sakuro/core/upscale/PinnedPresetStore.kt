@@ -9,7 +9,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
- * Pinning a preset to a specific file (FEATURES.md §1.3/§2.3):
+ * Pinning a preset to a specific file (docs/product/features.md §1.3/§2.3):
  * uri → preset id. A pinned choice takes priority over the global default
  * and auto-detection; the consumer validates the id (the preset may have
  * been deleted) — the store keeps references as-is.

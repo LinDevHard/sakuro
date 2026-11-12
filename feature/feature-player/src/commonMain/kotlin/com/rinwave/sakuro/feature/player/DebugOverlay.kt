@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.player.DebugStats
 
-/** "Stats for nerds" (FEATURES.md §4): a monospaced, unobtrusive overlay. */
+/** "Stats for nerds" (docs/product/features.md §4): a monospaced, unobtrusive overlay. */
 @Composable
 internal fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
     val stats by component.engine.debugStats.collectAsState(initial = DebugStats())

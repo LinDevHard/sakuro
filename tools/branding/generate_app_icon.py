@@ -8,8 +8,8 @@ versions never drift apart.
 
 Outputs:
   androidApp/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml
-  assets/branding/sakuro-app-icon.svg             (full color, store/README master)
-  assets/branding/sakuro-app-icon-monochrome.svg  (single-color mark, transparent)
+  tools/branding/sakuro-app-icon.svg             (full color, store/README master)
+  tools/branding/sakuro-app-icon-monochrome.svg  (single-color mark, transparent)
 
 Coordinates use the 108x108 adaptive-icon viewport. The foreground mark stays
 inside the 66-unit safe circle so no launcher mask clips it.
@@ -24,9 +24,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RES = ROOT / "androidApp/src/main/res/drawable"
-BRANDING = ROOT / "assets/branding"
+BRANDING = ROOT / "tools/branding"
 
-# Palette (BRAND.md §2).
+# Palette (docs/product/brand.md §2).
 BACKGROUND = "#120A17"
 SURFACE = "#1E1226"
 TWILIGHT = "#4A2A5A"

@@ -36,6 +36,7 @@ captures/
 *.jks
 *.keystore
 .worktrees/
+.superpowers/
 *.p12
 *.pem
 *.key
@@ -71,10 +72,7 @@ fastlane/Preview.html
 fastlane/screenshots/
 fastlane/test_output/
 dist/
-release-staging/
 
 # Local benchmark captures / generated reports
 tools/sakuro-bench/report/
 tools/sakuro-bench/caps/
-index.html
-index+mpv.html

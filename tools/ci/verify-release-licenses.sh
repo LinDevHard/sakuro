@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 policy_file="$repo_root/licenses/dependency-policy.tsv"
 report_dir="$repo_root/build/reports/licenses"
 report_file="$report_dir/foss-release.tsv"

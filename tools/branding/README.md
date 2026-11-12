@@ -1,6 +1,6 @@
 # Sakuro — branding assets
 
-Put the key art and its derivatives here (see [../../BRAND.md](../../BRAND.md)):
+Put the key art and its derivatives here (see [brand.md](../../docs/product/brand.md)):
 
 - `sakuro-teaser.png` — the "Coming Soon" key art (dark twilight, sakura, Fuji, chrome-pink logo).
 - the logo (wordmark) — SVG/PNG on a transparent background.

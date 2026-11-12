@@ -8,7 +8,7 @@ gradle_wrapper = File.join(project_root, "gradlew")
 fdroid_apk = File.join(project_root, "androidApp/build/outputs/apk/foss/release/androidApp-foss-release-unsigned.apk")
 play_apk = File.join(project_root, "androidApp/build/outputs/apk/foss/release/androidApp-foss-release.apk")
 play_aab = File.join(project_root, "androidApp/build/outputs/bundle/fossRelease/androidApp-foss-release.aab")
-release_staging = File.join(project_root, "release-staging")
+release_staging = File.join(project_root, "build/release-staging")
 staged_fdroid_apk = File.join(release_staging, "sakuro-fdroid-unsigned.apk")
 staged_license_report = File.join(release_staging, "foss-release-licenses.tsv")
 
@@ -30,8 +30,8 @@ platform :android do
       gradle_path: gradle_wrapper,
       project_dir: project_root
     )
-    sh(File.join(project_root, "scripts/check-compose-strings.sh"))
-    sh(File.join(project_root, "scripts/verify-release-licenses.sh"))
+    sh(File.join(project_root, "tools/ci/check-compose-strings.sh"))
+    sh(File.join(project_root, "tools/ci/verify-release-licenses.sh"))
   end
 
   desc "Build and audit the unsigned F-Droid APK"
@@ -44,7 +44,7 @@ platform :android do
         "sakuro.signing.enabled" => "false"
       }
     )
-    sh(File.join(project_root, "scripts/verify-fdroid-release.sh"), fdroid_apk)
+    sh(File.join(project_root, "tools/ci/verify-fdroid-release.sh"), fdroid_apk)
     FileUtils.mkdir_p(release_staging)
     FileUtils.cp(fdroid_apk, staged_fdroid_apk)
     FileUtils.cp(File.join(project_root, "build/reports/licenses/foss-release.tsv"), staged_license_report)
@@ -85,7 +85,7 @@ platform :android do
     )
     sh(
       { "SAKURO_ENABLE_R8" => r8 },
-      File.join(project_root, "scripts/verify-play-release.sh"),
+      File.join(project_root, "tools/ci/verify-play-release.sh"),
       play_apk,
       play_aab
     )

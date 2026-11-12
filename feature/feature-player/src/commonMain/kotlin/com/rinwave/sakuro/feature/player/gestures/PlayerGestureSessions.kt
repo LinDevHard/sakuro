@@ -3,7 +3,7 @@ package com.rinwave.sakuro.feature.player.gestures
 import com.rinwave.sakuro.core.model.ScaleMode
 
 /**
- * Pure math for player gestures (FEATURES.md §3.1): a session lives from the start
+ * Pure math for player gestures (docs/product/features.md §3.1): a session lives from the start
  * to the end of one gesture and turns the finger's total displacement into a value.
  * No Compose dependencies — the logic is covered by unit tests on desktop.
  */

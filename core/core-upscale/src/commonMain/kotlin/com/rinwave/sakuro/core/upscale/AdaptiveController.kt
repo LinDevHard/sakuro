@@ -14,10 +14,10 @@ sealed interface AdaptiveReason {
 }
 
 /**
- * Adaptive upscale controller (ARCHITECTURE.md §5): degrades the user-selected
+ * Adaptive upscale controller (docs/architecture.md §5): degrades the user-selected
  * preset on heat/FPS drops/power-saving and returns
  * to full when there is headroom. The user's choice never changes — only the applied
- * chain does (FEATURES.md §2.3).
+ * chain does (docs/product/features.md §2.3).
  *
  * A pure deterministic state machine: platform sources (thermal,
  * battery, frame statistics) feed snapshots into [update].

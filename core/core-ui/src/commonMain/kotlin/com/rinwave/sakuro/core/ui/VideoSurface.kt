@@ -9,8 +9,8 @@ import com.rinwave.sakuro.core.player.PlayerEngine
 /**
  * The current engine's video surface, drawn by the matching registered
  * [VideoSurfaceRenderer]. Engines without one (the desktop FakePlayerEngine)
- * get the synthetic [FakeVideoSurface] (ARCHITECTURE.md §3.2).
- * [scaleMode] — the frame scaling mode, toggled by pinch (FEATURES.md §3.1).
+ * get the synthetic [FakeVideoSurface] (docs/architecture.md §3.2).
+ * [scaleMode] — the frame scaling mode, toggled by pinch (docs/product/features.md §3.1).
  */
 @Composable
 fun VideoSurface(
