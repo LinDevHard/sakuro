@@ -15,9 +15,9 @@ import com.rinwave.sakuro.core.ui.LocalVideoSurfaceRenderers
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.feature.bench.BenchScreen
 import com.rinwave.sakuro.feature.library.LibraryScreen
+import com.rinwave.sakuro.feature.player.PlayerScreen
 import com.rinwave.sakuro.feature.settings.SettingsScreen
 import com.rinwave.sakuro.navigation.RootComponent
-import com.rinwave.sakuro.ui.screens.PlayerScreen
 
 @Composable
 fun App(root: RootComponent, videoSurfaceRenderers: List<VideoSurfaceRenderer> = emptyList()) {

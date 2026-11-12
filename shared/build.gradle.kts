@@ -14,7 +14,6 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
-            implementation(compose.components.resources)
 
             implementation(project(":core:core-designsystem"))
             implementation(project(":core:core-model"))
@@ -27,6 +26,7 @@ kotlin {
             implementation(project(":engine:engine-fake"))
             implementation(project(":feature:feature-bench"))
             implementation(project(":feature:feature-library"))
+            implementation(project(":feature:feature-player"))
             implementation(project(":feature:feature-settings"))
 
             implementation(libs.decompose)
@@ -56,9 +56,4 @@ kotlin {
 
 android {
     namespace = "com.rinwave.sakuro.shared"
-}
-
-compose.resources {
-    // Kept from the former :composeApp module until the strings move per module.
-    packageOfResClass = "sakuro.composeapp.generated.resources"
 }

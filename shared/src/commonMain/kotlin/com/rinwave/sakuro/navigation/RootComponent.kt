@@ -16,6 +16,10 @@ import com.rinwave.sakuro.feature.bench.BenchOutput
 import com.rinwave.sakuro.feature.library.LibraryComponent
 import com.rinwave.sakuro.feature.library.LibraryComponentFactory
 import com.rinwave.sakuro.feature.library.LibraryOutput
+import com.rinwave.sakuro.feature.player.PlayerComponent
+import com.rinwave.sakuro.feature.player.PlayerComponentFactory
+import com.rinwave.sakuro.feature.player.PlayerDependencies
+import com.rinwave.sakuro.feature.player.PlayerOutput
 import com.rinwave.sakuro.feature.settings.SettingsComponent
 import com.rinwave.sakuro.feature.settings.SettingsComponentFactory
 import com.rinwave.sakuro.feature.settings.SettingsOutput
@@ -66,6 +70,20 @@ class RootComponent(
         deps.gpuInfo,
     )
 
+    private val playerFactory = PlayerComponentFactory(
+        PlayerDependencies(
+            settings = deps.settings,
+            engineRegistry = deps.engineRegistry,
+            deviceStatusMonitor = deps.deviceStatusMonitor,
+            contentClassifier = deps.contentClassifier,
+            presetStores = deps.presetStores,
+            userShaderStore = deps.userShaderStore,
+            shaderInspector = deps.shaderInspector,
+            history = deps.playbackHistory,
+            mediaLibrary = deps.mediaLibrary,
+        ),
+    )
+
     private val libraryFactory =
         LibraryComponentFactory(deps.mediaLibrary, deps.libraryPreferences, deps.playbackHistory)
 
@@ -98,21 +116,12 @@ class RootComponent(
         )
 
         is Config.Player -> Child.Player(
-            PlayerComponent(
-                componentContext = componentContext,
-                media = MediaSource(uri = config.uri, title = config.title),
-                settings = deps.settings,
-                engineRegistry = deps.engineRegistry,
-                deviceStatusMonitor = deps.deviceStatusMonitor,
-                contentClassifier = deps.contentClassifier,
-                presetStores = deps.presetStores,
-                userShaderStore = deps.userShaderStore,
-                shaderInspector = deps.shaderInspector,
-                history = deps.playbackHistory,
-                mediaLibrary = deps.mediaLibrary,
-                onOpenVideo = ::openVideo,
-                onFinished = navigation::pop,
-            ),
+            playerFactory.create(componentContext, MediaSource(uri = config.uri, title = config.title)) { output ->
+                when (output) {
+                    is PlayerOutput.OpenVideo -> openVideo(output.uri, output.title)
+                    PlayerOutput.Finished -> navigation.pop()
+                }
+            },
         )
 
         is Config.Settings -> Child.Settings(

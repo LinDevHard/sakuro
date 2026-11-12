@@ -7,7 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
-import com.rinwave.sakuro.playback.incomingVideoUri
+import com.rinwave.sakuro.core.ui.incomingVideoUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch

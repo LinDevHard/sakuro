@@ -1,0 +1,409 @@
+package com.rinwave.sakuro.feature.player
+
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.essenty.lifecycle.doOnPause
+import com.rinwave.sakuro.core.detect.ClassificationRequest
+import com.rinwave.sakuro.core.detect.ContentClassifier
+import com.rinwave.sakuro.core.detect.ContentDetection
+import com.rinwave.sakuro.core.media.MediaLibrary
+import com.rinwave.sakuro.core.media.PlaybackHistoryStore
+import com.rinwave.sakuro.core.media.VideoItem
+import com.rinwave.sakuro.core.media.nextVideoInFolder
+import com.rinwave.sakuro.core.media.previousVideoInFolder
+import com.rinwave.sakuro.core.model.DeviceStatus
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.PlaybackHealth
+import com.rinwave.sakuro.core.model.UpscaleProfile
+import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.PlaybackHealthTracker
+import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.player.TrackSelection
+import com.rinwave.sakuro.core.player.TrackType
+import com.rinwave.sakuro.core.settings.SakuroSettings
+import com.rinwave.sakuro.core.ui.componentScope
+import com.rinwave.sakuro.core.ui.isInPipNow
+import com.rinwave.sakuro.core.upscale.AdaptiveController
+import com.rinwave.sakuro.core.upscale.BuiltInPresets
+import com.rinwave.sakuro.core.upscale.BundledShaders
+import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
+import com.rinwave.sakuro.core.upscale.PresetStores
+import com.rinwave.sakuro.core.upscale.ShaderInspector
+import com.rinwave.sakuro.core.upscale.UserShaderStore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+@Suppress("LongParameterList")
+public class PlayerComponent internal constructor(
+    componentContext: ComponentContext,
+    public val media: MediaSource,
+    private val settings: SakuroSettings,
+    engineRegistry: EngineRegistry,
+    deviceStatusMonitor: DeviceStatusMonitor,
+    contentClassifier: ContentClassifier,
+    presetStores: PresetStores,
+    userShaderStore: UserShaderStore,
+    internal val shaderInspector: ShaderInspector,
+    private val history: PlaybackHistoryStore,
+    private val mediaLibrary: MediaLibrary,
+    private val onOutput: (PlayerOutput) -> Unit,
+) : ComponentContext by componentContext {
+
+    private val userPresets = presetStores.user
+    private val pinnedPresets = presetStores.pinned
+
+    private val scope = componentScope()
+
+    /** The actual engine (the user's choice if available on the target). */
+    internal val activeEngineType: EngineType = engineRegistry.resolve(settings.engineType.value)
+
+    internal val engine: PlayerEngine = engineRegistry.create(settings.engineType.value)
+    internal val subtitlePreferences = settings.subtitlePreferences
+    internal val autoPlayNext = history.autoPlayNext
+    private val savedResumePosition = history.entry(media.uri)?.resumePositionMs ?: 0L
+    private val session = PlaybackSessionState(savedResumePosition)
+    private val _resumePosition = MutableStateFlow(savedResumePosition.takeIf { it > 0 })
+    internal val resumePosition = _resumePosition.asStateFlow()
+    private val _nextVideo = MutableStateFlow<VideoItem?>(null)
+    internal val nextVideo = _nextVideo.asStateFlow()
+    private val _previousVideo = MutableStateFlow<VideoItem?>(null)
+    internal val previousVideo = _previousVideo.asStateFlow()
+    private val _processingDisabled = MutableStateFlow(false)
+    internal val processingDisabled = _processingDisabled.asStateFlow()
+
+    /** "Auto" + built-in + user presets (FEATURES.md §2.2). */
+    internal val presets: StateFlow<List<UpscaleProfile>> = userPresets.presets
+        .map { user -> listOf(AUTO_PRESET) + BuiltInPresets.all + user }
+        .stateIn(scope, SharingStarted.Eagerly, listOf(AUTO_PRESET) + BuiltInPresets.all + userPresets.presets.value)
+
+    internal val debugOverlay: StateFlow<Boolean> = settings.debugOverlay
+
+    /** Whether adaptive preset degradation is enabled (for the debug overlay indicator). */
+    internal val adaptiveEnabled: StateFlow<Boolean> = settings.adaptiveEnabled
+
+    /** Master switch for swipes/pinch in the player (FEATURES.md §3.2). */
+    internal val gesturesEnabled: StateFlow<Boolean> = settings.gesturesEnabled
+
+    /** Per-gesture switches, honoured only while [gesturesEnabled] is on. */
+    internal val gestureBrightness: StateFlow<Boolean> = settings.gestureBrightness
+    internal val gestureVolume: StateFlow<Boolean> = settings.gestureVolume
+    internal val gestureSeek: StateFlow<Boolean> = settings.gestureSeek
+    internal val gestureZoom: StateFlow<Boolean> = settings.gestureZoom
+
+    /** Swipe sensitivity multiplier (FEATURES.md §3.2). */
+    internal val gestureSensitivity: StateFlow<Float> = settings.gestureSensitivity
+
+    /** The user's choice (including "auto"); the actually applied chain may differ. */
+    private val _selectedPresetId = MutableStateFlow(initialPresetId())
+    internal val selectedPresetId: StateFlow<String> = _selectedPresetId.asStateFlow()
+
+    /**
+     * A shader applied straight from the player, without saving a preset:
+     * the chain is a single file and its `//!PARAM` values can be moved while
+     * the video plays. Null — the selected preset is in charge.
+     */
+    private val _liveShader = MutableStateFlow<LiveShader?>(null)
+    internal val liveShader: StateFlow<LiveShader?> = _liveShader.asStateFlow()
+
+    /** What the user picked: a live shader wins over the preset while it is set. */
+    private data class Selection(val presetId: String, val live: LiveShader?, val bypass: Boolean = false)
+
+    private val selection = combine(_selectedPresetId, _liveShader, _processingDisabled) { id, live, bypass ->
+        Selection(id, live, bypass)
+    }
+
+    /** Shaders that can be applied live: imported files plus the bundled registry. */
+    internal val shaderFiles: StateFlow<List<String>> = userShaderStore.shaders
+        .map { imported -> imported + BundledShaders.all.map { it.fileName }.filterNot { it in imported } }
+        .stateIn(
+            scope,
+            SharingStarted.Eagerly,
+            userShaderStore.shaders.value +
+                BundledShaders.all.map { it.fileName }.filterNot { it in userShaderStore.shaders.value },
+        )
+
+    /**
+     * The preset is pinned to this file (FEATURES.md §1.3): the sheet's choice changes the pin,
+     * not the global default.
+     */
+    internal val isPinned: StateFlow<Boolean> = pinnedPresets.pins
+        .map { media.uri in it }
+        .stateIn(scope, SharingStarted.Eagerly, media.uri in pinnedPresets.pins.value)
+
+    private val _detection = MutableStateFlow(ContentDetection.UNKNOWN)
+    internal val detection: StateFlow<ContentDetection> = _detection.asStateFlow()
+
+    private val _adaptiveDecision = MutableStateFlow<AdaptiveController.Decision?>(null)
+    internal val adaptiveDecision: StateFlow<AdaptiveController.Decision?> = _adaptiveDecision.asStateFlow()
+
+    private val adaptiveController = AdaptiveController()
+    private val healthTracker = PlaybackHealthTracker()
+    private var appliedProfile: UpscaleProfile
+    private var viewportWidth = 0
+    private var viewportHeight = 0
+
+    init {
+        appliedProfile = resolveUserProfile(Selection(_selectedPresetId.value, null), _detection.value)
+        engine.setSubtitlePreferences(subtitlePreferences.value)
+        engine.setUpscaleDisplayLimit(settings.upscaleDisplayLimit.value)
+        engine.applyUpscale(appliedProfile)
+        engine.load(media)
+        if (session.awaitingChoice) engine.pause()
+        // In PiP the activity is "paused", but the video must keep playing.
+        lifecycle.doOnPause {
+            saveProgress(force = true)
+            if (!isInPipNow()) engine.pause()
+        }
+        lifecycle.doOnDestroy {
+            saveProgress(force = true)
+            engine.release()
+        }
+        scope.launch { subtitlePreferences.collect { engine.setSubtitlePreferences(it) } }
+        scope.launch { settings.upscaleDisplayLimit.collect { engine.setUpscaleDisplayLimit(it) } }
+        scope.launch {
+            val videos = mediaLibrary.scan()
+            _nextVideo.value = nextVideoInFolder(videos, media.uri)
+            _previousVideo.value = previousVideoInFolder(videos, media.uri)
+        }
+        scope.launch {
+            engine.state.collect {
+                applyPendingResume()
+                saveProgress()
+            }
+        }
+        scope.launch {
+            combine(engine.state, nextVideo, autoPlayNext) { state, next, enabled ->
+                if (session.shouldAdvance(state.status, enabled, next != null)) next else null
+            }.collect { next ->
+                if (next != null) openAdjacent(next)
+            }
+        }
+
+        scope.launch {
+            contentClassifier.classify(ClassificationRequest(uri = media.uri, title = media.title))
+                .collect { _detection.value = it }
+        }
+        // The adaptive loop (ARCHITECTURE.md §5): the decision is recomputed on every
+        // debug-stats snapshot and on any change of preset/class/device state.
+        scope.launch {
+            combine(
+                engine.debugStats,
+                deviceStatusMonitor.status,
+                selection,
+                _detection,
+                userPresets.presets,
+            ) { stats, device, current, detection, _ ->
+                AdaptiveInputs(resolveUserProfile(current, detection), device, healthTracker.update(stats))
+            }.combine(settings.adaptiveEnabled) { inputs, adaptive ->
+                if (adaptive) {
+                    adaptiveController.update(inputs.user, inputs.device, inputs.health)
+                } else {
+                    // The toggle is off — apply the selected preset without degradation
+                    // (clean quality measurements). We reset the controller so that on
+                    // re-enable the streak/level start over.
+                    adaptiveController.reset()
+                    AdaptiveController.Decision(
+                        requested = inputs.user,
+                        effective = inputs.user,
+                        level = 0,
+                        reason = null,
+                    )
+                }
+            }.collect { decision ->
+                _adaptiveDecision.value = decision
+                // applyUpscale on a prepared player = re-prepare,
+                // so we poke the engine only on a real chain change.
+                if (decision.effective != appliedProfile) {
+                    appliedProfile = decision.effective
+                    engine.applyUpscale(decision.effective)
+                }
+            }
+        }
+    }
+
+    private fun resolveUserProfile(selection: Selection, detection: ContentDetection): UpscaleProfile {
+        if (selection.bypass) return BuiltInPresets.OFF
+        selection.live?.let { return it.toProfile() }
+        return when (val selectedId = selection.presetId) {
+            AUTO_PRESET_ID -> BuiltInPresets.forContentClass(detection.contentClass)
+            else -> BuiltInPresets.byId(selectedId) ?: userPresets.byId(selectedId) ?: BuiltInPresets.OFF
+        }
+    }
+
+    /** A file-pinned preset takes priority over the global default; a broken pin is cleared. */
+    private fun initialPresetId(): String {
+        val pinned = pinnedPresets.presetIdFor(media.uri) ?: return settings.presetId.value
+        if (isKnownPreset(pinned)) return pinned
+        pinnedPresets.unpin(media.uri)
+        return settings.presetId.value
+    }
+
+    private fun isKnownPreset(id: String): Boolean =
+        id == AUTO_PRESET_ID || BuiltInPresets.byId(id) != null || userPresets.byId(id) != null
+
+    internal fun applyPreset(id: String) {
+        if (!isKnownPreset(id)) return
+        // Choosing a preset ends the live-shader experiment.
+        _liveShader.value = null
+        if (isPinned.value) pinnedPresets.pin(media.uri, id) else settings.setPresetId(id)
+        _selectedPresetId.value = id
+    }
+
+    /**
+     * Applies a single shader right away, without saving a preset. Null returns
+     * control to the selected preset. Values start at the shader's defaults;
+     * [setShaderParam] moves them while playing.
+     */
+    internal fun applyShader(fileName: String?) {
+        _liveShader.value = fileName?.let { LiveShader(it) }
+    }
+
+    /** Live `//!PARAM` change; null restores that param's default. */
+    internal fun setShaderParam(name: String, value: Float?) {
+        _liveShader.update { current ->
+            if (current == null) {
+                null
+            } else {
+                val params = if (value == null) current.params - name else current.params + (name to value)
+                current.copy(params = params)
+            }
+        }
+    }
+
+    /** Unpinning does not touch the current choice — the global default returns on next open. */
+    internal fun togglePinned() {
+        if (isPinned.value) {
+            pinnedPresets.unpin(media.uri)
+        } else {
+            pinnedPresets.pin(media.uri, _selectedPresetId.value)
+        }
+    }
+
+    /**
+     * Entering/leaving PiP or rotating the player viewport: the Media3 videoEffects
+     * GL pipeline is bound to the surface size at prepare time; after a window resize
+     * the frame is drawn with the old geometry — so we restart the chain.
+     */
+    internal fun onPipModeChanged() {
+        refreshMedia3OutputGeometry()
+    }
+
+    internal fun onViewportSizeChanged(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        if (width == viewportWidth && height == viewportHeight) return
+
+        val hadViewport = viewportWidth > 0 && viewportHeight > 0
+        viewportWidth = width
+        viewportHeight = height
+
+        if (hadViewport) {
+            refreshMedia3OutputGeometry()
+        }
+    }
+
+    private fun refreshMedia3OutputGeometry() {
+        if (activeEngineType == EngineType.MEDIA3) {
+            engine.applyUpscale(appliedProfile)
+        }
+    }
+
+    private fun saveProgress(force: Boolean = false) {
+        session.checkpoint(engine.state.value, force)?.let {
+            history.record(media.uri, it.positionMs, it.durationMs)
+        }
+    }
+
+    internal fun chooseResume(continueWatching: Boolean) {
+        session.chooseResume(continueWatching)
+        if (!continueWatching) history.clear(media.uri)
+        _resumePosition.value = null
+        applyPendingResume()
+    }
+
+    private fun applyPendingResume() {
+        session.takePendingSeek(engine.state.value)?.let { target ->
+            engine.seekTo(target)
+            if (lifecycle.state == Lifecycle.State.RESUMED || isInPipNow()) engine.play()
+        }
+    }
+
+    internal fun playNext() { nextVideo.value?.let(::openAdjacent) }
+    internal fun playPrevious() { previousVideo.value?.let(::openAdjacent) }
+    internal fun setAutoPlayNext(enabled: Boolean) = history.setAutoPlayNext(enabled)
+
+    private fun openAdjacent(video: VideoItem) {
+        saveProgress(force = true)
+        onOutput(PlayerOutput.OpenVideo(video.uri, video.title))
+    }
+
+    /** Session-local bypass; adaptive/profile updates cannot turn processing back on. */
+    internal fun retryWithoutProcessing() {
+        _processingDisabled.value = true
+        adaptiveController.reset()
+        healthTracker.reset()
+        appliedProfile = BuiltInPresets.OFF
+        engine.applyUpscale(BuiltInPresets.OFF)
+        if (!session.awaitingChoice) engine.play()
+    }
+
+    internal fun selectTrack(selection: TrackSelection) {
+        if (selection.type == TrackType.SUBTITLE) {
+            val language = engine.state.value.tracks.firstOrNull { it.id == selection.trackId }?.language
+            if (!language.isNullOrBlank()) {
+                val preferences = subtitlePreferences.value.copy(preferredLanguage = language)
+                engine.setSubtitlePreferences(preferences)
+                settings.setSubtitlePreferences(preferences)
+            }
+        }
+        engine.selectTrack(selection)
+    }
+
+    internal fun toggleDebugOverlay() = settings.setDebugOverlay(!settings.debugOverlay.value)
+
+    internal fun onBack() = onOutput(PlayerOutput.Finished)
+
+    internal companion object {
+        const val AUTO_PRESET_ID = "auto"
+
+        /** A pseudo-preset: the real chain is chosen by content class (core-detect). */
+        val AUTO_PRESET = UpscaleProfile(
+            id = AUTO_PRESET_ID,
+            name = "Auto",
+            description = "The preset is chosen by content class",
+            builtIn = true,
+        )
+    }
+}
+
+/** A snapshot of the adaptive loop's inputs — to combine with the adaptiveEnabled toggle. */
+private data class AdaptiveInputs(
+    internal val user: UpscaleProfile,
+    internal val device: DeviceStatus,
+    internal val health: PlaybackHealth,
+)
+
+/**
+ * A shader applied straight from the player: one-file chain plus the
+ * `//!PARAM` values being tuned. It never reaches the preset store — closing
+ * the player forgets it.
+ */
+internal data class LiveShader(
+    internal val fileName: String,
+    internal val params: Map<String, Float> = emptyMap(),
+) {
+    internal fun toProfile(): UpscaleProfile = UpscaleProfile(
+        id = "live-$fileName",
+        name = BundledShaders.byFileName(fileName)?.displayName ?: fileName,
+        shaderChain = listOf(fileName),
+        shaderParams = if (params.isEmpty()) emptyMap() else mapOf(fileName to params),
+    )
+}

@@ -14,10 +14,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
+import com.rinwave.sakuro.core.ui.PipActionReceiver
+import com.rinwave.sakuro.core.ui.PipBridge
 import com.rinwave.sakuro.di.AppDependencies
 import com.rinwave.sakuro.navigation.RootComponent
-import com.rinwave.sakuro.ui.PipActionReceiver
-import com.rinwave.sakuro.ui.PipBridge
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext

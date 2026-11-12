@@ -39,7 +39,7 @@
         </activity>
 
         <receiver
-            android:name=".ui.PipActionReceiver"
+            android:name="com.rinwave.sakuro.core.ui.PipActionReceiver"
             android:exported="false" />
 
         <!-- Shares benchmark bundles (filesDir/bench) via the system share sheet. -->

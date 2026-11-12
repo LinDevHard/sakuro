@@ -1,0 +1,73 @@
+package com.rinwave.sakuro.feature.player
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.rinwave.sakuro.core.designsystem.SakuroColors
+import com.rinwave.sakuro.core.player.DebugStats
+
+/** "Stats for nerds" (FEATURES.md §4): a monospaced, unobtrusive overlay. */
+@Composable
+internal fun DebugOverlay(component: PlayerComponent, modifier: Modifier = Modifier) {
+    val stats by component.engine.debugStats.collectAsState(initial = DebugStats())
+    val state by component.engine.state.collectAsState()
+    val detection by component.detection.collectAsState()
+    val adaptive by component.adaptiveDecision.collectAsState()
+    val adaptiveEnabled by component.adaptiveEnabled.collectAsState()
+
+    val lines = buildList {
+        add("engine    ${stats.engine}")
+        stats.videoDecoder?.let { add("decoder   $it") }
+        stats.videoCodec?.let { add("vcodec    $it") }
+        val src = stats.sourceResolution
+        val out = stats.outputResolution
+        if (src != null) add("video     $src → ${out ?: src}")
+        stats.videoFps?.let { add("fps       $it") }
+        add("dropped   ${stats.droppedFrames}")
+        stats.bitrateKbps?.let { add("bitrate   $it kbps") }
+        stats.colorInfo?.let { add("color     $it") }
+        stats.audioCodec?.let {
+            add("audio     $it ${stats.audioChannels ?: "?"}ch ${stats.audioSampleRateHz ?: "?"}Hz")
+        }
+        add("preset    ${stats.upscaleProfile ?: "—"}")
+        stats.upscalePasses.forEach { add("  pass    $it") }
+        add("effects   ${stats.upscaleRuntimeState.name.lowercase()}")
+        stats.upscaleRuntimeReason?.let { add("  reason  $it") }
+        val confidencePercent = (detection.confidence * 100).toInt()
+        add("detect    ${detection.contentClass.name.lowercase()} $confidencePercent% (${detection.source})")
+        when {
+            // The toggle is off — the preset is applied as-is (clean measurements).
+            !adaptiveEnabled -> add("adaptive  off (preset as-is)")
+            else -> adaptive?.takeIf { it.level > 0 }?.let {
+                add("adaptive  L${it.level} ${it.reason?.technicalText().orEmpty()}")
+            }
+        }
+        stats.extras.forEach { (k, v) -> add("$k  $v") }
+        add("status    ${state.status} speed=${state.speed}x")
+    }
+
+    Column(
+        modifier
+            .background(SakuroColors.Background.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+            .padding(10.dp),
+    ) {
+        lines.forEach { line ->
+            Text(
+                text = line,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp,
+                lineHeight = 14.sp,
+                color = SakuroColors.TextPrimary,
+            )
+        }
+    }
+}
