@@ -1,15 +1,9 @@
 # Temporary exceptions to ModuleRules (build-logic). One ":from -> :to" per line.
 # Entries may only be removed; checkModuleGraph fails on stale ones.
 
-# Task 3 renames :composeApp; Tasks 6-10 replace these with :shared -> :feature:* and app-level engine edges.
-:composeApp -> :core:core-detect
-:composeApp -> :core:core-media
-:composeApp -> :core:core-player
-:composeApp -> :core:core-settings
-:composeApp -> :core:core-upscale
-:composeApp -> :engine:engine-fake
-:composeApp -> :engine:engine-media3
-:composeApp -> :engine:engine-mpv
+# Tasks 6-10 remove these: the bench and the fake-surface preview move out of :shared.
+:shared -> :engine:engine-fake
+:shared -> :engine:engine-media3
 
 # Task 4 (core-model / core-data) removes these.
 :core:core-detect -> :core:core-upscale

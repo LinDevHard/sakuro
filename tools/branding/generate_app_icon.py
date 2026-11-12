@@ -7,7 +7,7 @@ shapes, so the full-color, monochrome (Android 13 themed) and SVG master
 versions never drift apart.
 
 Outputs:
-  composeApp/src/androidMain/res/drawable/ic_launcher_{background,foreground,monochrome}.xml
+  androidApp/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml
   assets/branding/sakuro-app-icon.svg             (full color, store/README master)
   assets/branding/sakuro-app-icon-monochrome.svg  (single-color mark, transparent)
 
@@ -23,7 +23,7 @@ import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RES = ROOT / "composeApp/src/androidMain/res/drawable"
+RES = ROOT / "androidApp/src/main/res/drawable"
 BRANDING = ROOT / "assets/branding"
 
 # Palette (BRAND.md §2).

@@ -30,7 +30,9 @@ dependencyResolutionManagement {
     }
 }
 
-include(":composeApp")
+include(":androidApp")
+include(":desktopApp")
+include(":shared")
 include(":core:core-player")
 include(":core:core-upscale")
 include(":core:core-media")

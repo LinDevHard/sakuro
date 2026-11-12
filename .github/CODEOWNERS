@@ -11,7 +11,9 @@
 /.github/ @LinDevHard
 
 # Android app and shared UI.
-/composeApp/ @LinDevHard
+/androidApp/ @LinDevHard
+/desktopApp/ @LinDevHard
+/shared/ @LinDevHard
 
 # Core logic and playback engines.
 /core/ @LinDevHard

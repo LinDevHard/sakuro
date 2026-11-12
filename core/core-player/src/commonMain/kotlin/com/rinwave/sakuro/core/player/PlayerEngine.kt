@@ -58,7 +58,7 @@ enum class EngineType {
 
 /**
  * Each engine module provides a factory for its engine;
- * `composeApp` registers the target's available factories via DI.
+ * the app modules (`androidApp`, `desktopApp`) register the target's available factories via DI.
  */
 interface PlayerEngineFactory {
     val type: EngineType

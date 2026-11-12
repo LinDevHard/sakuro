@@ -50,10 +50,12 @@ A shared `PlayerEngine` interface remains useful for tests and tooling, but the 
 gradle/libs.versions.toml   version catalog
 build-logic/                convention plugins for KMP, Compose, Android, flavors
 
-composeApp/                 app UI, navigation, platform entry points
+androidApp/                 Android entry point, flavors, signing, packaging
+desktopApp/                 desktop UI sandbox entry point and packaging
+shared/                     app UI, navigation, DI composition root (KMP library)
   src/commonMain            Compose UI, Decompose components, Koin wiring, Coil
-  src/androidMain           Android Activity and flavors; depends on the product Media3 engine
-  src/desktopMain           JVM UI sandbox; depends on engine-fake
+  src/androidMain           Android platform bridges (PiP, pickers, thumbnails, bench runner)
+  src/desktopMain           desktop platform bridges
   src/iosMain               Future target after Android Media3 work stabilizes
 
 core/                       KMP logic libraries without UI
@@ -74,11 +76,11 @@ lib/                        Sakuro-independent libraries (candidates for standal
 iosApp/                     Future wrapper after the Android product runtime stabilizes
 ```
 
-Core logic lives in `core/*`; UI, navigation, and entry points live in `composeApp`; each engine is isolated under `engine/*` and depends only on `:core:core-player` (engine-media3 also uses `:lib:media3-usershader`). Modules under `lib/*` must not depend on any Sakuro module. `composeApp` should wire Media3 for product builds, fake for desktop/tests, and libmpv only for developer/reference workflows.
+Core logic lives in `core/*`; UI and navigation live in `shared`, entry points in `androidApp`/`desktopApp`; each engine is isolated under `engine/*` and depends only on `:core:core-player` (engine-media3 also uses `:lib:media3-usershader`). Modules under `lib/*` must not depend on any Sakuro module. `androidApp` wires Media3 for product builds, `desktopApp` and tests use the fake engine, and libmpv is wired only in the `full` flavor for developer/reference workflows.
 
 ### 3.1 JetBrains Alignment
 
-- `composeApp` + `iosApp` follows the current KMP wizard layout for shared Compose UI.
+- `shared` + `androidApp`/`desktopApp` (+ future `iosApp`) follows the KMP layout required by AGP 9: the application module does not apply `kotlin.multiplatform`.
 - The default hierarchy template owns intermediate source sets such as `appleMain`.
 - Targets are `androidTarget()`, `jvm("desktop")`, and iOS targets.
 - Interfaces + DI are preferred over `expect/actual` unless a declaration is truly platform-specific.
@@ -207,7 +209,7 @@ All dependencies in the `foss` flavor must be free software and free of propriet
 
 - detekt runs static analysis through `config/detekt/detekt.yml`.
 - ktlint formatting is provided through detekt-formatting or a single dedicated ktlint path; avoid duplicate rule systems.
-- Both tools belong in convention plugins and apply consistently to `composeApp` and `core/*`.
+- Both tools belong in convention plugins and apply consistently to every module.
 - CI blocks merges on detekt and ktlint checks.
 - A pre-commit hook may run fast checks on changed files.
 - Compose-specific detekt rules should catch common composable naming, state, and modifier mistakes.

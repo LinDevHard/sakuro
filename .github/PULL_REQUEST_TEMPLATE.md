@@ -15,8 +15,8 @@ Describe what changed and why.
 
 - [ ] `./gradlew test`
 - [ ] `./gradlew detekt`
-- [ ] `./gradlew :composeApp:assembleFossDebug`
-- [ ] `./gradlew :composeApp:assembleFossRelease`
+- [ ] `./gradlew :androidApp:assembleFossDebug`
+- [ ] `./gradlew :androidApp:assembleFossRelease`
 - [ ] Device/runtime checked
 - [ ] `sakuro-bench` evidence included or not applicable
 

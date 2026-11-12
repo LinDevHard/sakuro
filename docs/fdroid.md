@@ -21,8 +21,14 @@ and confirms that the offline flavor does not request Internet access.
 The build artifact is:
 
 ```text
-composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk
+androidApp/build/outputs/apk/foss/release/androidApp-foss-release-unsigned.apk
 ```
+
+The Android application module moved from `composeApp` to `androidApp`. The
+fdroiddata recipe must switch `subdir: composeApp` to `subdir: androidApp`
+(and any output path from `composeApp-foss-release-unsigned.apk` to
+`androidApp-foss-release-unsigned.apk`) in the same release that ships this
+layout.
 
 The shared release and signing workflow is documented in
 [`releasing.md`](releasing.md). Signing is forcibly disabled while producing

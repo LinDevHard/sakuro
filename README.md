@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1.21-7F52FF.svg)](https://kotlinlang.org/)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.2-4285F4.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Android](https://img.shields.io/badge/Android-minSdk%2026-3DDC84.svg)](composeApp/build.gradle.kts)
+[![Android](https://img.shields.io/badge/Android-minSdk%2026-3DDC84.svg)](gradle/libs.versions.toml)
 [![Status](https://img.shields.io/badge/status-early%20alpha-f5a623.svg)](#project-status)
 [![FOSS](https://img.shields.io/badge/FOSS-friendly-2ea44f.svg)](#licensing)
 
@@ -71,19 +71,19 @@ Requirements:
 Build the Android app:
 
 ```bash
-./gradlew :composeApp:assembleFossDebug
+./gradlew :androidApp:assembleFossDebug
 ```
 
 Install the debug APK:
 
 ```bash
-adb install -r composeApp/build/outputs/apk/foss/debug/composeApp-foss-debug.apk
+adb install -r androidApp/build/outputs/apk/foss/debug/androidApp-foss-debug.apk
 ```
 
 Build a release APK:
 
 ```bash
-./gradlew :composeApp:assembleFossRelease
+./gradlew :androidApp:assembleFossRelease
 ```
 
 Run the complete F-Droid quality and packaging pipeline:
@@ -98,7 +98,7 @@ See [docs/fdroid.md](docs/fdroid.md) for metadata, tagging and submission detail
 Run the desktop UI sandbox:
 
 ```bash
-./gradlew :composeApp:desktopRun
+./gradlew :desktopApp:run
 ```
 
 Run tests:
@@ -134,7 +134,9 @@ See [tools/sakuro-bench/README.md](tools/sakuro-bench/README.md) for the full me
 ## Module Layout
 
 ```text
-composeApp/            Compose UI, navigation, Android entry point, Desktop sandbox
+androidApp/            Android entry point: Activity, Application, flavors, signing, R8
+desktopApp/            Desktop UI sandbox entry point and packaging
+shared/                Compose UI, navigation and DI composition root
 core/core-player/      PlayerEngine API, state, tracks, debug stats, engine registry
 core/core-upscale/     Upscale profiles, built-in presets, stores, adaptive controller
 core/core-media/       Media library model, Android MediaStore integration, desktop samples

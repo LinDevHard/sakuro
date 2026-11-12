@@ -84,7 +84,7 @@ The player needs a configurable and adaptive gesture set.
 
 Requirements: configurable sensitivity, safe interaction with system edge gestures and `WindowInsets`, good behavior across device sizes, and haptics for key actions.
 
-Implementation belongs in `composeApp` through Compose gesture APIs so it is shared across the product runtime and sandbox targets. Desktop equivalents such as mouse wheel and drag are secondary.
+Implementation belongs in the shared Compose UI through Compose gesture APIs so it is shared across the product runtime and sandbox targets. Desktop equivalents such as mouse wheel and drag are secondary.
 
 ## 4. Debug Overlay
 
@@ -102,5 +102,5 @@ Implementation: `PlayerEngine.debugStats: Flow<DebugStats>` in `:core:core-playe
 |---|---|
 | Content auto-detect | `:core:core-detect` with `ContentClassifier -> Flow<ContentClass>` |
 | Presets | `:core:core-upscale` with `Preset`, `UpscaleProfile`, store, import/export |
-| Gestures | `composeApp` gesture handling |
+| Gestures | shared Compose gesture handling |
 | Debug overlay | `PlayerEngine.debugStats: Flow<DebugStats>` plus UI overlay |

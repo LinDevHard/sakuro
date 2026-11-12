@@ -24,8 +24,8 @@ Requirements:
 Useful commands:
 
 ```bash
-./gradlew :composeApp:assembleFossDebug
-./gradlew :composeApp:assembleFossRelease
+./gradlew :androidApp:assembleFossDebug
+./gradlew :androidApp:assembleFossRelease
 ./gradlew test
 ./gradlew detekt
 # let ktlint rules fix formatting in place
@@ -35,7 +35,7 @@ Useful commands:
 Desktop UI sandbox:
 
 ```bash
-./gradlew :composeApp:desktopRun
+./gradlew :desktopApp:run
 ```
 
 Benchmark tooling:
@@ -69,8 +69,8 @@ cd tools/sakuro-bench
 Run the smallest useful check first, then broaden when the change touches shared behavior.
 
 - Pure Kotlin logic: relevant module test plus `./gradlew test` before submitting.
-- Android engine or app wiring: at least `./gradlew :composeApp:assembleFossDebug`.
-- Release-sensitive changes: `./gradlew :composeApp:assembleFossRelease`.
+- Android engine or app wiring: at least `./gradlew :androidApp:assembleFossDebug`.
+- Release-sensitive changes: `./gradlew :androidApp:assembleFossRelease`.
 - Static/style cleanup: `./gradlew detekt`.
 - Upscale quality changes: include `sakuro-bench` output or explain why it is not applicable.
 

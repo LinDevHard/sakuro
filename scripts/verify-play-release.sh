@@ -2,8 +2,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-apk_path="${1:-$repo_root/composeApp/build/outputs/apk/foss/release/composeApp-foss-release.apk}"
-aab_path="${2:-$repo_root/composeApp/build/outputs/bundle/fossRelease/composeApp-foss-release.aab}"
+apk_path="${1:-$repo_root/androidApp/build/outputs/apk/foss/release/androidApp-foss-release.apk}"
+aab_path="${2:-$repo_root/androidApp/build/outputs/bundle/fossRelease/androidApp-foss-release.aab}"
 
 for artifact in "$apk_path" "$aab_path"; do
   if [[ ! -s "$artifact" ]]; then
@@ -61,7 +61,7 @@ fi
 [[ "$actual_code" == "$expected_code" ]] || { echo "Unexpected versionCode: $actual_code" >&2; exit 1; }
 
 if [[ "${SAKURO_ENABLE_R8:-false}" == "true" ]]; then
-  mapping="$repo_root/composeApp/build/outputs/mapping/fossRelease/mapping.txt"
+  mapping="$repo_root/androidApp/build/outputs/mapping/fossRelease/mapping.txt"
   [[ -s "$mapping" ]] || { echo "R8 mapping is missing: $mapping" >&2; exit 1; }
 fi
 

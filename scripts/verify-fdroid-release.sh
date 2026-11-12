@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-apk_path="${1:-$repo_root/composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk}"
+apk_path="${1:-$repo_root/androidApp/build/outputs/apk/foss/release/androidApp-foss-release-unsigned.apk}"
 
 if [[ ! -f "$apk_path" ]]; then
   echo "F-Droid APK not found: $apk_path" >&2
@@ -13,8 +13,8 @@ dependencies_file="$(mktemp)"
 archive_file="$(mktemp)"
 trap 'rm -f "$dependencies_file" "$archive_file"' EXIT
 
-"$repo_root/gradlew" -q -p "$repo_root" :composeApp:dependencies \
-  --configuration androidFossReleaseRuntimeClasspath >"$dependencies_file"
+"$repo_root/gradlew" -q -p "$repo_root" :androidApp:dependencies \
+  --configuration fossReleaseRuntimeClasspath >"$dependencies_file"
 
 if grep -Eiq 'dev\.jdtech\.mpv|com\.google\.firebase|com\.google\.android\.gms|play-services|crashlytics' "$dependencies_file"; then
   echo "F-Droid runtime graph contains a forbidden reference or proprietary dependency:" >&2

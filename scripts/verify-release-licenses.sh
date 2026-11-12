@@ -24,8 +24,8 @@ for notice in "${required_notices[@]}"; do
   fi
 done
 
-"$repo_root/gradlew" -q -p "$repo_root" :composeApp:dependencies \
-  --configuration androidFossReleaseRuntimeClasspath >"$dependencies_file"
+"$repo_root/gradlew" -q -p "$repo_root" :androidApp:dependencies \
+  --configuration fossReleaseRuntimeClasspath >"$dependencies_file"
 
 sed -nE 's/^[| +\\-]*([^ :]+\.[^ :]+):([^ :]+):[^ ]+.*/\1:\2/p' \
   "$dependencies_file" | sort -u >"$components_file"

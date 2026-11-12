@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sakuro-fdroid-unsigned
-          path: composeApp/build/outputs/apk/foss/release/composeApp-foss-release-unsigned.apk
+          path: androidApp/build/outputs/apk/foss/release/androidApp-foss-release-unsigned.apk
           if-no-files-found: error
 
       - name: Upload dependency license report
@@ -110,7 +110,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           ACTUAL_CERT_SHA256="$(
-            "$APKSIGNER" verify --print-certs "dist/$RELEASE_TAG/composeApp-foss-release.apk" |
+            "$APKSIGNER" verify --print-certs "dist/$RELEASE_TAG/androidApp-foss-release.apk" |
               awk -F': ' '/certificate SHA-256 digest:/ { print $NF; exit }'
           )"
           test "$ACTUAL_CERT_SHA256" = "$EXPECTED_SIGNING_CERT_SHA256"
@@ -118,9 +118,9 @@ jobs:
       - name: Prepare stable release asset names
         run: |
           VERSION="${RELEASE_TAG#v}"
-          cp "dist/$RELEASE_TAG/composeApp-foss-release.apk" \
+          cp "dist/$RELEASE_TAG/androidApp-foss-release.apk" \
             "dist/$RELEASE_TAG/sakuro-${VERSION}-foss-release.apk"
-          cp "dist/$RELEASE_TAG/composeApp-foss-release.aab" \
+          cp "dist/$RELEASE_TAG/androidApp-foss-release.aab" \
             "dist/$RELEASE_TAG/sakuro-${VERSION}-foss-release.aab"
           rm -f "dist/$RELEASE_TAG/SHA256SUMS"
           (cd "dist/$RELEASE_TAG" && sha256sum -- * > SHA256SUMS)
