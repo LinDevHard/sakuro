@@ -1,5 +1,11 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.DeviceStatus
+import com.rinwave.sakuro.core.model.PlaybackHealth
+import com.rinwave.sakuro.core.model.ThermalLevel
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
+
 sealed interface AdaptiveReason {
     data class Thermal(val level: ThermalLevel) : AdaptiveReason
     data class FrameDrops(val percent: Float) : AdaptiveReason

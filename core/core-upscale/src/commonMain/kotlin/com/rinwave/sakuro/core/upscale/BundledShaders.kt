@@ -1,5 +1,7 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.ContentClass
+
 /** What a bundled shader does in a chain — mirrors the abstract [UpscalePass] kinds. */
 enum class BundledShaderRole { UPSCALE, SHARPEN, DENOISE, UTILITY }
 

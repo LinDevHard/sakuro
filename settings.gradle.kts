@@ -33,6 +33,7 @@ dependencyResolutionManagement {
 include(":androidApp")
 include(":desktopApp")
 include(":shared")
+include(":core:core-model")
 include(":core:core-player")
 include(":core:core-upscale")
 include(":core:core-media")

@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.player
 
-import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
+import com.rinwave.sakuro.core.model.DisplayLimitStatus
 
 enum class UpscaleRuntimeState {
     UNKNOWN,

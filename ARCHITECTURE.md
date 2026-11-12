@@ -59,6 +59,7 @@ shared/                     app UI, navigation, DI composition root (KMP library
   src/iosMain               Future target after Android Media3 work stabilizes
 
 core/                       KMP logic libraries without UI
+  core-model/               shared domain types; every other core module depends only on it
   core-player/              PlayerEngine, PlayerState, tracks, controller, DebugStats
   core-upscale/             UpscaleProfile/Preset, built-ins, import/export, AdaptiveController
   core-detect/              ContentClassifier for anime/cartoon/live-action

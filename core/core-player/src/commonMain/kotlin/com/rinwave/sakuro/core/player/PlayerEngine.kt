@@ -1,6 +1,9 @@
 package com.rinwave.sakuro.core.player
 
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.SubtitlePreferences
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -49,11 +52,6 @@ interface PlayerEngine {
     fun release()
 }
 
-enum class EngineType {
-    MPV,
-    MEDIA3,
-    FAKE,
-}
 // Display names for engines live in the UI layer (localized).
 
 /**

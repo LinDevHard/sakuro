@@ -1,5 +1,8 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

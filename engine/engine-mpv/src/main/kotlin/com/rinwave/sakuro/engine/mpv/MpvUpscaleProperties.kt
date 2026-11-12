@@ -1,9 +1,9 @@
 package com.rinwave.sakuro.engine.mpv
 
-import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.ParametricChain
-import com.rinwave.sakuro.core.upscale.UpscalePass
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlin.math.roundToInt
 
 /**

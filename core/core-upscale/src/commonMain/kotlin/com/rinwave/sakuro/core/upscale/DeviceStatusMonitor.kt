@@ -1,5 +1,6 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.DeviceStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 

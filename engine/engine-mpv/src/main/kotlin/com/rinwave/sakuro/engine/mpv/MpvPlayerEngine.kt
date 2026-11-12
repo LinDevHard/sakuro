@@ -4,10 +4,12 @@ import android.content.Context
 import android.net.Uri
 import android.view.Surface
 import android.view.SurfaceHolder
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.UpscaleProfile
+import com.rinwave.sakuro.core.model.describe
 import com.rinwave.sakuro.core.player.DebugStats
-import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.ExternalSubtitle
-import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
@@ -16,8 +18,6 @@ import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.describe
 import dev.jdtech.mpv.MPVLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext

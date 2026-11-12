@@ -1,5 +1,7 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

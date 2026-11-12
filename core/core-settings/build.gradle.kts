@@ -5,7 +5,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api(project(":core:core-player"))
+            api(project(":core:core-model"))
             api(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.noarg)
             implementation(libs.kotlinx.coroutines.core)

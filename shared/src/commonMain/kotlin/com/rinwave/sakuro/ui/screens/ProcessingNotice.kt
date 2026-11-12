@@ -1,12 +1,12 @@
 package com.rinwave.sakuro.ui.screens
 
+import com.rinwave.sakuro.core.model.DisplayLimitStatus
+import com.rinwave.sakuro.core.model.UpscaleProfile
+import com.rinwave.sakuro.core.model.describe
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
 import com.rinwave.sakuro.core.upscale.AdaptiveController
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
-import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.describe
 
 enum class ProcessingOutcome { REDUCED, DISABLED }
 

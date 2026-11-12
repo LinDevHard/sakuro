@@ -1,9 +1,9 @@
 package com.rinwave.sakuro.navigation
 
 import com.arkivanov.decompose.ComponentContext
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import kotlinx.coroutines.flow.StateFlow
 

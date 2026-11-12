@@ -3,12 +3,12 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 import com.rinwave.sakuro.core.media.DateBucket
 import com.rinwave.sakuro.core.media.LibrarySort
-import com.rinwave.sakuro.core.player.EngineType
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.BundledShaderRole
-import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.ShaderCost
-import com.rinwave.sakuro.core.upscale.UpscalePass
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import org.jetbrains.compose.resources.stringResource
 import sakuro.composeapp.generated.resources.Res
 import sakuro.composeapp.generated.resources.chain_denoise

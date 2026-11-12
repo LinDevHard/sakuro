@@ -5,7 +5,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            api(project(":core:core-upscale"))
+            api(project(":core:core-model"))
             api(libs.kotlinx.coroutines.core)
         }
     }

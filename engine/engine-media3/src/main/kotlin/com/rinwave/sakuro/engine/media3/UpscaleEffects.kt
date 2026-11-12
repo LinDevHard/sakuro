@@ -7,10 +7,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Presentation
 import com.rinwave.media3.usershader.ShaderDocument
 import com.rinwave.media3.usershader.UserShaderGlEffect
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.BundledShaderRole
 import com.rinwave.sakuro.core.upscale.ParametricChain
-import com.rinwave.sakuro.core.upscale.UpscalePass
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.engine.media3.anime4k.Anime4KChain
 import kotlin.math.roundToInt
 

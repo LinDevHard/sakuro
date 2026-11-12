@@ -2,10 +2,10 @@ package com.rinwave.sakuro.bench
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.MediaSource
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 

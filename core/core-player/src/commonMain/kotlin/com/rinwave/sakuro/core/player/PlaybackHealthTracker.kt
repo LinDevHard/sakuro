@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.player
 
-import com.rinwave.sakuro.core.upscale.PlaybackHealth
+import com.rinwave.sakuro.core.model.PlaybackHealth
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 

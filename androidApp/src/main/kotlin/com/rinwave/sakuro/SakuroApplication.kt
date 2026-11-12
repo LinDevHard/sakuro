@@ -10,8 +10,8 @@ import com.rinwave.sakuro.core.detect.FilenameContentClassifier
 import com.rinwave.sakuro.core.detect.FrameContentClassifier
 import com.rinwave.sakuro.core.detect.RetrieverFrameSampler
 import com.rinwave.sakuro.core.media.MediaStoreVideoLibrary
+import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.AndroidDeviceStatusMonitor
 import com.rinwave.sakuro.di.AndroidUserShaderStore

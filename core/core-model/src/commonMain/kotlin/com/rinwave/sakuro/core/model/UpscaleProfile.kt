@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.core.upscale
+package com.rinwave.sakuro.core.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,7 +20,7 @@ data class UpscaleProfile(
     val builtIn: Boolean = false,
     /**
      * An explicit mpv user-shader chain: ordered file names, each an imported
-     * shader or a vendored [BundledShaders] entry (an import shadows a bundled
+     * shader or a vendored `BundledShaders` entry (an import shadows a bundled
      * name). When non-empty it replaces the engine's own shader selection;
      * [passes] still drive the scaler properties and the adaptive controller.
      */
@@ -28,7 +28,7 @@ data class UpscaleProfile(
     /**
      * `//!PARAM` overrides for the chain, by shader file name then param name.
      * Only values the user changed are stored; everything else runs at the
-     * shader's own default (see [ShaderTunable]).
+     * shader's own default (see `ShaderTunable`).
      */
     val shaderParams: Map<String, Map<String, Float>> = emptyMap(),
 ) {

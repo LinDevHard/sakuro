@@ -3,9 +3,9 @@ package com.rinwave.sakuro.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import com.rinwave.sakuro.core.model.ScaleMode
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
-import com.rinwave.sakuro.core.player.ScaleMode
-import com.rinwave.sakuro.core.player.SubtitlePreferences
 
 /**
  * Draws one engine family's video output. The app module registers one per

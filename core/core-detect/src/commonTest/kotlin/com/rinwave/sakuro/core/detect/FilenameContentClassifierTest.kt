@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.detect
 
-import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.model.ContentClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

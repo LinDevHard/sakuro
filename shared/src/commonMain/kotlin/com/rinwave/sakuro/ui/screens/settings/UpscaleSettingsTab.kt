@@ -54,13 +54,13 @@ import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.Plus
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Trash2
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.BundledShader
 import com.rinwave.sakuro.core.upscale.BundledShaders
-import com.rinwave.sakuro.core.upscale.ContentClass
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.ShaderSupport
-import com.rinwave.sakuro.core.upscale.UpscalePass
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserPresetStore
 import com.rinwave.sakuro.navigation.UpscaleSettingsComponent
 import com.rinwave.sakuro.ui.displayDescription

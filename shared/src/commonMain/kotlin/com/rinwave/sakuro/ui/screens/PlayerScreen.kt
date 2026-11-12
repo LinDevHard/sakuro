@@ -74,10 +74,12 @@ import com.composables.icons.lucide.RotateCw
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
+import com.rinwave.sakuro.core.model.DisplayLimitStatus
+import com.rinwave.sakuro.core.model.ScaleMode
+import com.rinwave.sakuro.core.model.ThermalLevel
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
-import com.rinwave.sakuro.core.player.ScaleMode
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -85,9 +87,7 @@ import com.rinwave.sakuro.core.player.UpscaleRuntimeState
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders
-import com.rinwave.sakuro.core.upscale.DisplayLimitStatus
 import com.rinwave.sakuro.core.upscale.ShaderTunable
-import com.rinwave.sakuro.core.upscale.ThermalLevel
 import com.rinwave.sakuro.navigation.LiveShader
 import com.rinwave.sakuro.navigation.PlayerComponent
 import com.rinwave.sakuro.ui.ImmersiveMode

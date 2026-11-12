@@ -1,9 +1,11 @@
 package com.rinwave.sakuro.engine.fake
 
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.UpscaleProfile
+import com.rinwave.sakuro.core.model.describe
 import com.rinwave.sakuro.core.player.DebugStats
-import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.player.ExternalSubtitle
-import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
@@ -12,8 +14,6 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
-import com.rinwave.sakuro.core.upscale.describe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -84,7 +84,7 @@ class FakePlayerEngine : PlayerEngine {
 
     private fun outputResolution(s: PlayerState): String {
         val factor = profile.passes
-            .filterIsInstance<com.rinwave.sakuro.core.upscale.UpscalePass.Upscale>()
+            .filterIsInstance<com.rinwave.sakuro.core.model.UpscalePass.Upscale>()
             .fold(1f) { acc, pass -> acc * pass.factor }
         return "${(s.videoWidth * factor).toInt()}x${(s.videoHeight * factor).toInt()}"
     }

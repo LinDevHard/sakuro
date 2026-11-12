@@ -1,5 +1,9 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
+
 /**
  * Built-in presets for content classes (FEATURES.md §2.2).
  * On Media3 they are applied as ported GLSL ES passes, on libmpv as native `.glsl`.

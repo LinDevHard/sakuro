@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.core.upscale
+package com.rinwave.sakuro.core.model
 
 import kotlinx.serialization.Serializable
 

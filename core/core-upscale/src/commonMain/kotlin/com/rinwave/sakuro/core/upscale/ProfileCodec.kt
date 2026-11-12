@@ -1,5 +1,6 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlinx.serialization.json.Json
 
 /** Import/export presets via a file or a string (FEATURES.md §2.2). */

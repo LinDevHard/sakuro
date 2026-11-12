@@ -6,10 +6,10 @@ import android.view.SurfaceView
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import com.rinwave.sakuro.core.model.ScaleMode
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
-import com.rinwave.sakuro.core.player.ScaleMode
-import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.rinwave.sakuro.engine.mpv.MpvEngineFactory
 import com.rinwave.sakuro.engine.mpv.MpvPlayerEngine
 import com.rinwave.sakuro.engine.mpv.MpvScaleMode

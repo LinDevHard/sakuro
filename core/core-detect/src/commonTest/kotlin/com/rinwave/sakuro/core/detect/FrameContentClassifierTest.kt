@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.core.detect
 
-import com.rinwave.sakuro.core.upscale.ContentClass
+import com.rinwave.sakuro.core.model.ContentClass
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

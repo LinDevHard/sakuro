@@ -8,6 +8,7 @@ android {
 
 dependencies {
     api(project(":core:core-player"))
+    implementation(project(":core:core-upscale"))
     implementation(libs.kotlinx.coroutines.android)
     // Parsing the mpv `track-list` property (JSON) without @Serializable classes.
     implementation(libs.kotlinx.serialization.json)

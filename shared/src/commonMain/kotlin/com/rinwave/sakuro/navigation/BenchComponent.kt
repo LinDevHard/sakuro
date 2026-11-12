@@ -2,14 +2,14 @@ package com.rinwave.sakuro.navigation
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.bench.BenchConfigItem
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShader
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.PresetStores
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserShaderStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

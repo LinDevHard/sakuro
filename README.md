@@ -137,6 +137,7 @@ See [tools/sakuro-bench/README.md](tools/sakuro-bench/README.md) for the full me
 androidApp/            Android entry point: Activity, Application, flavors, signing, R8
 desktopApp/            Desktop UI sandbox entry point and packaging
 shared/                Compose UI, navigation and DI composition root
+core/core-model/       Shared domain types (profiles, content class, engine type, media source)
 core/core-player/      PlayerEngine API, state, tracks, debug stats, engine registry
 core/core-upscale/     Upscale profiles, built-in presets, stores, adaptive controller
 core/core-media/       Media library model, Android MediaStore integration, desktop samples

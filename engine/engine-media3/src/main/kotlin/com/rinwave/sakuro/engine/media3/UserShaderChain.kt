@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.rinwave.media3.usershader.MpvUserShaderParser
 import com.rinwave.media3.usershader.ShaderDocument
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.BundledShaders
-import com.rinwave.sakuro.core.upscale.UpscaleProfile
 import com.rinwave.sakuro.core.upscale.UserShaderStore
 import java.io.File
 

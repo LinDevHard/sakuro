@@ -12,8 +12,8 @@ import com.rinwave.sakuro.core.detect.FfmpegFrameSampler
 import com.rinwave.sakuro.core.detect.FilenameContentClassifier
 import com.rinwave.sakuro.core.detect.FrameContentClassifier
 import com.rinwave.sakuro.core.media.SampleVideoLibrary
+import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.EngineType
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.StaticDeviceStatusMonitor
 import com.rinwave.sakuro.di.AppDependencies

@@ -1,7 +1,7 @@
 package com.rinwave.sakuro.core.settings
 
-import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.SubtitlePreferences
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.russhwolf.settings.PreferencesSettings
 import java.util.UUID
 import java.util.prefs.Preferences

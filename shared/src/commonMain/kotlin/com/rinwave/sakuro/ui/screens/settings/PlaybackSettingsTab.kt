@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.Lucide
-import com.rinwave.sakuro.core.player.EngineType
-import com.rinwave.sakuro.core.player.SubtitlePreferences
+import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.navigation.PlaybackSettingsComponent
 import com.rinwave.sakuro.ui.hint
 import com.rinwave.sakuro.ui.label

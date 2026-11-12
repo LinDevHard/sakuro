@@ -1,6 +1,6 @@
 package com.rinwave.sakuro.ui.gestures
 
-import com.rinwave.sakuro.core.player.ScaleMode
+import com.rinwave.sakuro.core.model.ScaleMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

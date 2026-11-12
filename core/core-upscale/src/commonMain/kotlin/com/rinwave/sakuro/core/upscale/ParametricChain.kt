@@ -1,5 +1,8 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
+
 /** One resolved element of a parametric chain: a bundled shader and its `//!PARAM` values. */
 data class ParametricLink(
     val shader: BundledShader,

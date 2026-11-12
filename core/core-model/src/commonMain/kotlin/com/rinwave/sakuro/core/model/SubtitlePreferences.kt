@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.core.player
+package com.rinwave.sakuro.core.model
 
 /** Positive delay displays subtitles later; all positions remain relative to the media clock. */
 data class SubtitlePreferences(

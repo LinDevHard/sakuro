@@ -1,5 +1,9 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.DisplayLimitStatus
+import com.rinwave.sakuro.core.model.DisplaySize
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

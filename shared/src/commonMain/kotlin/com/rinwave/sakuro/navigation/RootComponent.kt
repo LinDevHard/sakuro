@@ -8,7 +8,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceCurrent
 import com.arkivanov.decompose.value.Value
-import com.rinwave.sakuro.core.player.MediaSource
+import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.di.AppDependencies
 import kotlinx.serialization.Serializable
 

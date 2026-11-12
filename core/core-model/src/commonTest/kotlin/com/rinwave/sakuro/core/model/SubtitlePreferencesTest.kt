@@ -1,4 +1,4 @@
-package com.rinwave.sakuro.core.player
+package com.rinwave.sakuro.core.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

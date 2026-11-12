@@ -27,8 +27,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
 import androidx.media3.common.util.UnstableApi
 import com.rinwave.sakuro.AppInfo
+import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.core.player.EngineRegistry
-import com.rinwave.sakuro.core.player.MediaSource
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.SurfaceVideoOutput

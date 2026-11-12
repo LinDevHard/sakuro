@@ -2,9 +2,9 @@ package com.rinwave.sakuro.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.rinwave.sakuro.core.model.ScaleMode
+import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
-import com.rinwave.sakuro.core.player.ScaleMode
-import com.rinwave.sakuro.core.player.SubtitlePreferences
 import com.rinwave.sakuro.engine.fake.FakePlayerEngine
 import kotlin.test.Test
 import kotlin.test.assertNull

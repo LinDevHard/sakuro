@@ -1,5 +1,11 @@
 package com.rinwave.sakuro.core.upscale
 
+import com.rinwave.sakuro.core.model.ContentClass
+import com.rinwave.sakuro.core.model.DeviceStatus
+import com.rinwave.sakuro.core.model.PlaybackHealth
+import com.rinwave.sakuro.core.model.ThermalLevel
+import com.rinwave.sakuro.core.model.UpscalePass
+import com.rinwave.sakuro.core.model.UpscaleProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
