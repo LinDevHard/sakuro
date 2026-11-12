@@ -28,6 +28,8 @@ Useful commands:
 ./gradlew :composeApp:assembleFossRelease
 ./gradlew test
 ./gradlew detekt
+# let ktlint rules fix formatting in place
+./gradlew detekt -Psakuro.detekt.autoCorrect=true
 ```
 
 Desktop UI sandbox:

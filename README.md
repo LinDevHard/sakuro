@@ -111,6 +111,8 @@ Run static analysis:
 
 ```bash
 ./gradlew detekt
+# let ktlint rules fix formatting in place
+./gradlew detekt -Psakuro.detekt.autoCorrect=true
 ```
 
 ## Benchmarking

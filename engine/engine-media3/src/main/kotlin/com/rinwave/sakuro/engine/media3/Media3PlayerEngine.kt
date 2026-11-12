@@ -5,6 +5,7 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.SystemClock
 import android.view.Display
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -59,7 +60,7 @@ import kotlinx.coroutines.launch
  * preparation, so live preset changes re-prepare the current item while preserving
  * playback position and play/pause state.
  */
-@UnstableApi
+@OptIn(UnstableApi::class)
 class Media3PlayerEngine(context: Context) : PlayerEngine {
 
     private val appContext: Context = context.applicationContext
@@ -505,7 +506,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
     }
 }
 
-@UnstableApi
+@OptIn(UnstableApi::class)
 class Media3EngineFactory(private val context: Context) : PlayerEngineFactory {
     override val type = EngineType.MEDIA3
     override fun create(): PlayerEngine = Media3PlayerEngine(context.applicationContext)

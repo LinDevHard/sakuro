@@ -143,6 +143,12 @@ android {
         includeInBundle = false
     }
 
+    lint {
+        // Also analyze the engine/core/lib modules the app links, in one report.
+        checkDependencies = true
+        abortOnError = true
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

@@ -33,9 +33,11 @@ actual fun rememberShaderFilePicker(onPicked: (name: String, content: String) ->
     ) { uri: Uri? ->
         if (uri != null) {
             runCatching {
-                val content = context.contentResolver.openInputStream(uri)!!
-                    .bufferedReader().use { it.readText() }
-                callback.value(context.displayName(uri) ?: "shader.glsl", content)
+                // null when the provider crashed or revoked access: nothing to import.
+                val content = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                if (content != null) callback.value(context.displayName(uri) ?: "shader.glsl", content)
             }.onFailure { if (it is CancellationException) throw it }
         }
     }

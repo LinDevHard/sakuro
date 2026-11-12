@@ -18,6 +18,7 @@ import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.WindowManager
+import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -95,7 +96,7 @@ actual fun BenchSurface(runner: BenchRunner, modifier: Modifier) {
  * capturing the same frames from every configuration. Everything lands in one
  * zip bundle consumed by `tools/sakuro-bench device-bundle`.
  */
-@UnstableApi
+@OptIn(UnstableApi::class)
 internal class AndroidBenchRunner(
     context: Context,
     private val registry: EngineRegistry,

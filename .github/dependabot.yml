@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Gradle version catalog, build-logic and wrapper.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Kotlin, the Compose compiler and KMP plugins must move together.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.compose*"
+      androidx-media3:
+        patterns:
+          - "androidx.media3:*"
+
+  # Keeps SHA-pinned actions current; the version comment is updated too.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: monthly

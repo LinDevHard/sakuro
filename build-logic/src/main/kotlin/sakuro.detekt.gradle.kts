@@ -12,7 +12,9 @@ private val libs = the<VersionCatalogsExtension>().named("libs")
 configure<DetektExtension> {
     buildUponDefaultConfig = true
     parallel = true
-    autoCorrect = true // ktlint (formatting) rules fix files themselves
+    // ktlint (formatting) rules may rewrite files only on request (-Psakuro.detekt.autoCorrect=true),
+    // so CI fails on violations instead of silently fixing them on the runner.
+    autoCorrect = providers.gradleProperty("sakuro.detekt.autoCorrect").orNull?.toBooleanStrictOrNull() ?: false
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
     source.setFrom(files("src"))
 }

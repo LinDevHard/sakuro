@@ -20,10 +20,12 @@ def release_properties(root)
 end
 
 platform :android do
-  desc "Run unit tests and static analysis"
+  desc "Run unit tests, detekt and Android Lint"
   lane :quality do
+    # Debug unit tests + JVM desktop tests cover every module once; the release
+    # unit-test variants and the full flavor add build time, not coverage.
     gradle(
-      task: "test detekt",
+      task: "testDebugUnitTest desktopTest :composeApp:testFossDebugUnitTest detekt :composeApp:lintFossRelease",
       gradle_path: gradle_wrapper,
       project_dir: project_root
     )

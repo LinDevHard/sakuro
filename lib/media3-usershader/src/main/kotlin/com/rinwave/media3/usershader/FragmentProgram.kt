@@ -1,7 +1,11 @@
+@file:OptIn(UnstableApi::class)
+
 package com.rinwave.media3.usershader
 
 import android.opengl.GLES20
+import androidx.annotation.OptIn
 import androidx.media3.common.util.GlUtil
+import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer

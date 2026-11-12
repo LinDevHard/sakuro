@@ -54,7 +54,7 @@ its path as `SAKURO_UPLOAD_KEYSTORE_FILE` together with the other three values.
 ## Lanes
 
 ```bash
-bundle exec fastlane android quality  # tests, detekt, dependency/license gate
+bundle exec fastlane android quality  # tests, detekt, Android Lint, dependency/license gate
 bundle exec fastlane android fdroid   # unsigned audited APK
 bundle exec fastlane android fdroid_release # clean tag + F-Droid release gates
 bundle exec fastlane android play     # signed APK + AAB
