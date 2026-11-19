@@ -16,7 +16,7 @@ detekt = "1.23.8"
 androidxTestRunner = "1.6.2"
 androidxTestExtJunit = "1.2.1"
 # prebuilt libmpv + the MPVLib JNI wrapper (Findroid's libmpv-android fork, Maven Central)
-libmpv = "1.0.0"
+libmpv = "1.1.0"
 
 # 37 — required by Compose 1.12 / androidx.core 1.19 (minCompileSdk in their AAR metadata)
 android-compileSdk = "37"
