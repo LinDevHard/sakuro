@@ -95,9 +95,4 @@ if [[ "$package_name" != "com.rinwave.sakuro" ]]; then
   exit 1
 fi
 
-if grep -q 'android.permission.INTERNET' <<<"$permissions"; then
-  echo "F-Droid APK requests INTERNET, but Sakuro's privacy policy declares an offline build" >&2
-  exit 1
-fi
-
 echo "F-Droid release verification passed: $apk_path"

@@ -10,6 +10,6 @@ Features:
 * Gesture controls and picture-in-picture playback
 * Technical playback statistics and an on-device benchmark for advanced users
 
-Sakuro is local-first. It contains no accounts, advertising, analytics, tracking, cloud sync or crash-reporting SDKs. The F-Droid build does not request Internet access. Video library data, settings and presets stay on the device.
+Sakuro is local-first. It contains no accounts, advertising, analytics, tracking, cloud sync or crash-reporting SDKs. Internet access is used only to play stream links you enter yourself. Video library data, settings and presets stay on the device.
 
 The application is free software released under GNU GPL v3.0.

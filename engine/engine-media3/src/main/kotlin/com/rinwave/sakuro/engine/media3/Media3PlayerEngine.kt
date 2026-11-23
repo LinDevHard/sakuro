@@ -15,21 +15,31 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.MediaController
+import com.google.common.util.concurrent.ListenableFuture
 import com.rinwave.sakuro.core.model.DisplayLimitStatus
 import com.rinwave.sakuro.core.model.DisplaySize
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.MediaSource
+import com.rinwave.sakuro.core.model.StreamFormat
+import com.rinwave.sakuro.core.model.StreamHeaders
+import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
+import com.rinwave.sakuro.core.player.PlaybackError
+import com.rinwave.sakuro.core.player.PlaybackErrorKind
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
@@ -38,10 +48,12 @@ import com.rinwave.sakuro.core.player.SurfaceVideoOutput
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
+import com.rinwave.sakuro.core.player.VideoQuality
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.DisplayUpscaleLimit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
@@ -49,6 +61,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -61,6 +74,12 @@ import kotlinx.coroutines.launch
  * by [UpscaleEffectChain]. Media3 only applies a changed effect chain after
  * preparation, so live preset changes re-prepare the current item while preserving
  * playback position and play/pause state.
+ *
+ * Network streams (HLS, DASH, progressive http(s)) share the same pipeline. Transient load
+ * failures are retried inside Media3 by [StreamLoadErrorPolicy]; a player-level failure on a
+ * remote item is then retried with backoff (waiting for connectivity first), and only after
+ * that surfaces as a classified [PlaybackError]. Protected content is reported as
+ * [PlaybackErrorKind.DRM] — Sakuro configures no DRM sessions.
  */
 @OptIn(UnstableApi::class)
 class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
@@ -70,9 +89,30 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     @Volatile
     private var subtitlePreferences = SubtitlePreferences()
 
+    private val network = NetworkAvailability(appContext)
+
+    /** Per-item request headers (User-Agent/Referer/Cookie from the link dialog); read per request. */
+    @Volatile
+    private var requestHeaders: Map<String, String> = emptyMap()
+
+    private val streamNetwork = StreamNetwork.get(appContext)
+
+    // Tuning from Reddit's production ExoPlayer experiments (Alexey Bykov, "Improving video
+    // playback with ExoPlayer"): decoder fallback, a shorter start buffer and a remembered
+    // bandwidth estimate. See [startupLoadControl] and [StreamNetwork.bandwidthMeter].
     val player: ExoPlayer = ExoPlayer.Builder(
         context,
-        SubtitleRenderersFactory(context) { subtitlePreferences.subtitlePositionUs(it) },
+        SubtitleRenderersFactory(context) { subtitlePreferences.subtitlePositionUs(it) }
+            // A busy or missing hardware decoder (error 4001, often held by another app) falls
+            // back to the next decoder, software if need be: slower, but it plays (−0.9% errors).
+            .setEnableDecoderFallback(true),
+    ).setMediaSourceFactory(
+        DefaultMediaSourceFactory(streamNetwork.dataSourceFactory { requestHeaders })
+            .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
+    ).setLoadControl(
+        startupLoadControl(),
+    ).setBandwidthMeter(
+        streamNetwork.bandwidthMeter,
     ).setAudioAttributes(
         AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -87,6 +127,22 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     override val state = _state.asStateFlow()
 
     private var currentMedia: MediaSource? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var inBackground = false
+
+    /** A chain change arrived while hidden; rebuilt (re-prepared) on return to the foreground. */
+    private var effectsPendingForForeground = false
+    private var selectedQualityId: String? = null
+    private val timelineWindow = Timeline.Window()
+    private var reconnectJob: Job? = null
+    private var reconnectAttempt = 0
+
+    /**
+     * For adaptive streams the chain is sized from the best variant, not the one currently
+     * decoding: ABR switches would otherwise rebuild the chain (= re-prepare and rebuffer),
+     * and the rebuffer would push ABR down again.
+     */
+    private var adaptiveSourceSize: Pair<Int, Int>? = null
     private var currentProfile: UpscaleProfile = BuiltInPresets.OFF
     private val externalSubtitles = mutableListOf<ExternalSubtitle>()
 
@@ -107,7 +163,17 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
-            _state.update { it.copy(status = mapStatus(playbackState)) }
+            if (playbackState == Player.STATE_READY) reconnectAttempt = 0
+            _state.update {
+                // IDLE after a failure must not hide the error or a pending reconnect.
+                if (playbackState == Player.STATE_IDLE && (it.error != null || it.reconnectAttempt > 0)) {
+                    it
+                } else if (playbackState == Player.STATE_READY) {
+                    it.copy(status = PlaybackStatus.READY, reconnectAttempt = 0, waitingForNetwork = false)
+                } else {
+                    it.copy(status = mapStatus(playbackState))
+                }
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -124,11 +190,15 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = error.errorCodeName) }
+            handlePlayerError(error)
         }
 
         override fun onTracksChanged(tracks: Tracks) {
             _state.update { it.copy(tracks = mapTracks(tracks)) }
+            if (checkPlayableTracks(tracks)) {
+                updateAdaptiveSourceSize(tracks)
+                updateQualities(tracks)
+            }
         }
 
         override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
@@ -174,6 +244,10 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
                         positionMs = player.currentPosition.coerceAtLeast(0),
                         durationMs = player.duration.takeIf { d -> d != C.TIME_UNSET } ?: 0L,
                         bufferedMs = player.bufferedPosition.coerceAtLeast(0),
+                        isLive = player.isCurrentMediaItemLive,
+                        liveBehindMs = liveBehindMs(),
+                        isSeekable = player.isCurrentMediaItemSeekable || player.playbackState == Player.STATE_IDLE,
+                        playingQualityId = playingQualityId(it.videoQualities),
                     )
                 }
                 // With active video effects, Media3 may not always dispatch
@@ -193,7 +267,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             _state.update { it.copy(videoWidth = width, videoHeight = height) }
         }
         // Rebuild both the first unknown-size chain and chains for a changed source.
-        if (effectSourceSize.needsRebuild(height)) {
+        if (effectSourceSize.needsRebuild(adaptiveSourceSize?.second ?: height)) {
             applyUpscale(currentProfile)
         }
     }
@@ -210,8 +284,27 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         externalSubtitles.clear()
         droppedFrames = 0
         lastRenderSample = null
+        adaptiveSourceSize = null
+        selectedQualityId = null
+        effectsPendingForForeground = false
+        requestHeaders = if (StreamUrl.isRemote(media.uri)) StreamHeaders.sanitize(media.headers) else emptyMap()
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+            .build()
+        cancelReconnect()
         _state.update {
-            it.copy(status = PlaybackStatus.BUFFERING, errorMessage = null, videoWidth = 0, videoHeight = 0)
+            it.copy(
+                status = PlaybackStatus.BUFFERING,
+                errorMessage = null,
+                error = null,
+                videoWidth = 0,
+                videoHeight = 0,
+                isLive = false,
+                liveBehindMs = 0L,
+                videoQualities = emptyList(),
+                selectedQualityId = null,
+                playingQualityId = null,
+            )
         }
         setEffectsInternal()
         player.setMediaItem(media.toMediaItem())
@@ -236,6 +329,221 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     override fun setSpeed(speed: Float) {
         player.setPlaybackSpeed(speed)
+    }
+
+    override fun attachMediaSession() {
+        PlaybackSessionRegistry.publish(player)
+        // Created by autoplay while the app is hidden: start audio-only like the previous engine.
+        if (PlaybackSessionRegistry.uiInBackground) setBackground(true)
+        if (controllerFuture == null) controllerFuture = SakuroPlaybackService.connect(appContext)
+    }
+
+    /**
+     * Media3's advice for audio-only background playback: drop the video renderer, so nothing
+     * is decoded and the upscale chain gets no frames (no GPU work). The chain itself and any
+     * pinned quality override stay in the player and apply again when video is re-enabled.
+     */
+    override fun setBackground(background: Boolean) {
+        PlaybackSessionRegistry.uiInBackground = background
+        if (background == inBackground) return
+        inBackground = background
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, background)
+            .build()
+        if (!background && effectsPendingForForeground) {
+            effectsPendingForForeground = false
+            applyUpscale(currentProfile)
+        }
+    }
+
+    override fun selectVideoQuality(qualityId: String?) {
+        val builder = player.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+        val target = qualityId?.let(::parseTrackId)
+        if (target != null) {
+            val group = player.currentTracks.groups.getOrNull(target.first) ?: return
+            builder.setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, target.second))
+        }
+        selectedQualityId = qualityId.takeIf { target != null }
+        player.trackSelectionParameters = builder.build()
+        _state.update { it.copy(selectedQualityId = selectedQualityId) }
+    }
+
+    override fun seekToLiveEdge() {
+        if (!player.isCurrentMediaItemLive) return
+        player.seekToDefaultPosition()
+        player.play()
+    }
+
+    /** How far playback trails the live edge beyond the stream's own target latency. */
+    private fun liveBehindMs(): Long {
+        if (!player.isCurrentMediaItemLive) return 0L
+        val offset = player.currentLiveOffset.takeIf { it != C.TIME_UNSET } ?: return 0L
+        val timeline = player.currentTimeline
+        val target = if (timeline.isEmpty) {
+            0L
+        } else {
+            timeline.getWindow(player.currentMediaItemIndex, timelineWindow)
+                .liveConfiguration?.targetOffsetMs?.takeIf { it != C.TIME_UNSET } ?: 0L
+        }
+        return (offset - target).coerceAtLeast(0L)
+    }
+
+    /** Lists the variants of the selected adaptive video group, best first. */
+    private fun updateQualities(tracks: Tracks) {
+        val groupIndex = tracks.groups.indexOfFirst { it.type == C.TRACK_TYPE_VIDEO && it.isSelected }
+            .takeIf { it >= 0 }
+            ?: tracks.groups.indexOfFirst { it.type == C.TRACK_TYPE_VIDEO }
+        val group = tracks.groups.getOrNull(groupIndex)
+        val qualities = if (group == null || group.length < 2) {
+            emptyList()
+        } else {
+            (0 until group.length)
+                .filter { group.isTrackSupported(it) }
+                .map { index -> index to group.getTrackFormat(index) }
+                .filter { (_, format) -> format.width > 0 && format.height > 0 }
+                .map { (index, format) ->
+                    VideoQuality(
+                        id = "$groupIndex:$index",
+                        width = format.width,
+                        height = format.height,
+                        bitrate = format.peakBitrate.takeIf { it > 0 } ?: format.averageBitrate.coerceAtLeast(0),
+                        frameRate = format.frameRate.takeIf { it > 0 } ?: 0f,
+                    )
+                }
+                .sortedWith(compareByDescending<VideoQuality> { it.height * it.width }.thenByDescending { it.bitrate })
+        }
+        // A pinned variant that vanished (new item, re-prepare with another manifest) means Auto.
+        if (selectedQualityId != null && qualities.none { it.id == selectedQualityId }) selectedQualityId = null
+        _state.update { it.copy(videoQualities = qualities, selectedQualityId = selectedQualityId) }
+    }
+
+    private fun playingQualityId(qualities: List<VideoQuality>): String? {
+        if (qualities.isEmpty()) return null
+        val format = player.videoFormat ?: return null
+        val byId = qualities.firstOrNull { quality ->
+            val (groupIndex, trackIndex) = parseTrackId(quality.id) ?: return@firstOrNull false
+            val group = player.currentTracks.groups.getOrNull(groupIndex) ?: return@firstOrNull false
+            trackIndex < group.length && group.getTrackFormat(trackIndex).id.let { it != null && it == format.id }
+        }
+        return (byId ?: qualities.firstOrNull { it.width == format.width && it.height == format.height })?.id
+    }
+
+    private fun parseTrackId(id: String): Pair<Int, Int>? {
+        val parts = id.split(":")
+        if (parts.size != 2) return null
+        val group = parts[0].toIntOrNull() ?: return null
+        val track = parts[1].toIntOrNull() ?: return null
+        return group to track
+    }
+
+    override fun retry() {
+        if (currentMedia == null) return
+        cancelReconnect()
+        _state.update { it.copy(status = PlaybackStatus.BUFFERING, error = null, errorMessage = null) }
+        if (player.mediaItemCount == 0) {
+            currentMedia?.let(::load)
+            return
+        }
+        player.prepare()
+        player.playWhenReady = true
+    }
+
+    private fun handlePlayerError(error: PlaybackException) {
+        val classified = StreamErrorClassifier.classify(error)
+        val media = currentMedia
+        if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+            // Fell behind the live window (long pause or a stall): jump back to the live edge.
+            player.seekToDefaultPosition()
+            player.prepare()
+            return
+        }
+        val autoRetry = media != null &&
+            StreamUrl.isRemote(media.uri) &&
+            StreamErrorClassifier.isAutoRetryable(classified.kind) &&
+            reconnectAttempt < StreamErrorClassifier.MAX_RECONNECT_ATTEMPTS
+        if (autoRetry) {
+            scheduleReconnect()
+        } else {
+            fail(classified)
+        }
+    }
+
+    private fun scheduleReconnect() {
+        reconnectAttempt++
+        val attempt = reconnectAttempt
+        _state.update {
+            it.copy(
+                status = PlaybackStatus.BUFFERING,
+                error = null,
+                reconnectAttempt = attempt,
+                maxReconnectAttempts = StreamErrorClassifier.MAX_RECONNECT_ATTEMPTS,
+                waitingForNetwork = !network.online.value,
+            )
+        }
+        reconnectJob?.cancel()
+        reconnectJob = scope.launch {
+            delay(StreamErrorClassifier.reconnectDelayMs(attempt))
+            if (!network.online.value) {
+                // Offline time does not count against the attempts: wait for any network.
+                _state.update { it.copy(waitingForNetwork = true) }
+                network.online.first { it }
+                _state.update { it.copy(waitingForNetwork = false) }
+            }
+            player.prepare()
+        }
+    }
+
+    private fun cancelReconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = null
+        reconnectAttempt = 0
+        _state.update { it.copy(reconnectAttempt = 0, waitingForNetwork = false) }
+    }
+
+    private fun fail(error: PlaybackError) {
+        cancelReconnect()
+        _state.update { it.copy(status = PlaybackStatus.ERROR, error = error, errorMessage = error.code) }
+    }
+
+    /**
+     * Without a DRM session manager, encrypted tracks are reported as unsupported instead of
+     * failing, which would leave a silent black screen. Returns false when playback was stopped.
+     */
+    private fun checkPlayableTracks(tracks: Tracks): Boolean {
+        val media = currentMedia ?: return true
+        val groups = tracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO || it.type == C.TRACK_TYPE_AUDIO }
+        if (groups.isEmpty()) return true
+        val video = groups.filter { it.type == C.TRACK_TYPE_VIDEO }
+        val encrypted = groups.any { group ->
+            !group.isSupported && (0 until group.length).any { group.getTrackFormat(it).drmInitData != null }
+        }
+        val reason = when {
+            encrypted && (video.none { it.isSupported } || groups.none { it.isSupported }) ->
+                PlaybackError(PlaybackErrorKind.DRM, DRM_PROTECTED_CODE)
+            // Local files keep the old audio-only fallback; a stream that plays nothing is an error.
+            StreamUrl.isRemote(media.uri) && video.isNotEmpty() && video.none { it.isSupported } ->
+                PlaybackError(PlaybackErrorKind.UNSUPPORTED, VIDEO_UNSUPPORTED_CODE)
+            else -> return true
+        }
+        player.stop()
+        fail(reason)
+        return false
+    }
+
+    private fun updateAdaptiveSourceSize(tracks: Tracks) {
+        val group = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO && it.isSelected }
+            ?: tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO }
+        val best = group?.takeIf { it.length > 1 }?.let { g ->
+            (0 until g.length)
+                .filter { g.isTrackSupported(it) }
+                .map { g.getTrackFormat(it) }
+                .filter { it.width > 0 && it.height > 0 }
+                .maxByOrNull { it.height }
+        }
+        val size = best?.let { it.width to it.height }
+        if (size == adaptiveSourceSize) return
+        adaptiveSourceSize = size
+        if (size != null && effectSourceSize.needsRebuild(size.second)) applyUpscale(currentProfile)
     }
 
     override fun selectTrack(track: TrackSelection) {
@@ -272,7 +580,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
             .build()
         player.stop()
-        player.setMediaItem(media.toMediaItem(), resumePosition)
+        setMediaItemAt(media, resumePosition)
         player.prepare()
         player.playWhenReady = wasPlaying
     }
@@ -294,7 +602,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             val position = player.currentPosition
             val wasPlaying = player.playWhenReady
             player.stop()
-            player.setMediaItem(media.toMediaItem(), position)
+            setMediaItemAt(media, position)
             player.prepare()
             player.playWhenReady = wasPlaying
         }
@@ -309,13 +617,32 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         }
         // Media3 applies changed effects on prepare, so rebuild around the current item.
         val media = currentMedia ?: return
+        // Hidden: no frame reaches the chain, and a re-prepare would cut the audio. Defer it.
+        if (inBackground) {
+            effectsPendingForForeground = true
+            return
+        }
         val resumePosition = player.currentPosition
         val wasPlaying = player.playWhenReady
+        // Re-preparing doubles as a retry (e.g. "retry without processing" after a failure).
+        reconnectJob?.cancel()
+        if (_state.value.error != null) {
+            _state.update { it.copy(status = PlaybackStatus.BUFFERING, error = null) }
+        }
         player.stop()
         setEffectsInternal()
-        player.setMediaItem(media.toMediaItem(), resumePosition)
+        setMediaItemAt(media, resumePosition)
         player.prepare()
         player.playWhenReady = wasPlaying
+    }
+
+    /** Live items restart at the live edge; a stale position would land outside the window. */
+    private fun setMediaItemAt(media: MediaSource, positionMs: Long) {
+        if (player.isCurrentMediaItemLive) {
+            player.setMediaItem(media.toMediaItem())
+        } else {
+            player.setMediaItem(media.toMediaItem(), positionMs.coerceAtLeast(0))
+        }
     }
 
     override fun setUpscaleDisplayLimit(enabled: Boolean) {
@@ -325,7 +652,12 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     }
 
     override fun release() {
+        streamNetwork.saveBandwidthEstimate()
         scope.cancel()
+        network.release()
+        PlaybackSessionRegistry.withdraw(player)
+        controllerFuture?.let(MediaController::releaseFuture)
+        controllerFuture = null
         player.release()
     }
 
@@ -337,8 +669,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     override fun detachSurface() = player.clearVideoSurface()
 
     private fun setEffectsInternal() {
-        val sourceWidth = _state.value.videoWidth
-        val sourceHeight = _state.value.videoHeight
+        val sourceWidth = adaptiveSourceSize?.first ?: _state.value.videoWidth
+        val sourceHeight = adaptiveSourceSize?.second ?: _state.value.videoHeight
         val limit = if (displayLimitEnabled) {
             DisplayUpscaleLimit.apply(currentProfile, sourceWidth, sourceHeight, physicalDisplaySize())
         } else {
@@ -489,6 +821,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     private fun MediaSource.toMediaItem(): MediaItem =
         MediaItem.Builder()
             .setUri(uri)
+            .setMimeType(streamMimeType(uri))
             .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
             .setSubtitleConfigurations(externalSubtitles.map { it.toSubtitleConfiguration() })
             .build()
@@ -509,7 +842,19 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             else -> MimeTypes.APPLICATION_SUBRIP
         }
 
+    /** Extensionless HLS/DASH links are not recognized by Media3 on their own. */
+    private fun streamMimeType(uri: String): String? {
+        if (!StreamUrl.isRemote(uri)) return null
+        return when (StreamUrl.detectFormat(uri)) {
+            StreamFormat.HLS -> MimeTypes.APPLICATION_M3U8
+            StreamFormat.DASH -> MimeTypes.APPLICATION_MPD
+            StreamFormat.PROGRESSIVE -> null
+        }
+    }
+
     private companion object {
+        const val DRM_PROTECTED_CODE = "DRM_PROTECTED_CONTENT"
+        const val VIDEO_UNSUPPORTED_CODE = "VIDEO_TRACKS_UNSUPPORTED"
         const val POSITION_POLL_MS = 250L
         const val MS_IN_SECOND_F = 1000f
     }
@@ -520,3 +865,27 @@ class Media3EngineFactory(private val context: Context) : PlayerEngineFactory {
     override val type = EngineType.MEDIA3
     override fun create(): PlayerEngine = Media3PlayerEngine(context.applicationContext)
 }
+
+/**
+ * Start after 1 s of media instead of 2.5 s, and resume after 2 s instead of 5 s following a
+ * stall. Reddit's shorter start buffer was its most effective experiment (load time over 2 s
+ * −17.7%, rebuffering −4.8%); their 1 s after-rebuffer value was tuned for short clips, so
+ * long-form 4K keeps a little more margin there. min == max buffer keeps Media3's default
+ * "drip-feeding" (steady top-ups instead of drain-and-refill bursts).
+ */
+@OptIn(UnstableApi::class)
+internal fun startupLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
+    .setBufferDurationsMs(
+        LoadControlTuning.BUFFER_MS,
+        LoadControlTuning.BUFFER_MS,
+        LoadControlTuning.START_MS,
+        LoadControlTuning.AFTER_REBUFFER_MS,
+    )
+    .build()
+
+internal object LoadControlTuning {
+    const val BUFFER_MS = 50_000
+    const val START_MS = 1_000
+    const val AFTER_REBUFFER_MS = 2_000
+}
+

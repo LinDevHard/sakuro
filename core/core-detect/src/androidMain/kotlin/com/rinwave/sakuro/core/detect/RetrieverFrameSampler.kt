@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import com.rinwave.sakuro.core.model.StreamUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -24,6 +25,9 @@ class RetrieverFrameSampler(
     @Suppress("TooGenericExceptionCaught")
     override suspend fun sample(uri: String, maxFrames: Int): List<FrameSample> =
         withContext(Dispatchers.IO) {
+            // Network streams: the retriever would download whole chunks (and cannot read HLS
+            // at all) in parallel with playback. The filename layer still classifies them.
+            if (StreamUrl.isRemote(uri)) return@withContext emptyList()
             val retriever = MediaMetadataRetriever()
             try {
                 retriever.setDataSource(context, Uri.parse(uri))

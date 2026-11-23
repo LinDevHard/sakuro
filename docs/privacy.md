@@ -6,9 +6,10 @@ Sakuro is a local-first video player. The current app does not include accounts,
 
 - Sakuro reads local video metadata to build the on-device library.
 - Sakuro stores settings, subtitle preferences and preset preferences locally.
-- Playback progress for up to 200 recently watched local video URIs is stored locally to offer resume playback.
+- Playback progress for up to 200 recently watched video URIs (local files and stream links) is stored locally to offer resume playback.
 - Debug information is shown locally in the app.
 - `sakuro-bench` captures and reports are generated locally by the developer running the tool.
+- Sakuro connects to the network only to play a stream link you enter, and only to that link's server.
 - Sakuro does not send your media library, playback activity, settings, debug overlay data, benchmark captures, or reports to Sakuro/Rinwave servers.
 
 ## Android App Data
@@ -37,7 +38,17 @@ The Android app currently requests local media read permissions:
 
 Library permission is requested only when you choose to connect the media library. You can instead open an individual file with the system picker or another app without granting access to the whole library.
 
-The app manifest does not request the `INTERNET` permission in the current open-source build.
+The app also requests `INTERNET` and `ACCESS_NETWORK_STATE` for network streams (see below). Neither is used unless you open a stream link.
+
+`FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MEDIA_PLAYBACK` keep playback alive in the background. While a video plays, Sakuro publishes a standard media session: the system media notification, lock screen, Bluetooth/headset buttons and companion devices (watch, car) can see the video title and control playback, as with any media app. Background playback can be turned off in Settings → Playback.
+
+## Network Streams
+
+You can paste a direct link to an HLS playlist, a DASH manifest or a video file. Sakuro then makes ordinary HTTP(S) requests to that server (and to any server it redirects to) with browser-like headers: Chrome's reduced user agent (a fixed Android version and no device model) tagged `Sakuro/<version>`, and your device language. It sends no accounts or identifiers of its own. Cookies a stream server sets are kept in memory for the app session and sent back only to that server, as a browser would; they are never written to disk. A User-Agent, Referer or Cookie you type under "Advanced" is sent with that stream's requests only.
+
+Downloaded parts of streams are cached in the app's cache directory (default limit 1 GB, adjustable or off in Settings → Playback, where it can also be cleared). Playlists and manifests are not cached. Android may also clear this directory when storage runs low. Plain `http://` links are allowed because many streams use them; such traffic is not encrypted and can be seen by your network operator.
+
+The stream server sees your IP address and what you request, as with any web request; its own privacy policy applies. Connectivity state is read only to pause reconnect attempts while the device is offline. Stream links are kept on the device in the bounded playback history, like local URIs, and are excluded from diagnostic reports.
 
 ## Settings And Presets
 
@@ -52,7 +63,7 @@ Sakuro stores app settings locally through multiplatform settings. Stored values
 - user presets and pinned preset choices;
 - subtitle size, background, position, delay and preferred language;
 - optional next-video autoplay (off by default);
-- bounded playback history containing local URI, position and duration.
+- bounded playback history containing local URI or stream link, position and duration.
 
 These settings remain local to the device or desktop sandbox environment.
 

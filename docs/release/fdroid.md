@@ -15,8 +15,9 @@ bundle exec fastlane android ci
 
 The pipeline runs unit tests, detekt and Android Lint, builds the unsigned F-Droid release
 APK, checks the resolved runtime graph for common proprietary SDKs and libmpv,
-inspects the APK for mpv/FFmpeg native libraries, verifies the application ID,
-and confirms that the offline flavor does not request Internet access.
+inspects the APK for mpv/FFmpeg native libraries and verifies the application ID.
+The APK requests Internet access only to play stream links the user enters
+(see [privacy](../privacy.md#network-streams)).
 
 The build artifact is:
 

@@ -16,6 +16,7 @@ import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.GpuInfo
 import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.core.upscale.AndroidDeviceStatusMonitor
@@ -29,7 +30,10 @@ import com.rinwave.sakuro.engine.fake.FakeEngineFactory
 import com.rinwave.sakuro.engine.media3.DeviceGpu
 import com.rinwave.sakuro.engine.media3.Media3EngineFactory
 import com.rinwave.sakuro.engine.media3.Media3ShaderInspector
+import com.rinwave.sakuro.engine.media3.streamMediaCache
+import com.rinwave.sakuro.engine.media3.warmUpStreamNetwork
 import com.rinwave.sakuro.ui.Media3SurfaceRenderer
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
@@ -74,6 +78,7 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                         single<UserShaderStore> { AndroidUserShaderStore(app) }
                         single<ShaderInspector> { Media3ShaderInspector(app) }
                         single { GpuInfoProvider(::probeGpu) }
+                        single<MediaCache> { streamMediaCache(app) }
                         // Same order as the engines: Media3 first, then the flavor's reference engines.
                         single<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers) {
                             listOf(Media3SurfaceRenderer()) + referenceSurfaceRenderers()
@@ -82,6 +87,12 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                 ),
             )
         }
+        // The cache's size limit lives in settings; the cache itself is created on first use.
+        val koin = GlobalContext.get()
+        koin.get<MediaCache>().setLimitBytes(koin.get<SakuroSettings>().streamCacheLimitMb.value * MediaCache.MB)
+        // SimpleCache reads its index in the constructor: open it (and the saved bandwidth
+        // estimates) on IO before the first stream.
+        warmUpStreamNetwork(app, openCache = koin.get<SakuroSettings>().streamCacheLimitMb.value > 0)
     }
 }
 
