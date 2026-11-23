@@ -112,6 +112,29 @@ class SakuroSettings(
         _adaptiveEnabled.value = enabled
     }
 
+    private val _backgroundPlayback = MutableStateFlow(settings.getBoolean(KEY_BACKGROUND_PLAYBACK, true))
+
+    /** Keep playing (audio) with a media notification when the app leaves the screen. */
+    val backgroundPlayback: StateFlow<Boolean> = _backgroundPlayback.asStateFlow()
+
+    fun setBackgroundPlayback(enabled: Boolean) {
+        settings.putBoolean(KEY_BACKGROUND_PLAYBACK, enabled)
+        _backgroundPlayback.value = enabled
+    }
+
+    private val _streamCacheLimitMb = MutableStateFlow(
+        settings.getInt(KEY_STREAM_CACHE_MB, DEFAULT_STREAM_CACHE_MB).coerceIn(0, MAX_STREAM_CACHE_MB),
+    )
+
+    /** Disk cache for network streams in MiB; 0 turns caching off. */
+    val streamCacheLimitMb: StateFlow<Int> = _streamCacheLimitMb.asStateFlow()
+
+    fun setStreamCacheLimitMb(value: Int) {
+        val clamped = value.coerceIn(0, MAX_STREAM_CACHE_MB)
+        settings.putInt(KEY_STREAM_CACHE_MB, clamped)
+        _streamCacheLimitMb.value = clamped
+    }
+
     fun setUpscaleDisplayLimit(enabled: Boolean) {
         settings.putBoolean(KEY_UPSCALE_DISPLAY_LIMIT, enabled)
         _upscaleDisplayLimit.value = enabled
@@ -164,6 +187,10 @@ class SakuroSettings(
         private const val KEY_GESTURE_SEEK = "player_gesture_seek"
         private const val KEY_GESTURE_ZOOM = "player_gesture_zoom"
         private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
+        private const val KEY_BACKGROUND_PLAYBACK = "player_background_playback"
+        private const val KEY_STREAM_CACHE_MB = "stream_cache_limit_mb"
+        private const val DEFAULT_STREAM_CACHE_MB = 1024
+        private const val MAX_STREAM_CACHE_MB = 16 * 1024
         private const val DEFAULT_PRESET_ID = "off"
     }
 }

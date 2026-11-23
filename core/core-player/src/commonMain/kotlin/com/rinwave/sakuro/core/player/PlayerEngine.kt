@@ -28,6 +28,27 @@ interface PlayerEngine {
 
     fun setSpeed(speed: Float)
 
+    /** Re-prepares the current item after an error, keeping the position where possible. */
+    fun retry() = Unit
+
+    /**
+     * Publishes this engine as the app's media session (notification, lock screen, headset
+     * buttons, background playback). Only the player screen calls it; benchmarks do not.
+     */
+    fun attachMediaSession() = Unit
+
+    /**
+     * The UI went to the background while playback continues: video decoding and effects
+     * can stop, audio keeps going. False restores the picture.
+     */
+    fun setBackground(background: Boolean) = Unit
+
+    /** Pins an adaptive-stream variant from [PlayerState.videoQualities]; null returns to automatic. */
+    fun selectVideoQuality(qualityId: String?) = Unit
+
+    /** Jumps to the live edge of a live stream. */
+    fun seekToLiveEdge() = Unit
+
     fun selectTrack(track: TrackSelection)
 
     fun addExternalSubtitle(subtitle: ExternalSubtitle)
