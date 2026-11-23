@@ -49,6 +49,7 @@ import com.composables.icons.lucide.FileX
 import com.composables.icons.lucide.Link2Off
 import com.composables.icons.lucide.Lock
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Radio
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.ServerCrash
 import com.composables.icons.lucide.ShieldAlert
@@ -82,6 +83,9 @@ import com.rinwave.sakuro.feature.player.resources.session_error_network_title
 import com.rinwave.sakuro.feature.player.resources.session_error_server_hint
 import com.rinwave.sakuro.feature.player.resources.session_error_server_title
 import com.rinwave.sakuro.feature.player.resources.session_link_copied
+import com.rinwave.sakuro.feature.player.resources.session_live_ended_hint
+import com.rinwave.sakuro.feature.player.resources.session_live_ended_title
+import com.rinwave.sakuro.feature.player.resources.session_live_replay
 import com.rinwave.sakuro.feature.player.resources.session_retry
 import com.rinwave.sakuro.feature.player.resources.session_retry_plain
 import org.jetbrains.compose.resources.StringResource
@@ -166,6 +170,61 @@ internal fun PlaybackErrorScreen(
             Spacer(Modifier.height(6.dp))
             TextButton(onClick = onDiagnostics) {
                 Text(stringResource(Res.string.session_diagnostics), color = SakuroColors.TextMuted)
+            }
+        }
+    }
+}
+
+/** An event stream reached its announced end: say so instead of a frozen last frame. */
+@Composable
+internal fun LiveEndedScreen(component: PlayerComponent, canReplay: Boolean, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(
+                Brush.radialGradient(
+                    listOf(SakuroColors.Twilight.copy(alpha = 0.55f), SakuroColors.Background),
+                    radius = 1400f,
+                ),
+            )
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier
+                .widthIn(max = 440.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ErrorIllustration(Lucide.Radio, badge = null)
+            Spacer(Modifier.height(28.dp))
+            Text(
+                stringResource(Res.string.session_live_ended_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = SakuroColors.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(Res.string.session_live_ended_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SakuroColors.TextMuted,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(28.dp))
+            PrimaryAction(Res.string.action_back, component::onBack, Lucide.ArrowLeft)
+            if (canReplay) {
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { component.engine.play() },
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Lucide.RefreshCw, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(Res.string.session_live_replay))
+                }
             }
         }
     }

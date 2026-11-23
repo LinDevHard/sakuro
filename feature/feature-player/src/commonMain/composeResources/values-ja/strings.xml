@@ -83,4 +83,7 @@
     <string name="session_error_403_hint">サーバーが動画の提供を拒否しました。別のアプリ向けに署名されたリンク、Referer や Cookie が必要、または地域制限の可能性があります。</string>
     <string name="session_error_401_title">認証が必要です</string>
     <string name="session_error_401_hint">このストリームには認証が必要です。リンクのダイアログの「詳細設定」で必要な Cookie やヘッダーを追加してください。</string>
+    <string name="session_live_ended_title">配信は終了しました</string>
+    <string name="session_live_ended_hint">ライブ配信は終了しています。</string>
+    <string name="session_live_replay">最初から見る</string>
 </resources>

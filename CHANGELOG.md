@@ -6,6 +6,17 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Live streams: Wi‑Fi stays awake for screen-off background streams; live
+  segments skip the cache; the upscale chain is not rebuilt on resolution
+  changes (ad breaks, discontinuities) and automatic chain changes are spaced
+  60 s apart, while a rebuild keeps the DVR position; stuck playlists
+  reconnect at the live edge; seek buttons, gestures and manual speed are
+  hidden where they cannot work, DVR seeks are clamped to the window and a
+  paused no-DVR stream resumes at the edge; event streams that end show a
+  "broadcast has ended" screen; DVR positions show wall-clock time; the
+  stats overlay shows live latency, target and catch-up speed; the media
+  notification shows no progress bar for live without DVR.
+
 - Added playback from a direct link (Library → link icon): HLS (`.m3u8`), DASH
   (`.mpd`) and progressive http(s) files such as MP4/MKV/WebM, with the same
   upscale presets as local video. Plain `http://` links are allowed.

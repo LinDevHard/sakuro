@@ -81,6 +81,8 @@ internal fun PlaybackSessionUi(
     when {
         report != null -> DiagnosticPreview(checkNotNull(report), onDismiss = { report = null })
         state.status == PlaybackStatus.ERROR -> PlaybackErrorScreen(component, state.error, previewReport)
+        state.status == PlaybackStatus.ENDED && state.liveEnded ->
+            LiveEndedScreen(component, canReplay = state.durationMs > 0)
         resumePosition != null -> ResumeDialog(checkNotNull(resumePosition), component)
         toolsVisible -> PlaybackToolsDialog(component, onDismissTools, previewReport)
     }

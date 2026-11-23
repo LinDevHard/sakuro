@@ -30,6 +30,7 @@ import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.componentScope
 import com.rinwave.sakuro.core.ui.isInPipNow
 import com.rinwave.sakuro.core.upscale.AdaptiveController
+import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
@@ -153,6 +154,8 @@ public class PlayerComponent internal constructor(
     private val adaptiveController = AdaptiveController()
     private val healthTracker = PlaybackHealthTracker()
     private val backgroundGate = BackgroundAdaptiveGate()
+    private val liveChangeLimiter = LiveChainChangeLimiter()
+    private var lastRequestedProfile: UpscaleProfile? = null
     private var appliedProfile: UpscaleProfile
     private var pausedIntoPip = false
     private var viewportWidth = 0
@@ -258,7 +261,15 @@ public class PlayerComponent internal constructor(
                 _adaptiveDecision.value = decision
                 // applyUpscale on a prepared player = re-prepare,
                 // so we poke the engine only on a real chain change.
-                if (decision.effective != appliedProfile) {
+                val userDriven = decision.requested != lastRequestedProfile
+                lastRequestedProfile = decision.requested
+                if (decision.effective != appliedProfile &&
+                    liveChangeLimiter.allow(
+                        live = engine.state.value.isLive,
+                        userDriven = userDriven,
+                        thermal = decision.reason is AdaptiveReason.Thermal,
+                    )
+                ) {
                     appliedProfile = decision.effective
                     engine.applyUpscale(decision.effective)
                 }

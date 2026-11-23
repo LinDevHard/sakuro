@@ -83,6 +83,7 @@ import com.rinwave.sakuro.core.model.ThermalLevel
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
+import com.rinwave.sakuro.core.player.PlayerState
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -329,6 +330,8 @@ public fun PlayerScreen(component: PlayerComponent) {
 
         // Gestures: tap toggles controls, double tap seeks or pauses, long press gives 2x speed,
         // and swipes/pinch live in a separate pointerInput (detectPlayerGestures).
+        // Live without a DVR window has nothing to seek in: seek gestures turn off there.
+        val canSeek = state.canSeek()
         if (!inPip) {
             Box(
                 Modifier
@@ -338,9 +341,10 @@ public fun PlayerScreen(component: PlayerComponent) {
                             onTap = { controlsVisible = !controlsVisible },
                             onDoubleTap = { offset ->
                                 val current = component.engine.state.value.positionMs
+                                val seekable = component.engine.state.value.canSeek()
                                 val yFraction = (offset.y / size.height).coerceIn(0f, 1f)
                                 when {
-                                    offset.x < size.width / 3f -> {
+                                    seekable && offset.x < size.width / 3f -> {
                                         component.engine.seekTo((current - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0))
                                         val prev = doubleTapSeek?.takeIf { !it.forward }
                                         doubleTapSeek = DoubleTapSeek(
@@ -352,7 +356,7 @@ public fun PlayerScreen(component: PlayerComponent) {
                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     }
 
-                                    offset.x > size.width * 2f / 3f -> {
+                                    seekable && offset.x > size.width * 2f / 3f -> {
                                         component.engine.seekTo(current + DOUBLE_TAP_SEEK_MS)
                                         val prev = doubleTapSeek?.takeIf { it.forward }
                                         doubleTapSeek = DoubleTapSeek(
@@ -382,7 +386,7 @@ public fun PlayerScreen(component: PlayerComponent) {
                             },
                         )
                     }
-                    .pointerInput(gesturesEnabled, gestureBrightness, gestureVolume, gestureSeek, gestureZoom) {
+                    .pointerInput(gesturesEnabled, gestureBrightness, gestureVolume, gestureSeek, gestureZoom, canSeek) {
                         if (!gesturesEnabled) return@pointerInput
 
                         var seekSession: SeekSwipeSession? = null
@@ -393,7 +397,7 @@ public fun PlayerScreen(component: PlayerComponent) {
                         var pinchSession: PinchZoomSession? = null
 
                         val gestureConfig = PlayerGestureConfig(
-                            seek = gestureSeek,
+                            seek = gestureSeek && canSeek,
                             brightness = gestureBrightness,
                             volume = gestureVolume,
                             zoom = gestureZoom,
@@ -843,7 +847,8 @@ private fun PlayerControls(
                         modifier = Modifier.size(18.dp),
                     )
                 }
-                Surface(
+                // Live keeps Media3's latency speed control; a manual speed is not offered there.
+                if (!state.isLive) Surface(
                     onClick = onSpeedClick,
                     shape = RoundedCornerShape(50),
                     color = SakuroColors.Surface.copy(alpha = 0.6f),
@@ -899,7 +904,7 @@ private fun PlayerControls(
                 horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SkipButton(
+                if (state.canSeek()) SkipButton(
                     icon = Lucide.RotateCcw,
                     contentDescription = stringResource(Res.string.player_seek_back),
                     onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
@@ -914,7 +919,7 @@ private fun PlayerControls(
                         )
                     }
                 }
-                SkipButton(
+                if (state.canSeek()) SkipButton(
                     icon = Lucide.RotateCw,
                     contentDescription = stringResource(Res.string.player_seek_forward),
                     onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
@@ -938,7 +943,12 @@ private fun PlayerControls(
                     if (state.isLive) {
                         LiveBadge(behindMs = state.liveBehindMs, onGoLive = component::seekToLiveEdge)
                         Spacer(Modifier.weight(1f))
-                        if (state.isSeekable && state.durationMs > 0) TimeText(formatTime(state.durationMs))
+                        val windowStart = state.liveWindowStartEpochMs
+                        when {
+                            // Streams with a program clock: show the wall-clock time being watched.
+                            windowStart != null -> TimeText(formatWallClock(windowStart + state.positionMs))
+                            state.isSeekable && state.durationMs > 0 -> TimeText(formatTime(state.durationMs))
+                        }
                     } else {
                         TimeText(formatTime(state.positionMs))
                         Spacer(Modifier.weight(1f))
@@ -1413,3 +1423,7 @@ private fun formatTunable(tunable: ShaderTunable, value: Float): String =
     }
 
 private const val TUNABLE_ROUND = 100f
+
+/** Live without a DVR window cannot seek; everything else can. */
+private fun PlayerState.canSeek(): Boolean = !isLive || (isSeekable && durationMs > 0)
+

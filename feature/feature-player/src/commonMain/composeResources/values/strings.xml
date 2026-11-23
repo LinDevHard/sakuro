@@ -83,4 +83,7 @@
     <string name="session_error_403_hint">The server refused to share this video. The link may be signed for another app, need a Referer or cookie, or be blocked in your region.</string>
     <string name="session_error_401_title">Sign-in required</string>
     <string name="session_error_401_hint">This stream needs authorization. Add the required cookie or headers in the link dialog under Advanced.</string>
+    <string name="session_live_ended_title">The broadcast has ended</string>
+    <string name="session_live_ended_hint">The stream finished and is no longer live.</string>
+    <string name="session_live_replay">Watch from the start</string>
 </resources>
