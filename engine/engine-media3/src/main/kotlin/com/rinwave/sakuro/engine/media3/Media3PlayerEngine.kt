@@ -91,6 +91,13 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     private val network = NetworkAvailability(appContext)
 
+    /**
+     * The current item is (or was, before an event stream ended) live. Read on loader threads
+     * to keep live segments out of the cache, so it is updated from the timeline at once.
+     */
+    @Volatile
+    private var liveStream = false
+
     /** Per-item request headers (User-Agent/Referer/Cookie from the link dialog); read per request. */
     @Volatile
     private var requestHeaders: Map<String, String> = emptyMap()
@@ -107,7 +114,9 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             // back to the next decoder, software if need be: slower, but it plays (−0.9% errors).
             .setEnableDecoderFallback(true),
     ).setMediaSourceFactory(
-        DefaultMediaSourceFactory(streamNetwork.dataSourceFactory { requestHeaders })
+        DefaultMediaSourceFactory(
+            streamNetwork.dataSourceFactory(headers = { requestHeaders }, cacheAllowed = { !liveStream }),
+        )
             .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
     ).setLoadControl(
         startupLoadControl(),
@@ -127,6 +136,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     override val state = _state.asStateFlow()
 
     private var currentMedia: MediaSource? = null
+    /** The session's view of [player] (live-aware duration); one instance so withdraw matches publish. */
+    private val sessionPlayer by lazy { SessionPlayer(player) }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var inBackground = false
 
@@ -162,8 +173,16 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     private var lastRenderSample: Pair<Int, Long>? = null
 
     private val listener = object : Player.Listener {
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            if (player.isCurrentMediaItemLive) liveStream = true
+        }
+
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY) reconnectAttempt = 0
+            // An event stream that published its end (EXT-X-ENDLIST) stops being "live" and ends.
+            if (playbackState == Player.STATE_ENDED && liveStream) {
+                _state.update { it.copy(liveEnded = true) }
+            }
             _state.update {
                 // IDLE after a failure must not hide the error or a pending reconnect.
                 if (playbackState == Player.STATE_IDLE && (it.error != null || it.reconnectAttempt > 0)) {
@@ -246,6 +265,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
                         bufferedMs = player.bufferedPosition.coerceAtLeast(0),
                         isLive = player.isCurrentMediaItemLive,
                         liveBehindMs = liveBehindMs(),
+                        liveWindowStartEpochMs = liveWindowStartEpochMs(),
                         isSeekable = player.isCurrentMediaItemSeekable || player.playbackState == Player.STATE_IDLE,
                         playingQualityId = playingQualityId(it.videoQualities),
                     )
@@ -266,7 +286,11 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         if (changed) {
             _state.update { it.copy(videoWidth = width, videoHeight = height) }
         }
-        // Rebuild both the first unknown-size chain and chains for a changed source.
+        // Rebuild both the first unknown-size chain and chains for a changed source. Live streams
+        // keep their first chain: a rebuild re-prepares (seconds of rebuffer, a jump in the
+        // window), and ad breaks or discontinuities can change the resolution again and again.
+        // The chain's Presentation scales any input to its target, so it still renders correctly.
+        if (liveStream && effectSourceSize.hasKnownSize) return
         if (effectSourceSize.needsRebuild(adaptiveSourceSize?.second ?: height)) {
             applyUpscale(currentProfile)
         }
@@ -287,6 +311,10 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         adaptiveSourceSize = null
         selectedQualityId = null
         effectsPendingForForeground = false
+        liveStream = false
+        // Network items hold a Wi‑Fi lock while playing so a screen-off background stream does
+        // not lose the radio; local files only need the CPU awake.
+        player.setWakeMode(if (StreamUrl.isRemote(media.uri)) C.WAKE_MODE_NETWORK else C.WAKE_MODE_LOCAL)
         requestHeaders = if (StreamUrl.isRemote(media.uri)) StreamHeaders.sanitize(media.headers) else emptyMap()
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
@@ -301,6 +329,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
                 videoHeight = 0,
                 isLive = false,
                 liveBehindMs = 0L,
+                liveEnded = false,
+                liveWindowStartEpochMs = null,
                 videoQualities = emptyList(),
                 selectedQualityId = null,
                 playingQualityId = null,
@@ -313,8 +343,14 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     }
 
     override fun play() {
-        if (player.playbackState == Player.STATE_ENDED) {
-            player.seekTo(0)
+        when {
+            player.playbackState == Player.STATE_ENDED -> {
+                _state.update { it.copy(liveEnded = false) }
+                player.seekTo(0)
+            }
+            // A live stream without a DVR window cannot resume where it paused: the data is
+            // gone. Resume at the live edge instead of waiting for a BEHIND_LIVE_WINDOW error.
+            player.isCurrentMediaItemLive && !player.isCurrentMediaItemSeekable -> player.seekToDefaultPosition()
         }
         player.play()
     }
@@ -324,15 +360,31 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     }
 
     override fun seekTo(positionMs: Long) {
+        if (player.isCurrentMediaItemLive) {
+            if (!player.isCurrentMediaItemSeekable) return
+            // Inside the DVR window only; past its end is the live edge.
+            val windowEnd = player.duration.takeIf { it != C.TIME_UNSET } ?: return
+            if (positionMs >= windowEnd) {
+                player.seekToDefaultPosition()
+                return
+            }
+            player.seekTo(positionMs.coerceAtLeast(0))
+            return
+        }
         player.seekTo(positionMs)
     }
 
+    /**
+     * Live streams keep Media3's own speed control, which nudges the speed (about ±3%) to hold
+     * the target latency; a fixed user speed would fight it and drift off the edge.
+     */
     override fun setSpeed(speed: Float) {
+        if (player.isCurrentMediaItemLive) return
         player.setPlaybackSpeed(speed)
     }
 
     override fun attachMediaSession() {
-        PlaybackSessionRegistry.publish(player)
+        PlaybackSessionRegistry.publish(sessionPlayer)
         // Created by autoplay while the app is hidden: start audio-only like the previous engine.
         if (PlaybackSessionRegistry.uiInBackground) setBackground(true)
         if (controllerFuture == null) controllerFuture = SakuroPlaybackService.connect(appContext)
@@ -374,19 +426,29 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         player.play()
     }
 
+    /** Wall-clock time of the window start (HLS PROGRAM-DATE-TIME / DASH availability), if known. */
+    private fun liveWindowStartEpochMs(): Long? {
+        if (!player.isCurrentMediaItemLive) return null
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty) return null
+        return timeline.getWindow(player.currentMediaItemIndex, timelineWindow)
+            .windowStartTimeMs.takeIf { it != C.TIME_UNSET }
+    }
+
+    private fun liveTargetOffsetMs(): Long? {
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty) return null
+        return timeline.getWindow(player.currentMediaItemIndex, timelineWindow)
+            .liveConfiguration?.targetOffsetMs?.takeIf { it != C.TIME_UNSET }
+    }
+
     /** How far playback trails the live edge beyond the stream's own target latency. */
     private fun liveBehindMs(): Long {
         if (!player.isCurrentMediaItemLive) return 0L
         val offset = player.currentLiveOffset.takeIf { it != C.TIME_UNSET } ?: return 0L
-        val timeline = player.currentTimeline
-        val target = if (timeline.isEmpty) {
-            0L
-        } else {
-            timeline.getWindow(player.currentMediaItemIndex, timelineWindow)
-                .liveConfiguration?.targetOffsetMs?.takeIf { it != C.TIME_UNSET } ?: 0L
-        }
-        return (offset - target).coerceAtLeast(0L)
+        return (offset - (liveTargetOffsetMs() ?: 0L)).coerceAtLeast(0L)
     }
+
 
     /** Lists the variants of the selected adaptive video group, best first. */
     private fun updateQualities(tracks: Tracks) {
@@ -489,9 +551,16 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
                 network.online.first { it }
                 _state.update { it.copy(waitingForNetwork = false) }
             }
+            // After an outage a live position is usually outside the window: go to the edge,
+            // unless the viewer was deliberately watching back in a DVR window.
+            if (liveStream && !watchingDvr()) player.seekToDefaultPosition()
             player.prepare()
         }
     }
+
+    /** Watching back in a live DVR window (more than the badge's tolerance behind the edge). */
+    private fun watchingDvr(): Boolean =
+        player.isCurrentMediaItemSeekable && liveBehindMs() > DVR_BEHIND_THRESHOLD_MS
 
     private fun cancelReconnect() {
         reconnectJob?.cancel()
@@ -639,7 +708,14 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     /** Live items restart at the live edge; a stale position would land outside the window. */
     private fun setMediaItemAt(media: MediaSource, positionMs: Long) {
         if (player.isCurrentMediaItemLive) {
-            player.setMediaItem(media.toMediaItem())
+            // At the edge: rejoin the edge. Back in a DVR window: keep the window position (the
+            // window moves a little during the re-prepare; a position that fell out is caught
+            // by the BEHIND_LIVE_WINDOW recovery).
+            if (watchingDvr()) {
+                player.setMediaItem(media.toMediaItem(), positionMs.coerceAtLeast(0))
+            } else {
+                player.setMediaItem(media.toMediaItem())
+            }
         } else {
             player.setMediaItem(media.toMediaItem(), positionMs.coerceAtLeast(0))
         }
@@ -655,7 +731,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         streamNetwork.saveBandwidthEstimate()
         scope.cancel()
         network.release()
-        PlaybackSessionRegistry.withdraw(player)
+        PlaybackSessionRegistry.withdraw(sessionPlayer)
         controllerFuture?.let(MediaController::releaseFuture)
         controllerFuture = null
         player.release()
@@ -736,6 +812,17 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
             upscaleRuntimeReason = applied.degradedReasons.takeIf { it.isNotEmpty() }?.joinToString("; "),
             upscaleDisplayLimit = displayLimitStatus,
             extras = buildMap {
+                if (player.isCurrentMediaItemLive) {
+                    val latency = player.currentLiveOffset.takeIf { it != C.TIME_UNSET }
+                    put(
+                        "live latency",
+                        listOfNotNull(
+                            latency?.let { "${it}ms" },
+                            liveTargetOffsetMs()?.let { "target ${it}ms" },
+                            "speed ${player.playbackParameters.speed}",
+                        ).joinToString(" · "),
+                    )
+                }
                 audioDecoderName?.let { put("audio decoder", it) }
                 DeviceGpu.capabilities?.let { put("gpu", it.summary()) }
                 displayLimitStatus?.let { put("screen limit", it.technicalText()) }
@@ -854,6 +941,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     private companion object {
         const val DRM_PROTECTED_CODE = "DRM_PROTECTED_CONTENT"
+        const val DVR_BEHIND_THRESHOLD_MS = 3_000L
         const val VIDEO_UNSUPPORTED_CODE = "VIDEO_TRACKS_UNSUPPORTED"
         const val POSITION_POLL_MS = 250L
         const val MS_IN_SECOND_F = 1000f

@@ -8,6 +8,9 @@ internal class EffectSourceSize {
         builtHeight = sourceHeight
     }
 
+    /** The current chain was sized from a real source height. */
+    val hasKnownSize: Boolean get() = builtHeight > 0
+
     fun needsRebuild(sourceHeight: Int): Boolean =
         builtHeight >= 0 && sourceHeight > 0 && builtHeight != sourceHeight
 }

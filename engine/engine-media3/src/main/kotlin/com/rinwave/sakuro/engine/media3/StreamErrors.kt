@@ -30,6 +30,9 @@ internal object StreamErrorClassifier {
     fun classify(errorCode: Int, httpStatus: Int?, causes: List<Throwable>): PlaybackErrorKind {
         // TLS problems surface as generic connection failures; the cause tells them apart.
         if (causes.any { it is SSLException }) return PlaybackErrorKind.INSECURE
+        // The server stopped updating (or reset) a live playlist: a stalled origin, worth
+        // reconnecting to. Matched by name to keep this classifier free of the HLS module.
+        if (causes.any { it.javaClass.simpleName in livePlaylistFailures }) return PlaybackErrorKind.SERVER
         return when (errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
@@ -99,6 +102,8 @@ internal object StreamErrorClassifier {
 
     const val MAX_RECONNECT_ATTEMPTS = 6
     const val MAX_LOAD_RETRIES = 5
+
+    private val livePlaylistFailures = setOf("PlaylistStuckException", "PlaylistResetException")
 
     private const val MAX_CAUSE_DEPTH = 8
     private const val MAX_SHIFT = 10

@@ -23,6 +23,10 @@ data class PlayerState(
     val isLive: Boolean = false,
     /** Live only: how far playback is behind the live edge (beyond the stream's target latency). */
     val liveBehindMs: Long = 0L,
+    /** An event stream announced its end and playback reached it. */
+    val liveEnded: Boolean = false,
+    /** Wall-clock time (epoch ms) of the live window start, for showing clock times on the bar. */
+    val liveWindowStartEpochMs: Long? = null,
     /** False for live streams without a DVR window and for unseekable progressive sources. */
     val isSeekable: Boolean = true,
     /** Selectable video variants of an adaptive stream, best first; empty when there is no choice. */

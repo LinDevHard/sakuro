@@ -65,6 +65,16 @@ class StreamErrorClassifierTest {
         assertTrue(StreamErrorClassifier.isAutoRetryable(PlaybackErrorKind.SERVER))
     }
 
+    /** Same simple name as Media3's HLS exception; the classifier matches by name. */
+    private class PlaylistStuckException : IOException("stuck")
+
+    @Test
+    fun `a stuck live playlist is a server-side stall worth reconnecting to`() {
+        val kind = kind(PlaybackException.ERROR_CODE_IO_UNSPECIFIED, null, PlaylistStuckException())
+        assertEquals(PlaybackErrorKind.SERVER, kind)
+        assertTrue(StreamErrorClassifier.isAutoRetryable(kind))
+    }
+
     @Test
     fun `backoff grows exponentially and is capped`() {
         assertEquals(

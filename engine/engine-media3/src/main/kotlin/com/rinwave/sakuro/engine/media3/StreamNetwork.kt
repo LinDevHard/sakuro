@@ -125,9 +125,13 @@ internal class StreamNetwork private constructor(context: Context) : MediaCache 
 
     /**
      * A data source chain for one engine: [headers] are read per request so a newly loaded
-     * item's headers apply without rebuilding the player.
+     * item's headers apply without rebuilding the player. [cacheAllowed] is false for live
+     * streams: their segments are watched once and would only push useful VOD data out.
      */
-    fun dataSourceFactory(headers: () -> Map<String, String>): DataSource.Factory {
+    fun dataSourceFactory(
+        headers: () -> Map<String, String>,
+        cacheAllowed: () -> Boolean = { true },
+    ): DataSource.Factory {
         val http = DefaultHttpDataSource.Factory()
             // No setUserAgent(): Media3 would set it after the request headers and win over a
             // per-link User-Agent. The browser default rides in the default properties instead.
@@ -156,7 +160,7 @@ internal class StreamNetwork private constructor(context: Context) : MediaCache 
                         .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
                         .createDataSource(),
                     direct = direct,
-                    useCache = { spec -> evictor.maxBytes > 0 && isCacheable(spec) },
+                    useCache = { spec -> evictor.maxBytes > 0 && cacheAllowed() && isCacheable(spec) },
                 )
             }
         }
