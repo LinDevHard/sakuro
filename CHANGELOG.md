@@ -6,6 +6,41 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Added playback from a direct link (Library → link icon): HLS (`.m3u8`), DASH
+  (`.mpd`) and progressive http(s) files such as MP4/MKV/WebM, with the same
+  upscale presets as local video. Plain `http://` links are allowed.
+- Network failures retry automatically with backoff and wait for connectivity
+  to return; the player shows reconnect progress. Remaining failures are
+  explained (connection, server, dead link, TLS, unsupported format), and
+  DRM-protected streams are reported as unsupported instead of a black screen.
+- Background playback through a Media3 `MediaSessionService`: media
+  notification, lock-screen and headset controls; video decoding pauses while
+  the app is hidden and resumes on return. Closing picture-in-picture stops
+  playback. Can be turned off in Settings → Playback.
+- Stream cache (LRU, 1 GB by default, adjustable/off/clearable in settings);
+  live playlists and manifests always come from the network. Follows Reddit's
+  ExoPlayer cache notes: dedicated internal directory, a single SimpleCache
+  opened off the main thread, and cache keys that ignore URL signatures and
+  expiry tokens so re-signed CDN links still hit the cache.
+- Playback tuning from the same Reddit write-up: playback starts after 1 s of
+  buffer (2 s after a stall) instead of 2.5 s/5 s, a busy hardware decoder
+  falls back to another decoder instead of failing, and the last measured
+  bandwidth per network type seeds the next session's first quality choice.
+- Background playback keeps the upscale chain idle (no video decoded) and
+  defers any chain change until the app is visible again; the adaptive
+  controller is frozen while hidden and ignores the decoder warm-up drops for
+  3 s after returning, so returning does not trigger a false downgrade.
+- Quality picker for adaptive streams (Auto, 4K, 1080p, 720p …) and a LIVE
+  badge with "behind live" time and a jump-to-live action.
+- Browser-like request headers, a session cookie jar and optional per-link
+  User-Agent / Referer / Cookie.
+- Playback failures are shown as a full-screen state with an illustration and
+  actions (retry, copy link, back), with dedicated copy for 404/403/401.
+- The libmpv reference engine stays in compatibility mode: it plays links but
+  has no cache, quality picker or media session.
+- The app now requests `INTERNET`, `ACCESS_NETWORK_STATE` and the
+  media-playback foreground service permissions (see docs/privacy.md).
+
 ## 0.1.4
 
 - Rebuilt the Anime SD and Anime HD presets on Anime4K Upscale CNN x2 S and

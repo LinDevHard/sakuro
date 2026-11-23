@@ -30,7 +30,7 @@
 | Flavors | `foss` for F-Droid/product builds and `full` for developer/reference builds with libmpv |
 | Distribution | F-Droid first; any future Play build should reuse the Media3-only product dependency graph |
 | License | GPL while libmpv remains linked in the repository; product packaging should avoid shipping libmpv unless that tradeoff is accepted |
-| First phase | Local media only; no streaming or DRM |
+| First phase | Local media plus direct non-DRM network links (HLS, DASH, progressive http(s)); no DRM |
 | Design | Premium media-player UI, strong typography, Lucide icons |
 
 ExoPlayer is the player inside Media3, not a separate engine. "Product runtime" means Media3/ExoPlayer; libmpv is kept as a reference implementation and benchmark harness, not as the primary user-facing path.
@@ -157,6 +157,13 @@ enum class EngineType { MPV, MEDIA3 }
 
 UI depends only on `PlayerEngine` and `PlayerState`. Product builds should normally bind that interface to Media3. `applyUpscale()` is the product application point for Media3 `GlEffect` chains, while libmpv can use the same preset metadata in benchmark/reference tooling to load upstream `.glsl` chains.
 
+### Network Streams And Background Playback
+
+- `StreamNetwork` (engine-media3) is process-wide: browser-like default headers (reduced Chrome UA + `Sakuro/<version>`), a session `CookieManager`, and one `SimpleCache` with a runtime-resizable LRU evictor (dedicated `cacheDir/stream-cache`, opened on IO at app start and resolved lazily on loader threads, never on main; cache keys from `StreamCacheKey` drop signing/expiry query parameters). Manifests/playlists bypass the cache so live playlists never freeze; segments and progressive files are cached. Per-link headers ride in `MediaSource.headers` and are applied per request through a `ResolvingDataSource`.
+- Failures: `StreamLoadErrorPolicy` retries loads inside Media3; the engine then reconnects with backoff (waiting for connectivity) and finally reports a classified `PlaybackError` (network, server, HTTP client, TLS, DRM, unsupported).
+- Background playback follows Media3's session-service model while the engine keeps owning its `ExoPlayer` (video effects and decoder stats are ExoPlayer-only APIs). The player screen calls `attachMediaSession()`: the engine publishes its player to `PlaybackSessionRegistry` and binds a `MediaController` to `SakuroPlaybackService`, which wraps the published player in a `MediaSession`. Media3 then runs the foreground-service/notification cycle; `release()` withdraws the player and the service stops. When the activity stops with background playback on, the engine disables the video track (no decoding or effects without a surface) and re-enables it on start; chain rebuilds requested while hidden are deferred to that moment, pinned quality overrides survive, and `BackgroundAdaptiveGate` freezes the adaptive controller while hidden and ignores frame drops for 3 s after returning. Autoplay-created engines inherit the background state through `PlaybackSessionRegistry`. Closing PiP stops playback; swiping the task away pauses and stops the service.
+- libmpv is in compatibility mode: it plays links through mpv's own networking but has no cache, quality picker or media session.
+
 ## 5. Adaptive Upscaling
 
 `AdaptiveController` decides the active `UpscaleProfile` from device class, thermal status, battery/power-saving mode, actual FPS, and dropped frames. It can move to heavier presets when there is headroom, degrade to lighter Anime4K modes when the device heats up or drops frames, and disable processing under critical thermal pressure.
@@ -225,7 +232,7 @@ Supported options are donations, GitHub Sponsors, Open Collective, Liberapay, or
 
 - **Phase 1:** Android, local media only, Media3 product playback, current Anime4K Media3 runtime, premium Compose UI, `foss`/`full` flavors, F-Droid-ready packaging, desktop UI sandbox with `FakePlayerEngine`, and libmpv reference tooling for shader comparison.
 - **Phase 2:** port selected mpv-proven shader families into Media3, adaptive controller for thermal/battery/FPS behavior, universal presets, and SoC-class optimization.
-- **Phase 3:** revisit iOS and non-DRM streaming after the Android Media3 pipeline is mature.
+- **Phase 3:** revisit iOS and richer non-DRM streaming (playlists, headers, network shares) after the Android Media3 pipeline is mature.
 
 ## 11. Open Technical Questions
 
