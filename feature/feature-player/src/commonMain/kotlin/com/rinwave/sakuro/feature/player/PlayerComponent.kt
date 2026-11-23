@@ -4,6 +4,9 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnPause
+import com.arkivanov.essenty.lifecycle.doOnResume
+import com.arkivanov.essenty.lifecycle.doOnStart
+import com.arkivanov.essenty.lifecycle.doOnStop
 import com.rinwave.sakuro.core.detect.ClassificationRequest
 import com.rinwave.sakuro.core.detect.ContentClassifier
 import com.rinwave.sakuro.core.detect.ContentDetection
@@ -16,6 +19,7 @@ import com.rinwave.sakuro.core.model.DeviceStatus
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.MediaSource
 import com.rinwave.sakuro.core.model.PlaybackHealth
+import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.PlaybackHealthTracker
@@ -37,6 +41,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -147,7 +152,9 @@ public class PlayerComponent internal constructor(
 
     private val adaptiveController = AdaptiveController()
     private val healthTracker = PlaybackHealthTracker()
+    private val backgroundGate = BackgroundAdaptiveGate()
     private var appliedProfile: UpscaleProfile
+    private var pausedIntoPip = false
     private var viewportWidth = 0
     private var viewportHeight = 0
 
@@ -157,11 +164,30 @@ public class PlayerComponent internal constructor(
         engine.setUpscaleDisplayLimit(settings.upscaleDisplayLimit.value)
         engine.applyUpscale(appliedProfile)
         engine.load(media)
+        engine.attachMediaSession()
         if (session.awaitingChoice) engine.pause()
-        // In PiP the activity is "paused", but the video must keep playing.
+        // In PiP the activity is "paused", but the video must keep playing. With background
+        // playback on, a pause (shade, dialog, split screen) does not stop it either.
         lifecycle.doOnPause {
             saveProgress(force = true)
-            if (!isInPipNow()) engine.pause()
+            pausedIntoPip = isInPipNow()
+            if (!pausedIntoPip && !settings.backgroundPlayback.value) engine.pause()
+        }
+        lifecycle.doOnResume { pausedIntoPip = false }
+        lifecycle.doOnStop {
+            when {
+                // Stopped while in PiP = the user closed the PiP window: that means "stop".
+                pausedIntoPip -> engine.pause()
+                settings.backgroundPlayback.value -> {
+                    backgroundGate.onBackground()
+                    engine.setBackground(true)
+                }
+                else -> engine.pause()
+            }
+        }
+        lifecycle.doOnStart {
+            backgroundGate.onForeground()
+            engine.setBackground(false)
         }
         lifecycle.doOnDestroy {
             saveProgress(force = true)
@@ -202,7 +228,17 @@ public class PlayerComponent internal constructor(
                 _detection,
                 userPresets.presets,
             ) { stats, device, current, detection, _ ->
-                AdaptiveInputs(resolveUserProfile(current, detection), device, healthTracker.update(stats))
+                // Always advance the tracker so its drop counter stays in step; use the result only
+                // when the stats describe real on-screen playback.
+                val health = healthTracker.update(stats)
+                AdaptiveInputs(
+                    resolveUserProfile(current, detection),
+                    device,
+                    if (backgroundGate.trustsFrameStats) health else PlaybackHealth(),
+                )
+            }.filter {
+                // Hidden: keep the last decision; the engine would only defer a rebuild anyway.
+                backgroundGate.acceptsDecisions
             }.combine(settings.adaptiveEnabled) { inputs, adaptive ->
                 if (adaptive) {
                     adaptiveController.update(inputs.user, inputs.device, inputs.health)
@@ -344,6 +380,16 @@ public class PlayerComponent internal constructor(
         saveProgress(force = true)
         onOutput(PlayerOutput.OpenVideo(video.uri, video.title))
     }
+
+    /** Re-prepares after a network/server failure, keeping the current processing. */
+    internal fun retry() = engine.retry()
+
+    internal fun selectVideoQuality(qualityId: String?) = engine.selectVideoQuality(qualityId)
+
+    internal fun seekToLiveEdge() = engine.seekToLiveEdge()
+
+    /** Whether the current item is a network link (offers "copy link" on errors). */
+    internal val isRemote: Boolean = StreamUrl.isRemote(media.uri)
 
     /** Session-local bypass; adaptive/profile updates cannot turn processing back on. */
     internal fun retryWithoutProcessing() {

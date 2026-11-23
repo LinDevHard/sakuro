@@ -115,6 +115,8 @@ import com.rinwave.sakuro.feature.player.resources.player_pin_title
 import com.rinwave.sakuro.feature.player.resources.player_playback_speed
 import com.rinwave.sakuro.feature.player.resources.player_processing_degraded
 import com.rinwave.sakuro.feature.player.resources.player_processing_disabled
+import com.rinwave.sakuro.feature.player.resources.session_reconnecting
+import com.rinwave.sakuro.feature.player.resources.session_waiting_network
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_limited
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_reason
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_skipped
@@ -567,6 +569,24 @@ public fun PlayerScreen(component: PlayerComponent) {
             EclipseLoader(Modifier.align(Alignment.Center))
         }
 
+        // Network streams: say why the picture is stalled instead of an endless spinner.
+        if (state.status == PlaybackStatus.BUFFERING && state.reconnectAttempt > 0 && !inPip) {
+            Text(
+                text = if (state.waitingForNetwork) {
+                    stringResource(Res.string.session_waiting_network)
+                } else {
+                    stringResource(Res.string.session_reconnecting, state.reconnectAttempt, state.maxReconnectAttempts)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = SakuroColors.TextPrimary,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 120.dp)
+                    .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
+
         AnimatedVisibility(
             visible = visibleNotice != null && !inPip,
             enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -807,6 +827,14 @@ private fun PlayerControls(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                if (state.videoQualities.size > 1) {
+                    QualityButton(
+                        qualities = state.videoQualities,
+                        selectedId = state.selectedQualityId,
+                        playingId = state.playingQualityId,
+                        onSelect = component::selectVideoQuality,
+                    )
+                }
                 IconButton(onClick = onTracksClick) {
                     Icon(
                         Lucide.Volume2,
@@ -897,16 +925,25 @@ private fun PlayerControls(
 
             // Bottom bar: progress and time.
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                SakuroSeekBar(
-                    positionMs = state.positionMs,
-                    durationMs = state.durationMs,
-                    bufferedMs = state.bufferedMs,
-                    onSeek = { component.engine.seekTo(it) },
-                )
+                // Live: the bar spans the DVR window when there is one; no window — no bar.
+                if (!state.isLive || (state.isSeekable && state.durationMs > 0)) {
+                    SakuroSeekBar(
+                        positionMs = state.positionMs,
+                        durationMs = state.durationMs,
+                        bufferedMs = state.bufferedMs,
+                        onSeek = { component.engine.seekTo(it) },
+                    )
+                }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TimeText(formatTime(state.positionMs))
-                    Spacer(Modifier.weight(1f))
-                    TimeText(formatTime(state.durationMs))
+                    if (state.isLive) {
+                        LiveBadge(behindMs = state.liveBehindMs, onGoLive = component::seekToLiveEdge)
+                        Spacer(Modifier.weight(1f))
+                        if (state.isSeekable && state.durationMs > 0) TimeText(formatTime(state.durationMs))
+                    } else {
+                        TimeText(formatTime(state.positionMs))
+                        Spacer(Modifier.weight(1f))
+                        TimeText(formatTime(state.durationMs))
+                    }
                 }
             }
         }

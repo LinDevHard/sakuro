@@ -43,8 +43,6 @@ import com.rinwave.sakuro.feature.player.resources.session_copied
 import com.rinwave.sakuro.feature.player.resources.session_copy
 import com.rinwave.sakuro.feature.player.resources.session_diagnostics
 import com.rinwave.sakuro.feature.player.resources.session_diagnostics_hint
-import com.rinwave.sakuro.feature.player.resources.session_error
-import com.rinwave.sakuro.feature.player.resources.session_error_hint
 import com.rinwave.sakuro.feature.player.resources.session_next
 import com.rinwave.sakuro.feature.player.resources.session_previous
 import com.rinwave.sakuro.feature.player.resources.session_processing_off
@@ -82,7 +80,7 @@ internal fun PlaybackSessionUi(
     }
     when {
         report != null -> DiagnosticPreview(checkNotNull(report), onDismiss = { report = null })
-        state.status == PlaybackStatus.ERROR -> PlaybackFailureDialog(component, previewReport)
+        state.status == PlaybackStatus.ERROR -> PlaybackErrorScreen(component, state.error, previewReport)
         resumePosition != null -> ResumeDialog(checkNotNull(resumePosition), component)
         toolsVisible -> PlaybackToolsDialog(component, onDismissTools, previewReport)
     }
@@ -156,28 +154,6 @@ private fun PlaybackToolsDialog(
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.session_close)) } },
-    )
-}
-
-@Composable
-private fun PlaybackFailureDialog(component: PlayerComponent, onDiagnostics: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = component::onBack,
-        title = { Text(stringResource(Res.string.session_error)) },
-        text = {
-            Column {
-                Text(stringResource(Res.string.session_error_hint))
-                TextButton(onClick = onDiagnostics) { Text(stringResource(Res.string.session_diagnostics)) }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = component::retryWithoutProcessing) {
-                Text(stringResource(Res.string.session_retry_plain))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = component::onBack) { Text(stringResource(Res.string.action_back)) }
-        },
     )
 }
 

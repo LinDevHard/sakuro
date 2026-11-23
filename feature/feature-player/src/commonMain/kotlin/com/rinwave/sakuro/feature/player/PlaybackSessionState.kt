@@ -45,7 +45,8 @@ internal class PlaybackSessionState(private val savedPositionMs: Long) {
 
     private fun canCheckpoint(state: PlayerState, force: Boolean): Boolean {
         if (awaitingChoice || pendingSeek != null) return false
-        if (state.durationMs <= 0 || state.status == PlaybackStatus.ERROR) return false
+        // A live DVR window has a duration too, but a position in it is meaningless later.
+        if (state.durationMs <= 0 || state.isLive || state.status == PlaybackStatus.ERROR) return false
         if (!hasSettledSeek(state)) return false
         return force || state.status == PlaybackStatus.ENDED ||
             abs(state.positionMs - lastCheckpoint) >= SAVE_STEP_MS
