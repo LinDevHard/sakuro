@@ -63,6 +63,7 @@ import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.Folder
 import com.composables.icons.lucide.FolderOpen
+import com.composables.icons.lucide.Link
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Settings
@@ -90,6 +91,7 @@ import com.rinwave.sakuro.feature.library.resources.library_back
 import com.rinwave.sakuro.feature.library.resources.library_empty_subtitle
 import com.rinwave.sakuro.feature.library.resources.library_empty_title
 import com.rinwave.sakuro.feature.library.resources.sort
+import com.rinwave.sakuro.feature.library.resources.stream_open
 import com.rinwave.sakuro.feature.library.resources.sort_ascending
 import com.rinwave.sakuro.feature.library.resources.sort_by
 import com.rinwave.sakuro.feature.library.resources.sort_descending
@@ -104,6 +106,7 @@ public fun LibraryScreen(component: LibraryComponent) {
     val openFilePicker = rememberVideoFilePicker(component::onFilePicked)
     val connectLibrary = rememberConnectMediaLibrary()
     var sortSheetOpen by remember { mutableStateOf(false) }
+    var streamDialogOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -123,7 +126,11 @@ public fun LibraryScreen(component: LibraryComponent) {
                 .padding(padding)
                 .windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
-            LibraryHeader(onRefresh = component::refresh, onSettings = component::openSettings)
+            LibraryHeader(
+                onOpenStream = { streamDialogOpen = true },
+                onRefresh = component::refresh,
+                onSettings = component::openSettings,
+            )
             if (connectLibrary != null) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
                     Text(
@@ -143,6 +150,16 @@ public fun LibraryScreen(component: LibraryComponent) {
             )
             LibraryContent(state = state, component = component, progress = progress)
         }
+    }
+
+    if (streamDialogOpen) {
+        OpenStreamDialog(
+            onPlay = { url, headers ->
+                streamDialogOpen = false
+                component.onStreamUrl(url, headers)
+            },
+            onDismiss = { streamDialogOpen = false },
+        )
     }
 
     if (sortSheetOpen) {
@@ -183,7 +200,7 @@ private fun LibraryContent(
 }
 
 @Composable
-private fun LibraryHeader(onRefresh: () -> Unit, onSettings: () -> Unit) {
+private fun LibraryHeader(onOpenStream: () -> Unit, onRefresh: () -> Unit, onSettings: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -205,6 +222,14 @@ private fun LibraryHeader(onRefresh: () -> Unit, onSettings: () -> Unit) {
             )
         }
         Spacer(Modifier.weight(1f))
+        IconButton(onClick = onOpenStream) {
+            Icon(
+                Lucide.Link,
+                stringResource(Res.string.stream_open),
+                tint = SakuroColors.TextMuted,
+                modifier = Modifier.size(20.dp),
+            )
+        }
         IconButton(onClick = onRefresh) {
             Icon(
                 Lucide.RefreshCw,

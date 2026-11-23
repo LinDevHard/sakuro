@@ -25,4 +25,18 @@
     <string name="entry_library_access_description">ライブラリへのアクセスなしで動画を開くか、アクセスを許可して端末の動画を表示できます。</string>
     <string name="entry_open_one_file">ファイルを開く</string>
     <string name="library_back">戻る</string>
+    <string name="stream_open">リンクを開く</string>
+    <string name="stream_title">リンクから再生</string>
+    <string name="stream_hint">HLS プレイリスト (.m3u8)、DASH マニフェスト (.mpd)、または動画ファイル (MP4、MKV、WebM) への直接リンク。Web ページや DRM で保護されたストリームには対応していません。</string>
+    <string name="stream_label">ストリーム URL</string>
+    <string name="stream_play">再生</string>
+    <string name="stream_cancel">キャンセル</string>
+    <string name="stream_error_empty">リンクを貼り付けてください</string>
+    <string name="stream_error_scheme">http:// と https:// のリンクのみ対応しています</string>
+    <string name="stream_error_malformed">有効なリンクではないようです</string>
+    <string name="stream_advanced">詳細設定</string>
+    <string name="stream_advanced_hint">サーバーが必要とする場合のみ入力してください。既定では Sakuro はブラウザと同様のヘッダーを送信し、サーバーが設定した Cookie を保持します。</string>
+    <string name="stream_user_agent">User-Agent</string>
+    <string name="stream_referer">Referer</string>
+    <string name="stream_cookie">Cookie</string>
 </resources>

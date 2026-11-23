@@ -25,4 +25,18 @@
     <string name="entry_library_access_description">Open a video without library access, or allow access to show videos from your device.</string>
     <string name="entry_open_one_file">Open one file</string>
     <string name="library_back">Back</string>
+    <string name="stream_open">Open link</string>
+    <string name="stream_title">Play from link</string>
+    <string name="stream_hint">A direct link to an HLS playlist (.m3u8), a DASH manifest (.mpd) or a video file (MP4, MKV, WebM). Web pages and DRM-protected streams are not supported.</string>
+    <string name="stream_label">Stream URL</string>
+    <string name="stream_play">Play</string>
+    <string name="stream_cancel">Cancel</string>
+    <string name="stream_error_empty">Paste a link first</string>
+    <string name="stream_error_scheme">Only http:// and https:// links are supported</string>
+    <string name="stream_error_malformed">This does not look like a valid link</string>
+    <string name="stream_advanced">Advanced</string>
+    <string name="stream_advanced_hint">Only if the server needs them. By default Sakuro sends browser-like headers and keeps cookies the server sets.</string>
+    <string name="stream_user_agent">User-Agent</string>
+    <string name="stream_referer">Referer</string>
+    <string name="stream_cookie">Cookie</string>
 </resources>

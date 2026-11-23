@@ -9,7 +9,12 @@ import org.koin.dsl.module
 
 /** What the library asks its host to do; the host owns navigation. */
 public sealed interface LibraryOutput {
-    public data class OpenVideo(val uri: String, val title: String) : LibraryOutput
+    public data class OpenVideo(
+        val uri: String,
+        val title: String,
+        /** Request headers for a stream link (User-Agent, Referer, Cookie). */
+        val headers: Map<String, String> = emptyMap(),
+    ) : LibraryOutput
 
     public data object OpenSettings : LibraryOutput
 }

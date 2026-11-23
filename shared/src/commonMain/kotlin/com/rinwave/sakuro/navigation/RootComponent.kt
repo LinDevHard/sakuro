@@ -32,7 +32,11 @@ class RootComponent(
         data object Library : Config
 
         @Serializable
-        data class Player(val uri: String, val title: String) : Config
+        data class Player(
+            val uri: String,
+            val title: String,
+            val headers: Map<String, String> = emptyMap(),
+        ) : Config
 
         @Serializable
         data object Settings : Config
@@ -59,12 +63,12 @@ class RootComponent(
     )
 
     /** Entry point shared by the library, external intents and folder navigation. */
-    fun openVideo(uri: String, title: String) {
+    fun openVideo(uri: String, title: String, headers: Map<String, String> = emptyMap()) {
         val current = stack.value.active.instance
         if (current is Child.Player) {
-            if (current.component.media.uri != uri) navigation.replaceCurrent(Config.Player(uri, title))
+            if (current.component.media.uri != uri) navigation.replaceCurrent(Config.Player(uri, title, headers))
         } else {
-            navigation.push(Config.Player(uri, title))
+            navigation.push(Config.Player(uri, title, headers))
         }
     }
 
@@ -72,14 +76,14 @@ class RootComponent(
         is Config.Library -> Child.Library(
             factories.library.create(componentContext) { output ->
                 when (output) {
-                    is LibraryOutput.OpenVideo -> openVideo(output.uri, output.title)
+                    is LibraryOutput.OpenVideo -> openVideo(output.uri, output.title, output.headers)
                     LibraryOutput.OpenSettings -> navigation.push(Config.Settings)
                 }
             },
         )
 
         is Config.Player -> Child.Player(
-            factories.player.create(componentContext, MediaSource(uri = config.uri, title = config.title)) { output ->
+            factories.player.create(componentContext, MediaSource(uri = config.uri, title = config.title, headers = config.headers)) { output ->
                 when (output) {
                     is PlayerOutput.OpenVideo -> openVideo(output.uri, output.title)
                     PlayerOutput.Finished -> navigation.pop()

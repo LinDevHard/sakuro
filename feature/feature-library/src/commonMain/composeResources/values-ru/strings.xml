@@ -25,4 +25,18 @@
     <string name="entry_library_access_description">Откройте видео без доступа к медиатеке или разрешите доступ, чтобы видеть видео с устройства.</string>
     <string name="entry_open_one_file">Открыть один файл</string>
     <string name="library_back">Назад</string>
+    <string name="stream_open">Открыть ссылку</string>
+    <string name="stream_title">Воспроизвести по ссылке</string>
+    <string name="stream_hint">Прямая ссылка на HLS-плейлист (.m3u8), DASH-манифест (.mpd) или видеофайл (MP4, MKV, WebM). Веб-страницы и стримы с DRM не поддерживаются.</string>
+    <string name="stream_label">Ссылка на стрим</string>
+    <string name="stream_play">Смотреть</string>
+    <string name="stream_cancel">Отмена</string>
+    <string name="stream_error_empty">Сначала вставьте ссылку</string>
+    <string name="stream_error_scheme">Поддерживаются только ссылки http:// и https://</string>
+    <string name="stream_error_malformed">Это не похоже на корректную ссылку</string>
+    <string name="stream_advanced">Дополнительно</string>
+    <string name="stream_advanced_hint">Только если этого требует сервер. По умолчанию Sakuro отправляет заголовки как браузер и сохраняет cookie, которые выставляет сервер.</string>
+    <string name="stream_user_agent">User-Agent</string>
+    <string name="stream_referer">Referer</string>
+    <string name="stream_cookie">Cookie</string>
 </resources>

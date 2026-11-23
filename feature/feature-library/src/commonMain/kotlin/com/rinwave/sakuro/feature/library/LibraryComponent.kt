@@ -14,6 +14,8 @@ import com.rinwave.sakuro.core.media.VideoItem
 import com.rinwave.sakuro.core.media.VideoSection
 import com.rinwave.sakuro.core.media.toFolders
 import com.rinwave.sakuro.core.media.toSections
+import com.rinwave.sakuro.core.model.StreamHeaders
+import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.core.ui.componentScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -136,6 +138,9 @@ public class LibraryComponent internal constructor(
     internal fun onVideoClick(item: VideoItem) = onOutput(LibraryOutput.OpenVideo(item.uri, item.title))
 
     internal fun onFilePicked(uri: String, title: String) = onOutput(LibraryOutput.OpenVideo(uri, title))
+
+    internal fun onStreamUrl(url: StreamUrl, headers: Map<String, String>) =
+        onOutput(LibraryOutput.OpenVideo(url.value, url.title, StreamHeaders.sanitize(headers)))
 
     internal fun openSettings() = onOutput(LibraryOutput.OpenSettings)
 }
