@@ -100,4 +100,12 @@
     <string name="value_off">выкл</string>
     <string name="settings_bench">Бенчмарк</string>
     <string name="settings_back">Назад</string>
+    <string name="settings_streaming">Стриминг и фон</string>
+    <string name="settings_background_playback">Воспроизведение в фоне</string>
+    <string name="settings_background_playback_hint">Звук продолжает играть с медиа-уведомлением, когда вы выходите из приложения. Закрытие окна «картинка в картинке» по-прежнему останавливает воспроизведение.</string>
+    <string name="settings_cache">Кэш стримов</string>
+    <string name="settings_cache_hint">Хранит скачанные части сетевых видео, чтобы перемотка назад и повторный просмотр не качали их заново. Плейлисты live-стримов не кэшируются.</string>
+    <string name="settings_cache_off">Выкл</string>
+    <string name="settings_cache_used">Занято: %1$s</string>
+    <string name="settings_cache_clear">Очистить</string>
 </resources>

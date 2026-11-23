@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.AppInfo
 import com.rinwave.sakuro.core.upscale.PresetStores
@@ -28,6 +29,7 @@ public class SettingsComponent internal constructor(
     private val presetStores: PresetStores,
     private val userShaderStore: UserShaderStore,
     private val shaderInspector: ShaderInspector,
+    private val mediaCache: MediaCache,
     private val onOutput: (SettingsOutput) -> Unit,
 ) : ComponentContext by componentContext {
 
@@ -88,7 +90,7 @@ public class SettingsComponent internal constructor(
             ),
         )
 
-        is Config.Playback -> Child.Playback(PlaybackSettingsComponent(componentContext, settings, engineRegistry))
+        is Config.Playback -> Child.Playback(PlaybackSettingsComponent(componentContext, settings, engineRegistry, mediaCache))
         is Config.Upscale ->
             Child.Upscale(
                 UpscaleSettingsComponent(

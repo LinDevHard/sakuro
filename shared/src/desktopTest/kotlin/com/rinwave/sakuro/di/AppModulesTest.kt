@@ -7,6 +7,8 @@ import com.rinwave.sakuro.core.media.SampleVideoLibrary
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.MediaCache
+import com.rinwave.sakuro.core.player.NoMediaCache
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
 import com.rinwave.sakuro.core.settings.SakuroSettings
@@ -45,6 +47,7 @@ class AppModulesTest {
         single<UserShaderStore> { NoopUserShaderStore() }
         single<ShaderInspector> { NoopShaderInspector() }
         single { GpuInfoProvider { null } }
+        single<MediaCache> { NoMediaCache() }
         single<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers) { emptyList() }
     }
 

@@ -100,4 +100,12 @@
     <string name="value_off">off</string>
     <string name="settings_bench">Benchmark</string>
     <string name="settings_back">Back</string>
+    <string name="settings_streaming">Streaming &amp; background</string>
+    <string name="settings_background_playback">Background playback</string>
+    <string name="settings_background_playback_hint">Keep the sound playing with a media notification when you leave the app. Closing picture-in-picture still stops playback.</string>
+    <string name="settings_cache">Stream cache</string>
+    <string name="settings_cache_hint">Keeps downloaded parts of network videos so rewinding and replaying need no new download. Live playlists are never cached.</string>
+    <string name="settings_cache_off">Off</string>
+    <string name="settings_cache_used">Used: %1$s</string>
+    <string name="settings_cache_clear">Clear</string>
 </resources>

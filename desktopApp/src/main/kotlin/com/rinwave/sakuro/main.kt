@@ -17,6 +17,8 @@ import com.rinwave.sakuro.core.media.SampleVideoLibrary
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.GpuInfoProvider
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.MediaCache
+import com.rinwave.sakuro.core.player.NoMediaCache
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
 import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
@@ -57,6 +59,7 @@ fun main() {
                     single<UserShaderStore> { NoopUserShaderStore() }
                     single<ShaderInspector> { NoopShaderInspector() }
                     single { GpuInfoProvider { null } }
+                    single<MediaCache> { NoMediaCache() }
                     // No renderers: the fake engine falls back to the synthetic surface.
                     single<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers) { emptyList() }
                 },

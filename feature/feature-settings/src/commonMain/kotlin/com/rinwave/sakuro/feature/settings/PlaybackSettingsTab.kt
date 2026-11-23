@@ -1,10 +1,15 @@
 package com.rinwave.sakuro.feature.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -18,17 +23,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
+import com.composables.icons.lucide.HardDrive
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.designsystem.SettingSliderRow
 import com.rinwave.sakuro.core.designsystem.SettingSwitchRow
 import com.rinwave.sakuro.core.designsystem.SettingsPanel
+import com.rinwave.sakuro.core.designsystem.formatSize
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.SubtitlePreferences
+import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.ui.hint
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.settings_background_playback
+import com.rinwave.sakuro.feature.settings.resources.settings_background_playback_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_cache
+import com.rinwave.sakuro.feature.settings.resources.settings_cache_clear
+import com.rinwave.sakuro.feature.settings.resources.settings_cache_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_cache_off
+import com.rinwave.sakuro.feature.settings.resources.settings_cache_used
 import com.rinwave.sakuro.feature.settings.resources.settings_engine
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background_hint
@@ -41,6 +56,7 @@ import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_language_
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_later
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_position
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_reset
+import com.rinwave.sakuro.feature.settings.resources.settings_streaming
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitles
 import org.jetbrains.compose.resources.stringResource
 
@@ -63,8 +79,70 @@ internal fun PlaybackSettingsTab(component: PlaybackSettingsComponent) {
             EngineRow(type = EngineType.MPV, selected = false, enabled = false, onClick = {})
         }
     }
+    StreamingSettings(component)
     val subtitles by component.subtitlePreferences.collectAsState()
     SubtitleSettings(subtitles, component::setSubtitlePreferences)
+}
+
+/** Background playback and the network-stream cache. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StreamingSettings(component: PlaybackSettingsComponent) {
+    val background by component.backgroundPlayback.collectAsState()
+    val limitMb by component.cacheLimitMb.collectAsState()
+    val usedBytes by component.cacheUsedBytes.collectAsState()
+    SettingsPanel(title = stringResource(Res.string.settings_streaming), icon = Lucide.HardDrive) {
+        SettingSwitchRow(
+            title = stringResource(Res.string.settings_background_playback),
+            subtitle = stringResource(Res.string.settings_background_playback_hint),
+            checked = background,
+            onCheckedChange = component::setBackgroundPlayback,
+        )
+        PanelDivider()
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(stringResource(Res.string.settings_cache), color = SakuroColors.TextPrimary)
+            Text(
+                stringResource(Res.string.settings_cache_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = SakuroColors.TextMuted,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                MediaCache.LIMIT_CHOICES_MB.forEach { choice ->
+                    FilterChip(
+                        selected = choice == limitMb,
+                        onClick = { component.setCacheLimitMb(choice) },
+                        label = {
+                            Text(
+                                if (choice == 0) {
+                                    stringResource(Res.string.settings_cache_off)
+                                } else {
+                                    formatSize(choice * MediaCache.MB)
+                                },
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.35f),
+                            selectedLabelColor = SakuroColors.AccentSakura,
+                        ),
+                    )
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.settings_cache_used, if (usedBytes > 0) formatSize(usedBytes) else "0 MB"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SakuroColors.TextMuted,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = component::clearCache, enabled = usedBytes > 0) {
+                    Text(stringResource(Res.string.settings_cache_clear))
+                }
+            }
+        }
+    }
 }
 
 @Composable

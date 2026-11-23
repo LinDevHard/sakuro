@@ -100,4 +100,12 @@
     <string name="value_off">オフ</string>
     <string name="settings_bench">ベンチマーク</string>
     <string name="settings_back">戻る</string>
+    <string name="settings_streaming">ストリーミングとバックグラウンド</string>
+    <string name="settings_background_playback">バックグラウンド再生</string>
+    <string name="settings_background_playback_hint">アプリを離れてもメディア通知とともに音声の再生を続けます。ピクチャー イン ピクチャーを閉じると再生は停止します。</string>
+    <string name="settings_cache">ストリームキャッシュ</string>
+    <string name="settings_cache_hint">ネットワーク動画のダウンロード済み部分を保存し、巻き戻しや再視聴で再ダウンロードしないようにします。ライブのプレイリストはキャッシュしません。</string>
+    <string name="settings_cache_off">オフ</string>
+    <string name="settings_cache_used">使用中: %1$s</string>
+    <string name="settings_cache_clear">消去</string>
 </resources>

@@ -2,6 +2,7 @@ package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.player.EngineRegistry
+import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
@@ -27,11 +28,14 @@ public fun SettingsComponentFactory(
     presetStores: PresetStores,
     userShaderStore: UserShaderStore,
     shaderInspector: ShaderInspector,
+    mediaCache: MediaCache,
 ): SettingsComponentFactory = SettingsComponentFactory { context, onOutput ->
-    SettingsComponent(context, settings, engineRegistry, presetStores, userShaderStore, shaderInspector, onOutput)
+    SettingsComponent(
+        context, settings, engineRegistry, presetStores, userShaderStore, shaderInspector, mediaCache, onOutput,
+    )
 }
 
 /** Registers [SettingsComponentFactory]; platform modules provide the stores and registry. */
 public val settingsFeatureModule: Module = module {
-    single { SettingsComponentFactory(get(), get(), get(), get(), get()) }
+    single { SettingsComponentFactory(get(), get(), get(), get(), get(), get()) }
 }
