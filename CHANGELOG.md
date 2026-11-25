@@ -6,6 +6,11 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Folder playlist: previous/next buttons in the player for files in a library
+  folder (natural episode order), also in the notification, on the lock
+  screen and on headset/car controls. At the end of a video an "Up next" card
+  offers the next file; with autoplay on it counts down 5 s and can be
+  cancelled.
 - Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
   positioning, karaoke, effects), drawn as an overlay above the upscaled
   video. libass and its native stack are built from pinned source submodules

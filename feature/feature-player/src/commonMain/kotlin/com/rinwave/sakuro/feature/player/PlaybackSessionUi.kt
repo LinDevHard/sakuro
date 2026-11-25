@@ -43,8 +43,6 @@ import com.rinwave.sakuro.feature.player.resources.session_copied
 import com.rinwave.sakuro.feature.player.resources.session_copy
 import com.rinwave.sakuro.feature.player.resources.session_diagnostics
 import com.rinwave.sakuro.feature.player.resources.session_diagnostics_hint
-import com.rinwave.sakuro.feature.player.resources.session_next
-import com.rinwave.sakuro.feature.player.resources.session_previous
 import com.rinwave.sakuro.feature.player.resources.session_processing_off
 import com.rinwave.sakuro.feature.player.resources.session_restart
 import com.rinwave.sakuro.feature.player.resources.session_resume
@@ -113,8 +111,6 @@ private fun PlaybackToolsDialog(
     onDismiss: () -> Unit,
     onDiagnostics: () -> Unit,
 ) {
-    val previous by component.previousVideo.collectAsState()
-    val next by component.nextVideo.collectAsState()
     val autoPlay by component.autoPlayNext.collectAsState()
     val processingDisabled by component.processingDisabled.collectAsState()
     AlertDialog(
@@ -122,18 +118,6 @@ private fun PlaybackToolsDialog(
         title = { Text(stringResource(Res.string.session_tools)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                TextButton(onClick = {
-                    onDismiss()
-                    component.playPrevious()
-                }, enabled = previous != null) {
-                    Text(stringResource(Res.string.session_previous))
-                }
-                TextButton(onClick = {
-                    onDismiss()
-                    component.playNext()
-                }, enabled = next != null) {
-                    Text(stringResource(Res.string.session_next))
-                }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(Res.string.session_autoplay), Modifier.weight(1f))
                     Switch(checked = autoPlay, onCheckedChange = component::setAutoPlayNext)

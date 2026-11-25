@@ -23,6 +23,7 @@ import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.PlaybackHealthTracker
+import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -37,11 +38,14 @@ import com.rinwave.sakuro.core.upscale.DeviceStatusMonitor
 import com.rinwave.sakuro.core.upscale.PresetStores
 import com.rinwave.sakuro.core.upscale.ShaderInspector
 import com.rinwave.sakuro.core.upscale.UserShaderStore
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -83,6 +87,11 @@ public class PlayerComponent internal constructor(
     internal val nextVideo = _nextVideo.asStateFlow()
     private val _previousVideo = MutableStateFlow<VideoItem?>(null)
     internal val previousVideo = _previousVideo.asStateFlow()
+
+    /** The end-of-video card: what plays next and, with autoplay, the countdown before it does. */
+    private val _upNext = MutableStateFlow<UpNext?>(null)
+    internal val upNext = _upNext.asStateFlow()
+    private var upNextCountdown: Job? = null
     private val _processingDisabled = MutableStateFlow(false)
     internal val processingDisabled = _processingDisabled.asStateFlow()
 
@@ -211,10 +220,34 @@ public class PlayerComponent internal constructor(
         }
         scope.launch {
             combine(engine.state, nextVideo, autoPlayNext) { state, next, enabled ->
-                if (session.shouldAdvance(state.status, enabled, next != null)) next else null
+                if (session.shouldAdvance(state.status, enabled, next != null) && !state.liveEnded) next else null
             }.collect { next ->
-                if (next != null) openAdjacent(next)
+                if (next != null) startUpNextCountdown(next)
             }
+        }
+        // Without autoplay the end card still offers the next video; leaving the end hides it.
+        scope.launch {
+            combine(
+                engine.state.map { it.status == PlaybackStatus.ENDED && !it.liveEnded }.distinctUntilChanged(),
+                nextVideo,
+            ) { ended, next -> if (ended) next else null }
+                .collect { next ->
+                    if (next == null) {
+                        upNextCountdown?.cancel()
+                        _upNext.value = null
+                    } else if (_upNext.value?.video != next) {
+                        _upNext.value = UpNext(next, secondsLeft = null)
+                    }
+                }
+        }
+        scope.launch {
+            combine(previousVideo, nextVideo) { previous, next -> (previous != null) to (next != null) }
+                .collect { (hasPrevious, hasNext) ->
+                    engine.setQueueNavigation(
+                        previous = if (hasPrevious) ::playPrevious else null,
+                        next = if (hasNext) ::playNext else null,
+                    )
+                }
         }
 
         scope.launch {
@@ -387,7 +420,25 @@ public class PlayerComponent internal constructor(
     internal fun playPrevious() { previousVideo.value?.let(::openAdjacent) }
     internal fun setAutoPlayNext(enabled: Boolean) = history.setAutoPlayNext(enabled)
 
+    /** Stops the autoplay countdown; the card stays with a plain "Play" button. */
+    internal fun cancelUpNext() {
+        upNextCountdown?.cancel()
+        _upNext.update { it?.copy(secondsLeft = null) }
+    }
+
+    private fun startUpNextCountdown(next: VideoItem) {
+        upNextCountdown?.cancel()
+        upNextCountdown = scope.launch {
+            for (seconds in UP_NEXT_COUNTDOWN_SECONDS downTo 1) {
+                _upNext.value = UpNext(next, seconds)
+                delay(ONE_SECOND_MS)
+            }
+            openAdjacent(next)
+        }
+    }
+
     private fun openAdjacent(video: VideoItem) {
+        upNextCountdown?.cancel()
         saveProgress(force = true)
         onOutput(PlayerOutput.OpenVideo(video.uri, video.title))
     }
@@ -429,6 +480,8 @@ public class PlayerComponent internal constructor(
     internal fun onBack() = onOutput(PlayerOutput.Finished)
 
     internal companion object {
+        const val UP_NEXT_COUNTDOWN_SECONDS = 5
+        private const val ONE_SECOND_MS = 1_000L
         const val AUTO_PRESET_ID = "auto"
 
         /** A pseudo-preset: the real chain is chosen by content class (core-detect). */
@@ -464,3 +517,10 @@ internal data class LiveShader(
         shaderParams = if (params.isEmpty()) emptyMap() else mapOf(fileName to params),
     )
 }
+
+/** The next video in the folder, offered when the current one ends. */
+internal data class UpNext(
+    val video: VideoItem,
+    /** Seconds until autoplay opens it; null when it waits for a tap. */
+    val secondsLeft: Int?,
+)

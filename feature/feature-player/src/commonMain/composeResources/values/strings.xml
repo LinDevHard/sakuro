@@ -86,4 +86,8 @@
     <string name="session_live_ended_title">The broadcast has ended</string>
     <string name="session_live_ended_hint">The stream finished and is no longer live.</string>
     <string name="session_live_replay">Watch from the start</string>
+    <string name="player_up_next">Up next</string>
+    <string name="player_up_next_in">Up next in %1$d</string>
+    <string name="player_up_next_play">Play now</string>
+    <string name="player_up_next_cancel">Cancel</string>
 </resources>

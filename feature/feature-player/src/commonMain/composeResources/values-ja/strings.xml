@@ -86,4 +86,8 @@
     <string name="session_live_ended_title">配信は終了しました</string>
     <string name="session_live_ended_hint">ライブ配信は終了しています。</string>
     <string name="session_live_replay">最初から見る</string>
+    <string name="player_up_next">次の動画</string>
+    <string name="player_up_next_in">%1$d秒後に次の動画</string>
+    <string name="player_up_next_play">今すぐ再生</string>
+    <string name="player_up_next_cancel">キャンセル</string>
 </resources>

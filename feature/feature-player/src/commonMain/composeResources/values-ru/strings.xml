@@ -86,4 +86,8 @@
     <string name="session_live_ended_title">Трансляция завершена</string>
     <string name="session_live_ended_hint">Эфир закончился, стрим больше не идёт.</string>
     <string name="session_live_replay">Смотреть с начала</string>
+    <string name="player_up_next">Далее</string>
+    <string name="player_up_next_in">Следующее через %1$d</string>
+    <string name="player_up_next_play">Смотреть</string>
+    <string name="player_up_next_cancel">Отмена</string>
 </resources>

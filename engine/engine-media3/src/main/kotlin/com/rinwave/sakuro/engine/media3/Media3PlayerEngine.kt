@@ -177,6 +177,9 @@ class Media3PlayerEngine(
     val videoFrameRate: StateFlow<Float> = _videoFrameRate.asStateFlow()
     override val state = _state.asStateFlow()
 
+    /** What the media session sees: [player] plus previous/next for the folder queue. */
+    private val sessionPlayer = QueueNavigationPlayer(player)
+
     private var currentMedia: MediaSource? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var inBackground = false
@@ -431,8 +434,12 @@ class Media3PlayerEngine(
         assHandler?.let(subtitleView::withAssSupport)
     }
 
+    override fun setQueueNavigation(previous: (() -> Unit)?, next: (() -> Unit)?) {
+        sessionPlayer.setNavigation(previous, next)
+    }
+
     override fun attachMediaSession() {
-        PlaybackSessionRegistry.publish(player)
+        PlaybackSessionRegistry.publish(sessionPlayer)
         // Created by autoplay while the app is hidden: start audio-only like the previous engine.
         if (PlaybackSessionRegistry.uiInBackground) setBackground(true)
         if (controllerFuture == null) controllerFuture = SakuroPlaybackService.connect(appContext)
@@ -808,7 +815,7 @@ class Media3PlayerEngine(
         streamNetwork.saveBandwidthEstimate()
         scope.cancel()
         network.release()
-        PlaybackSessionRegistry.withdraw(player)
+        PlaybackSessionRegistry.withdraw(sessionPlayer)
         controllerFuture?.let(MediaController::releaseFuture)
         controllerFuture = null
         assHandler?.release()

@@ -86,6 +86,7 @@ internal fun SkipButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -96,9 +97,10 @@ internal fun SkipButton(
     )
     Surface(
         onClick = onClick,
+        enabled = enabled,
         shape = CircleShape,
         color = SakuroColors.Background.copy(alpha = 0.28f),
-        contentColor = SakuroColors.TextPrimary,
+        contentColor = if (enabled) SakuroColors.TextPrimary else SakuroColors.TextMuted.copy(alpha = 0.4f),
         interactionSource = interaction,
         modifier = modifier.graphicsLayer {
             scaleX = scale

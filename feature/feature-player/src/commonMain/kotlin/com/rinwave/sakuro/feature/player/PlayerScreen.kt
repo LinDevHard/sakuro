@@ -71,6 +71,8 @@ import com.composables.icons.lucide.Minimize
 import com.composables.icons.lucide.Pin
 import com.composables.icons.lucide.RotateCcw
 import com.composables.icons.lucide.RotateCw
+import com.composables.icons.lucide.SkipBack
+import com.composables.icons.lucide.SkipForward
 import com.composables.icons.lucide.Sparkles
 import com.composables.icons.lucide.Sun
 import com.composables.icons.lucide.Volume2
@@ -101,6 +103,7 @@ import com.rinwave.sakuro.core.upscale.ShaderTunable
 import com.rinwave.sakuro.feature.player.controls.PlayPauseButton
 import com.rinwave.sakuro.feature.player.controls.SakuroSeekBar
 import com.rinwave.sakuro.feature.player.controls.SkipButton
+import com.rinwave.sakuro.feature.player.controls.UpNextCard
 import com.rinwave.sakuro.feature.player.controls.YouTubeSeekOverlay
 import com.rinwave.sakuro.feature.player.gestures.LevelSwipeSession
 import com.rinwave.sakuro.feature.player.gestures.PinchZoomSession
@@ -116,6 +119,8 @@ import com.rinwave.sakuro.feature.player.resources.player_pin_title
 import com.rinwave.sakuro.feature.player.resources.player_playback_speed
 import com.rinwave.sakuro.feature.player.resources.player_processing_degraded
 import com.rinwave.sakuro.feature.player.resources.player_processing_disabled
+import com.rinwave.sakuro.feature.player.resources.session_next
+import com.rinwave.sakuro.feature.player.resources.session_previous
 import com.rinwave.sakuro.feature.player.resources.session_reconnecting
 import com.rinwave.sakuro.feature.player.resources.session_waiting_network
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_limited
@@ -571,6 +576,20 @@ public fun PlayerScreen(component: PlayerComponent) {
             }
         }
 
+        val upNext by component.upNext.collectAsState()
+        upNext?.takeIf { !inPip }?.let { next ->
+            UpNextCard(
+                title = next.video.title,
+                secondsLeft = next.secondsLeft,
+                onPlay = component::playNext,
+                onCancel = component::cancelUpNext,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(end = 16.dp, bottom = 96.dp),
+            )
+        }
+
         // Buffering without controls shows the brand loader in the center.
         if (state.status == PlaybackStatus.BUFFERING && !controlsVisible && !inPip) {
             EclipseLoader(Modifier.align(Alignment.Center))
@@ -901,12 +920,24 @@ private fun PlayerControls(
 
             Spacer(Modifier.weight(1f))
 
-            // Center transport controls.
+            // Center transport controls; previous/next appear for files in a known folder.
+            val previousVideo by component.previousVideo.collectAsState()
+            val nextVideo by component.nextVideo.collectAsState()
+            val hasQueue = previousVideo != null || nextVideo != null
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(
+                    if (hasQueue) 20.dp else 40.dp,
+                    Alignment.CenterHorizontally,
+                ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (hasQueue) SkipButton(
+                    icon = Lucide.SkipBack,
+                    contentDescription = stringResource(Res.string.session_previous),
+                    onClick = component::playPrevious,
+                    enabled = previousVideo != null,
+                )
                 if (state.canSeek()) SkipButton(
                     icon = Lucide.RotateCcw,
                     contentDescription = stringResource(Res.string.player_seek_back),
@@ -926,6 +957,12 @@ private fun PlayerControls(
                     icon = Lucide.RotateCw,
                     contentDescription = stringResource(Res.string.player_seek_forward),
                     onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
+                )
+                if (hasQueue) SkipButton(
+                    icon = Lucide.SkipForward,
+                    contentDescription = stringResource(Res.string.session_next),
+                    onClick = component::playNext,
+                    enabled = nextVideo != null,
                 )
             }
 

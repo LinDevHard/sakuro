@@ -46,6 +46,12 @@ interface PlayerEngine {
     /** Pins an adaptive-stream variant from [PlayerState.videoQualities]; null returns to automatic. */
     fun selectVideoQuality(qualityId: String?) = Unit
 
+    /**
+     * Previous/next video for the system media controls (notification, lock screen, headset
+     * and car buttons). Null leaves that action out.
+     */
+    fun setQueueNavigation(previous: (() -> Unit)?, next: (() -> Unit)?) = Unit
+
     /** Jumps to the live edge of a live stream. */
     fun seekToLiveEdge() = Unit
 
