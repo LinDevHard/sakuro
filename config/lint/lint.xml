@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Lint configuration for the app's aggregated report (checkDependencies = true).
+    Vendored third-party sources under third_party/ are reviewed upstream and pinned; lint
+    findings there are not ours to fix, so they are excluded instead of patched.
+-->
+<lint>
+    <issue id="all">
+        <ignore path="**/third_party/**" />
+    </issue>
+    <!-- 32-bit x86 is intentionally not built for libass (see build-logic NativeAbis);
+         the engine falls back to Media3's ASS rendering there. -->
+    <issue id="ChromeOsAbiSupport">
+        <ignore path="**/lib/libass/**" />
+        <ignore path="**/lib/libass-kt/**" />
+    </issue>
+</lint>

@@ -26,6 +26,14 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # libass and its native dependencies are built from pinned submodules.
+          submodules: recursive
+
+      - name: Install native build tools (libass stack)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
 
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
@@ -76,6 +84,12 @@ jobs:
         with:
           ref: refs/tags/${{ env.RELEASE_TAG }}
           fetch-depth: 0
+          submodules: recursive
+
+      - name: Install native build tools (libass stack)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
 
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:

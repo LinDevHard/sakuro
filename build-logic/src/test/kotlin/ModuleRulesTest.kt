@@ -54,8 +54,9 @@ class ModuleRulesTest {
     }
 
     @Test
-    fun libsAndUnknownModulesDependOnNothing() {
+    fun libsDependOnlyOnLibsAndUnknownModulesOnNothing() {
         assertFalse(ModuleRules.isAllowed(":lib:media3-usershader", ":core:core-model"))
+        assertTrue(ModuleRules.isAllowed(":lib:libass-media", ":lib:libass-kt"))
         assertFalse(ModuleRules.isAllowed(":composeApp", ":core:core-model"))
     }
 

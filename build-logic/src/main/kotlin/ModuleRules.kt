@@ -21,6 +21,8 @@ object ModuleRules {
         from.isFeature() -> to.isCore()
         from == ":shared" -> to.isFeature() || to.isCore()
         from == ":androidApp" || from == ":desktopApp" -> to == ":shared" || to.isEngine() || to.isCore()
+        // Libraries are Sakuro-independent; a vendored stack (libass) may layer its own libs.
+        from.isLib() -> to.isLib()
         else -> false
     }
 

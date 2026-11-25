@@ -1,0 +1,4 @@
+[submodule "third_party/libass-android"]
+	path = third_party/libass-android
+	url = https://github.com/peerless2012/libass-android.git
+	ignore = dirty

@@ -79,6 +79,30 @@ CurrentVersionCode: 5
 Use the immutable commit SHA tagged as `v0.1.4` after the release commit is
 ready.
 
+### Native code (libass)
+
+From the release that adds libass, the APK contains native libraries built from
+source: `third_party/libass-android` is a git submodule (pinned tag) whose own
+submodules pin libass, FreeType, HarfBuzz, FriBidi, Fontconfig, Expat and
+libunibreak. The build block then needs:
+
+```yaml
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
+    ndk: 28.2.13676358
+```
+
+`tools/native/prepare-libass.sh` (run automatically by Gradle before CMake)
+generates the autotools `configure` scripts and pins Fontconfig's baked-in
+config paths (by default they are the build directory). Release native code is
+compiled with `-ffile-prefix-map` and `-g0` and linked without a GNU build-id:
+the shipped `.so` files are stripped, and the build-id would otherwise hash
+debug info that contains per-checkout paths. Two release builds from different
+directories produced byte-identical APKs (checked on 2026-11-24); repeat that
+check after changing the native stack.
+
 For upstream-signed reproducible builds, the metadata also uses:
 
 ```yaml

@@ -13,6 +13,11 @@ required_notices=(
   "licenses/anime4k/LICENSE.txt"
   "licenses/cas/LICENSE.txt"
   "licenses/inter/LICENSE.txt"
+  "licenses/libass/libass-COPYING.txt"
+  "licenses/libass/freetype-FTL.txt"
+  "licenses/libass/fribidi-COPYING.txt"
+  "licenses/libass/harfbuzz-COPYING.txt"
+  "licenses/libass/libass-android-LICENSE.txt"
   "licenses/ravu/LICENSE.txt"
   "licenses/ravu/NOTICE.txt"
 )

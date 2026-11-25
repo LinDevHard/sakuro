@@ -85,10 +85,14 @@ android {
         // Also analyze the shared/engine/core/lib modules the app links, in one report.
         checkDependencies = true
         abortOnError = true
+        lintConfig = rootProject.file("config/lint/lint.xml")
     }
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        // The full flavor links both libmpv (prebuilt) and libass, and each ships the NDK's
+        // libc++_shared.so. libc++ keeps backward ABI compatibility; one copy is enough.
+        jniLibs.pickFirsts += "lib/*/libc++_shared.so"
     }
 }
 
