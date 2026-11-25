@@ -25,6 +25,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.metadata.Chapter as ContainerChapter
 import androidx.media3.session.MediaController
 import androidx.media3.ui.SubtitleView
 import com.google.common.util.concurrent.ListenableFuture
@@ -37,6 +38,8 @@ import com.rinwave.sakuro.core.model.StreamHeaders
 import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.model.UpscaleProfile
+import com.rinwave.sakuro.core.player.Chapter
+import com.rinwave.sakuro.core.player.Chapters
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackError
@@ -256,7 +259,7 @@ class Media3PlayerEngine(
         }
 
         override fun onTracksChanged(tracks: Tracks) {
-            _state.update { it.copy(tracks = mapTracks(tracks)) }
+            _state.update { it.copy(tracks = mapTracks(tracks), chapters = containerChapters(tracks)) }
             if (checkPlayableTracks(tracks)) {
                 updateAdaptiveSourceSize(tracks)
                 updateQualities(tracks)
@@ -379,6 +382,7 @@ class Media3PlayerEngine(
                 liveWindowStartEpochMs = null,
                 videoQualities = emptyList(),
                 selectedQualityId = null,
+                chapters = emptyList(),
                 playingQualityId = null,
             )
         }
@@ -962,6 +966,22 @@ class Media3PlayerEngine(
         TrackType.VIDEO -> C.TRACK_TYPE_VIDEO
         TrackType.AUDIO -> C.TRACK_TYPE_AUDIO
         TrackType.SUBTITLE -> C.TRACK_TYPE_TEXT
+    }
+
+    /**
+     * Media3 1.11 reads MKV and MP4 (Nero/QuickTime) chapters into each track's format metadata.
+     * Hidden MKV chapters are internal markers, not navigation.
+     */
+    private fun containerChapters(tracks: Tracks): List<Chapter> {
+        val chapters = tracks.groups.asSequence()
+            .flatMap { group -> (0 until group.length).asSequence().map(group::getTrackFormat) }
+            .mapNotNull { it.metadata }
+            .flatMap { metadata -> (0 until metadata.length()).asSequence().map(metadata::get) }
+            .filterIsInstance<ContainerChapter>()
+            .filterNot { it.isHidden }
+            .map { Chapter(startMs = it.startTimeMs, title = it.title?.value.orEmpty()) }
+            .toList()
+        return Chapters.normalize(chapters)
     }
 
     private fun mapTracks(tracks: Tracks): List<TrackInfo> =

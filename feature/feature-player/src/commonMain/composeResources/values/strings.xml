@@ -90,4 +90,6 @@
     <string name="player_up_next_in">Up next in %1$d</string>
     <string name="player_up_next_play">Play now</string>
     <string name="player_up_next_cancel">Cancel</string>
+    <string name="player_chapters">Chapters</string>
+    <string name="player_chapter_untitled">Chapter %1$d</string>
 </resources>

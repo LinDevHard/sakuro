@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -59,12 +60,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Activity
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
+import com.composables.icons.lucide.ListVideo
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Maximize
 import com.composables.icons.lucide.Minimize
@@ -82,6 +85,8 @@ import com.rinwave.sakuro.core.designsystem.formatTime
 import com.rinwave.sakuro.core.model.DisplayLimitStatus
 import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.ThermalLevel
+import com.rinwave.sakuro.core.player.Chapter
+import com.rinwave.sakuro.core.player.Chapters
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
@@ -114,6 +119,8 @@ import com.rinwave.sakuro.feature.player.gestures.detectPlayerGestures
 import com.rinwave.sakuro.feature.player.resources.Res
 import com.rinwave.sakuro.feature.player.resources.action_back
 import com.rinwave.sakuro.feature.player.resources.player_audio_tracks
+import com.rinwave.sakuro.feature.player.resources.player_chapter_untitled
+import com.rinwave.sakuro.feature.player.resources.player_chapters
 import com.rinwave.sakuro.feature.player.resources.player_pin_desc
 import com.rinwave.sakuro.feature.player.resources.player_pin_title
 import com.rinwave.sakuro.feature.player.resources.player_playback_speed
@@ -274,6 +281,13 @@ public fun PlayerScreen(component: PlayerComponent) {
     var presetSheetVisible by remember { mutableStateOf(false) }
     var speedSheetVisible by remember { mutableStateOf(false) }
     var tracksSheetVisible by remember { mutableStateOf(false) }
+    var chaptersSheetVisible by remember { mutableStateOf(false) }
+    val closeSheets = {
+        presetSheetVisible = false
+        speedSheetVisible = false
+        tracksSheetVisible = false
+        chaptersSheetVisible = false
+    }
     var speedBoost by remember { mutableStateOf(false) }
     var speedBeforeBoost by remember { mutableStateOf(1f) }
     // YouTube-like frame scaling: the engine applies discrete crop first,
@@ -343,7 +357,14 @@ public fun PlayerScreen(component: PlayerComponent) {
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onTap = { controlsVisible = !controlsVisible },
+                            onTap = {
+                                // A tap beside an open sheet closes it instead of toggling controls.
+                                if (presetSheetVisible || speedSheetVisible || tracksSheetVisible || chaptersSheetVisible) {
+                                    closeSheets()
+                                } else {
+                                    controlsVisible = !controlsVisible
+                                }
+                            },
                             onDoubleTap = { offset ->
                                 val current = component.engine.state.value.positionMs
                                 val seekable = component.engine.state.value.canSeek()
@@ -516,19 +537,20 @@ public fun PlayerScreen(component: PlayerComponent) {
                 component = component,
                 onToolsClick = { toolsVisible = true },
                 onPresetClick = {
-                    speedSheetVisible = false
-                    tracksSheetVisible = false
+                    closeSheets()
                     presetSheetVisible = true
                 },
                 onSpeedClick = {
-                    presetSheetVisible = false
-                    tracksSheetVisible = false
+                    closeSheets()
                     speedSheetVisible = true
                 },
                 onTracksClick = {
-                    presetSheetVisible = false
-                    speedSheetVisible = false
+                    closeSheets()
                     tracksSheetVisible = true
+                },
+                onChaptersClick = {
+                    closeSheets()
+                    chaptersSheetVisible = true
                 },
             )
         }
@@ -678,6 +700,21 @@ public fun PlayerScreen(component: PlayerComponent) {
                 },
             )
         }
+        AnimatedVisibility(
+            visible = chaptersSheetVisible && !inPip,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            ChaptersSheet(
+                chapters = state.chapters,
+                positionMs = state.positionMs,
+                onChapterSelected = { chapter ->
+                    component.engine.seekTo(chapter.startMs)
+                    chaptersSheetVisible = false
+                },
+            )
+        }
         if (!inPip) {
             PlaybackSessionUi(
                 component = component,
@@ -799,8 +836,12 @@ private fun PlayerControls(
     onPresetClick: () -> Unit,
     onSpeedClick: () -> Unit,
     onTracksClick: () -> Unit,
+    onChaptersClick: () -> Unit,
 ) {
     val state by component.engine.state.collectAsState()
+    // While the seek bar is dragged, the time and chapter follow the finger.
+    var scrubPositionMs by remember { mutableStateOf<Long?>(null) }
+    val shownPositionMs = scrubPositionMs ?: state.positionMs
     val presets by component.presets.collectAsState()
     // User presets are looked up too — a custom chain must not read as "Off".
     val activePreset = presets.firstOrNull { it.id == state.activeUpscaleProfileId }
@@ -860,6 +901,16 @@ private fun PlayerControls(
                         playingId = state.playingQualityId,
                         onSelect = component::selectVideoQuality,
                     )
+                }
+                if (state.chapters.isNotEmpty()) {
+                    IconButton(onClick = onChaptersClick) {
+                        Icon(
+                            Lucide.ListVideo,
+                            stringResource(Res.string.player_chapters),
+                            tint = SakuroColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
                 IconButton(onClick = onTracksClick) {
                     Icon(
@@ -977,8 +1028,15 @@ private fun PlayerControls(
                         durationMs = state.durationMs,
                         bufferedMs = state.bufferedMs,
                         onSeek = { component.engine.seekTo(it) },
-                        onScrub = component.engine::scrubTo,
-                        onScrubbingChanged = component.engine::setScrubbing,
+                        onScrub = {
+                            scrubPositionMs = it
+                            component.engine.scrubTo(it)
+                        },
+                        onScrubbingChanged = { scrubbing ->
+                            if (!scrubbing) scrubPositionMs = null
+                            component.engine.setScrubbing(scrubbing)
+                        },
+                        chapterStartsMs = state.chapters.map { it.startMs },
                     )
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -992,8 +1050,17 @@ private fun PlayerControls(
                             state.isSeekable && state.durationMs > 0 -> TimeText(formatTime(state.durationMs))
                         }
                     } else {
-                        TimeText(formatTime(state.positionMs))
-                        Spacer(Modifier.weight(1f))
+                        TimeText(formatTime(shownPositionMs))
+                        val chapterIndex = Chapters.indexAt(state.chapters, shownPositionMs)
+                        Text(
+                            text = state.chapters.getOrNull(chapterIndex)?.displayTitle(chapterIndex).orEmpty(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = SakuroColors.TextMuted,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                        )
                         TimeText(formatTime(state.durationMs))
                     }
                 }
@@ -1231,6 +1298,65 @@ private fun TrackOptionRow(
 
 private fun TrackInfo.displayTrackLabel(index: Int): String =
     label.takeIf { it.isNotBlank() } ?: "#${index + 1}"
+
+@Composable
+private fun ChaptersSheet(
+    chapters: List<Chapter>,
+    positionMs: Long,
+    onChapterSelected: (Chapter) -> Unit,
+) {
+    val current = Chapters.indexAt(chapters, positionMs)
+    Surface(
+        color = SakuroColors.SurfaceElevated,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+    ) {
+        Column(
+            Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(vertical = 12.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(
+                stringResource(Res.string.player_chapters),
+                style = MaterialTheme.typography.titleMedium,
+                color = SakuroColors.TextPrimary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            chapters.forEachIndexed { index, chapter ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onChapterSelected(chapter) }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        formatTime(chapter.startMs),
+                        color = SakuroColors.TextMuted,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        chapter.displayTitle(index),
+                        color = if (index == current) SakuroColors.AccentSakura else SakuroColors.TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (index == current) {
+                        Icon(Lucide.Check, null, tint = SakuroColors.AccentSakura, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Chapter.displayTitle(index: Int): String =
+    title.ifEmpty { stringResource(Res.string.player_chapter_untitled, index + 1) }
 
 @Composable
 private fun SpeedSheet(

@@ -90,4 +90,6 @@
     <string name="player_up_next_in">%1$d秒後に次の動画</string>
     <string name="player_up_next_play">今すぐ再生</string>
     <string name="player_up_next_cancel">キャンセル</string>
+    <string name="player_chapters">チャプター</string>
+    <string name="player_chapter_untitled">チャプター %1$d</string>
 </resources>

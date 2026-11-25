@@ -90,4 +90,6 @@
     <string name="player_up_next_in">Следующее через %1$d</string>
     <string name="player_up_next_play">Смотреть</string>
     <string name="player_up_next_cancel">Отмена</string>
+    <string name="player_chapters">Главы</string>
+    <string name="player_chapter_untitled">Глава %1$d</string>
 </resources>

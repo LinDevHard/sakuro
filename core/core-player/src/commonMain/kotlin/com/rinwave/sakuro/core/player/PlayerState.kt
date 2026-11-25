@@ -35,6 +35,8 @@ data class PlayerState(
     val selectedQualityId: String? = null,
     /** The variant currently being decoded, so "Auto" can say what it picked. */
     val playingQualityId: String? = null,
+    /** Container chapters, sorted; empty when the file has none (see [Chapters.normalize]). */
+    val chapters: List<Chapter> = emptyList(),
 )
 
 data class VideoQuality(

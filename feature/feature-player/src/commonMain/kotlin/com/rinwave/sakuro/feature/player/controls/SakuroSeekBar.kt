@@ -16,8 +16,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.rinwave.sakuro.core.designsystem.SakuroColors
@@ -26,7 +29,7 @@ import com.rinwave.sakuro.core.designsystem.SakuroColors
  * A custom seek bar: draggable, scrubbable and tap-to-seek, with the thumb
  * growing on drag and a gradient fill (glowMagenta → accentSakura).
  * Custom instead of the Material3 Slider API. Scrubbing is reported live;
- * the final position is committed via [onSeek].
+ * the final position is committed via [onSeek]. Chapter boundaries show as gaps.
  */
 @Composable
 internal fun SakuroSeekBar(
@@ -37,6 +40,8 @@ internal fun SakuroSeekBar(
     modifier: Modifier = Modifier,
     onScrub: ((Long) -> Unit)? = null,
     onScrubbingChanged: ((Boolean) -> Unit)? = null,
+    /** Chapter starts; each one after the first cuts a small gap into the track. */
+    chapterStartsMs: List<Long> = emptyList(),
 ) {
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     var dragging by remember { mutableStateOf(false) }
@@ -98,7 +103,9 @@ internal fun SakuroSeekBar(
             Modifier
                 .fillMaxWidth()
                 .height(thumbRadius * 2)
-                .align(Alignment.Center),
+                .align(Alignment.Center)
+                // Offscreen so the chapter gaps clear only the bar, not the video under it.
+                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen),
         ) {
             val cy = size.height / 2f
             val h = trackHeight.toPx()
@@ -137,6 +144,21 @@ internal fun SakuroSeekBar(
                 strokeWidth = h,
                 cap = StrokeCap.Round,
             )
+            // Chapter boundaries: gaps cut through every layer, like YouTube's segmented bar.
+            if (durationMs > 0) {
+                val gap = CHAPTER_GAP_DP.dp.toPx()
+                chapterStartsMs.forEach { startMs ->
+                    if (startMs <= 0 || startMs >= durationMs) return@forEach
+                    val x = start + usable * (startMs.toFloat() / durationMs)
+                    drawLine(
+                        color = SakuroColors.Background,
+                        start = Offset(x, cy - h),
+                        end = Offset(x, cy + h),
+                        strokeWidth = gap,
+                        blendMode = BlendMode.Clear,
+                    )
+                }
+            }
             // Thumb: halo + core.
             drawCircle(
                 color = SakuroColors.AccentSakura.copy(alpha = 0.25f),
@@ -151,3 +173,5 @@ internal fun SakuroSeekBar(
         }
     }
 }
+
+private const val CHAPTER_GAP_DP = 2f

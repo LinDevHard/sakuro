@@ -80,12 +80,19 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideo
         // libmpv 1.1.0 delivers END_FILE only here, with the reason and mpv's error code.
         override fun eventEndFile(reason: Int, error: Int) = onEndFile(reason, error)
 
-        // track-list is observed without a value (MPV_FORMAT_NONE) and re-read
-        // as a string: mpv returns it as JSON.
+        // track-list and chapter-list are observed without a value (MPV_FORMAT_NONE) and
+        // re-read as strings: mpv returns them as JSON.
         override fun eventProperty(property: String) {
-            if (property == "track-list" && !released.get()) {
-                val json = mpv.getPropertyString("track-list") ?: return
-                _state.update { it.copy(tracks = parseMpvTrackList(json)) }
+            if (released.get()) return
+            when (property) {
+                "track-list" -> {
+                    val json = mpv.getPropertyString("track-list") ?: return
+                    _state.update { it.copy(tracks = parseMpvTrackList(json)) }
+                }
+                "chapter-list" -> {
+                    val json = mpv.getPropertyString("chapter-list") ?: return
+                    _state.update { it.copy(chapters = parseMpvChapterList(json)) }
+                }
             }
         }
 
@@ -141,6 +148,7 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideo
         mpv.init()
         mpv.addObserver(observer)
         mpv.observeProperty("track-list", MPVLib.MpvFormat.MPV_FORMAT_NONE)
+        mpv.observeProperty("chapter-list", MPVLib.MpvFormat.MPV_FORMAT_NONE)
         mpv.observeProperty("video-params/w", MPVLib.MpvFormat.MPV_FORMAT_INT64)
         mpv.observeProperty("video-params/h", MPVLib.MpvFormat.MPV_FORMAT_INT64)
         mpv.observeProperty("time-pos", MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)

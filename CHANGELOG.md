@@ -11,6 +11,11 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   screen and on headset/car controls. At the end of a video an "Up next" card
   offers the next file; with autoplay on it counts down 5 s and can be
   cancelled.
+- Chapters from MKV and MP4 files (Media3 1.11 reads both; mpv's
+  `chapter-list` in compatibility mode): gaps on the seek bar, the current
+  chapter's name under it (following the finger while scrubbing), and a
+  chapter list in the top bar to jump between them. A tap beside an open
+  player sheet now closes it.
 - Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
   positioning, karaoke, effects), drawn as an overlay above the upscaled
   video. libass and its native stack are built from pinned source submodules
