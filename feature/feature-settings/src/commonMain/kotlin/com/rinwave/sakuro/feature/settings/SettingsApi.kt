@@ -22,6 +22,7 @@ public fun interface SettingsComponentFactory {
     public fun create(context: ComponentContext, onOutput: (SettingsOutput) -> Unit): SettingsComponent
 }
 
+@Suppress("LongParameterList") // DI wiring: each parameter is one injected service
 public fun SettingsComponentFactory(
     settings: SakuroSettings,
     engineRegistry: EngineRegistry,

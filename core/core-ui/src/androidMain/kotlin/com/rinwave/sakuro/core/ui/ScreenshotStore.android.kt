@@ -62,7 +62,11 @@ private class AndroidScreenshotStore(
         val bitmap = image.asAndroidBitmap()
         return withContext(Dispatchers.IO) {
             runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) saveScoped(bitmap, baseName) else saveLegacy(bitmap, baseName)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    saveScoped(bitmap, baseName)
+                } else {
+                    saveLegacy(bitmap, baseName)
+                }
             }.getOrNull()?.toString()
         }
     }
@@ -78,7 +82,8 @@ private class AndroidScreenshotStore(
 
     private fun hasLegacyWritePermission(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
-            appContext.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            appContext.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun saveScoped(bitmap: Bitmap, baseName: String): Uri? {
         val resolver = appContext.contentResolver

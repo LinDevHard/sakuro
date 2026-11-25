@@ -90,7 +90,9 @@ public class SettingsComponent internal constructor(
             ),
         )
 
-        is Config.Playback -> Child.Playback(PlaybackSettingsComponent(componentContext, settings, engineRegistry, mediaCache))
+        is Config.Playback -> Child.Playback(
+            PlaybackSettingsComponent(componentContext, settings, engineRegistry, mediaCache),
+        )
         is Config.Upscale ->
             Child.Upscale(
                 UpscaleSettingsComponent(

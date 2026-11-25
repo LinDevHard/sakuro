@@ -114,7 +114,8 @@ internal object StreamErrorClassifier {
     private const val HTTP_REQUEST_TIMEOUT = 408
     private const val HTTP_TOO_MANY_REQUESTS = 429
     private val HTTP_SERVER_ERRORS = 500..599
-    private val DRM_CODES = PlaybackException.ERROR_CODE_DRM_UNSPECIFIED..PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED
+    private val DRM_CODES =
+        PlaybackException.ERROR_CODE_DRM_UNSPECIFIED..PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED
 }
 
 /**

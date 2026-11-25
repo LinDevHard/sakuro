@@ -38,6 +38,7 @@ data class StreamUrl(
     }
 
     companion object {
+        @Suppress("CyclomaticComplexMethod") // one linear validation pass; splitting hides the order
         fun parse(input: String): ParseResult {
             val text = input.trim()
             if (text.isEmpty()) return ParseResult.Empty

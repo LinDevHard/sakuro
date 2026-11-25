@@ -83,7 +83,10 @@ class RootComponent(
         )
 
         is Config.Player -> Child.Player(
-            factories.player.create(componentContext, MediaSource(uri = config.uri, title = config.title, headers = config.headers)) { output ->
+            factories.player.create(
+                componentContext,
+                MediaSource(uri = config.uri, title = config.title, headers = config.headers),
+            ) { output ->
                 when (output) {
                     is PlayerOutput.OpenVideo -> openVideo(output.uri, output.title)
                     PlayerOutput.Finished -> navigation.pop()

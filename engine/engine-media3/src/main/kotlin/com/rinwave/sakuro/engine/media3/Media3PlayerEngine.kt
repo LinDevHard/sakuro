@@ -25,7 +25,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
-import androidx.media3.extractor.metadata.Chapter as ContainerChapter
 import androidx.media3.session.MediaController
 import androidx.media3.ui.SubtitleView
 import com.google.common.util.concurrent.ListenableFuture
@@ -78,6 +77,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.media3.extractor.metadata.Chapter as ContainerChapter
 
 /**
  * Media3/ExoPlayer implementation of [PlayerEngine].
@@ -94,6 +94,7 @@ import kotlinx.coroutines.withContext
  * [PlaybackErrorKind.DRM] — Sakuro configures no DRM sessions.
  */
 @OptIn(UnstableApi::class)
+@Suppress("LargeClass") // the single ExoPlayer owner; splitting it is tracked as follow-up work
 class Media3PlayerEngine(
     context: Context,
     /** Render ASS/SSA with libass (fonts, positioning, karaoke, effects) instead of Media3's subset. */
@@ -533,7 +534,6 @@ class Media3PlayerEngine(
         val offset = player.currentLiveOffset.takeIf { it != C.TIME_UNSET } ?: return 0L
         return (offset - (liveTargetOffsetMs() ?: 0L)).coerceAtLeast(0L)
     }
-
 
     /** Lists the variants of the selected adaptive video group, best first. */
     private fun updateQualities(tracks: Tracks) {
@@ -1074,7 +1074,6 @@ class Media3EngineFactory(
     override val type = EngineType.MEDIA3
     override fun create(): PlayerEngine = Media3PlayerEngine(context.applicationContext, assSubtitles())
 }
-
 
 /**
  * libass ships for arm64-v8a, armeabi-v7a and x86_64 only. On any other ABI (32-bit x86) the

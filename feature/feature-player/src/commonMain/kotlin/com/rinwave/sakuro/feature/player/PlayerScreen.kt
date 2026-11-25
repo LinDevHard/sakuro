@@ -143,10 +143,6 @@ import com.rinwave.sakuro.feature.player.resources.player_pin_title
 import com.rinwave.sakuro.feature.player.resources.player_playback_speed
 import com.rinwave.sakuro.feature.player.resources.player_processing_degraded
 import com.rinwave.sakuro.feature.player.resources.player_processing_disabled
-import com.rinwave.sakuro.feature.player.resources.session_next
-import com.rinwave.sakuro.feature.player.resources.session_previous
-import com.rinwave.sakuro.feature.player.resources.session_reconnecting
-import com.rinwave.sakuro.feature.player.resources.session_waiting_network
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_limited
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_reason
 import com.rinwave.sakuro.feature.player.resources.player_processing_display_skipped
@@ -174,6 +170,10 @@ import com.rinwave.sakuro.feature.player.resources.player_tracks
 import com.rinwave.sakuro.feature.player.resources.player_upscale_preset
 import com.rinwave.sakuro.feature.player.resources.scale_fill_screen
 import com.rinwave.sakuro.feature.player.resources.scale_fit_to_screen
+import com.rinwave.sakuro.feature.player.resources.session_next
+import com.rinwave.sakuro.feature.player.resources.session_previous
+import com.rinwave.sakuro.feature.player.resources.session_reconnecting
+import com.rinwave.sakuro.feature.player.resources.session_waiting_network
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -419,7 +419,13 @@ public fun PlayerScreen(component: PlayerComponent) {
                         detectTapGestures(
                             onTap = {
                                 // A tap beside an open sheet closes it instead of toggling controls.
-                                if (presetSheetVisible || speedSheetVisible || tracksSheetVisible || chaptersSheetVisible) {
+                                val anySheet = listOf(
+                                    presetSheetVisible,
+                                    speedSheetVisible,
+                                    tracksSheetVisible,
+                                    chaptersSheetVisible,
+                                ).any { it }
+                                if (anySheet) {
                                     closeSheets()
                                 } else {
                                     controlsVisible = !controlsVisible
@@ -472,7 +478,14 @@ public fun PlayerScreen(component: PlayerComponent) {
                             },
                         )
                     }
-                    .pointerInput(gesturesEnabled, gestureBrightness, gestureVolume, gestureSeek, gestureZoom, canSeek) {
+                    .pointerInput(
+                        gesturesEnabled,
+                        gestureBrightness,
+                        gestureVolume,
+                        gestureSeek,
+                        gestureZoom,
+                        canSeek,
+                    ) {
                         if (!gesturesEnabled) return@pointerInput
 
                         var seekSession: SeekSwipeSession? = null
@@ -1020,22 +1033,24 @@ private fun PlayerControls(
                     )
                 }
                 // Live keeps Media3's latency speed control; a manual speed is not offered there.
-                if (!state.isLive) Surface(
-                    onClick = onSpeedClick,
-                    shape = RoundedCornerShape(50),
-                    color = SakuroColors.Surface.copy(alpha = 0.6f),
-                    contentColor = if (abs(state.speed - 1f) < 0.01f) {
-                        SakuroColors.TextMuted
-                    } else {
-                        SakuroColors.AccentSakura
-                    },
-                    modifier = Modifier.padding(end = 8.dp),
-                ) {
-                    Text(
-                        text = formatPlaybackSpeed(state.speed),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
+                if (!state.isLive) {
+                    Surface(
+                        onClick = onSpeedClick,
+                        shape = RoundedCornerShape(50),
+                        color = SakuroColors.Surface.copy(alpha = 0.6f),
+                        contentColor = if (abs(state.speed - 1f) < 0.01f) {
+                            SakuroColors.TextMuted
+                        } else {
+                            SakuroColors.AccentSakura
+                        },
+                        modifier = Modifier.padding(end = 8.dp),
+                    ) {
+                        Text(
+                            text = formatPlaybackSpeed(state.speed),
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
                 }
                 // Upscale-on indicator.
                 Surface(
@@ -1082,17 +1097,21 @@ private fun PlayerControls(
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (hasQueue) SkipButton(
-                    icon = Lucide.SkipBack,
-                    contentDescription = stringResource(Res.string.session_previous),
-                    onClick = component::playPrevious,
-                    enabled = previousVideo != null,
-                )
-                if (state.canSeek()) SkipButton(
-                    icon = Lucide.RotateCcw,
-                    contentDescription = stringResource(Res.string.player_seek_back),
-                    onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
-                )
+                if (hasQueue) {
+                    SkipButton(
+                        icon = Lucide.SkipBack,
+                        contentDescription = stringResource(Res.string.session_previous),
+                        onClick = component::playPrevious,
+                        enabled = previousVideo != null,
+                    )
+                }
+                if (state.canSeek()) {
+                    SkipButton(
+                        icon = Lucide.RotateCcw,
+                        contentDescription = stringResource(Res.string.player_seek_back),
+                        onClick = { component.engine.seekTo((state.positionMs - DOUBLE_TAP_SEEK_MS).coerceAtLeast(0)) },
+                    )
+                }
                 Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
                     if (state.status == PlaybackStatus.BUFFERING) {
                         EclipseLoader(size = 60.dp)
@@ -1103,17 +1122,21 @@ private fun PlayerControls(
                         )
                     }
                 }
-                if (state.canSeek()) SkipButton(
-                    icon = Lucide.RotateCw,
-                    contentDescription = stringResource(Res.string.player_seek_forward),
-                    onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
-                )
-                if (hasQueue) SkipButton(
-                    icon = Lucide.SkipForward,
-                    contentDescription = stringResource(Res.string.session_next),
-                    onClick = component::playNext,
-                    enabled = nextVideo != null,
-                )
+                if (state.canSeek()) {
+                    SkipButton(
+                        icon = Lucide.RotateCw,
+                        contentDescription = stringResource(Res.string.player_seek_forward),
+                        onClick = { component.engine.seekTo(state.positionMs + DOUBLE_TAP_SEEK_MS) },
+                    )
+                }
+                if (hasQueue) {
+                    SkipButton(
+                        icon = Lucide.SkipForward,
+                        contentDescription = stringResource(Res.string.session_next),
+                        onClick = component::playNext,
+                        enabled = nextVideo != null,
+                    )
+                }
             }
 
             Spacer(Modifier.weight(1f))
@@ -1740,4 +1763,3 @@ private const val TUNABLE_ROUND = 100f
 
 /** Live without a DVR window cannot seek; everything else can. */
 private fun PlayerState.canSeek(): Boolean = !isLive || (isSeekable && durationMs > 0)
-

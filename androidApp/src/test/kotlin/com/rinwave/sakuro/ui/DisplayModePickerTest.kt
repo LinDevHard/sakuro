@@ -8,7 +8,8 @@ class DisplayModePickerTest {
 
     private fun mode(id: Int, hz: Float, w: Int = 3840, h: Int = 2160) = DisplayModeInfo(id, w, h, hz)
 
-    private val tv = listOf(mode(1, 60f), mode(2, 50f), mode(3, 24f), mode(4, 23.976f), mode(5, 30f), mode(6, 60f, 1920, 1080))
+    private val tv =
+        listOf(mode(1, 60f), mode(2, 50f), mode(3, 24f), mode(4, 23.976f), mode(5, 30f), mode(6, 60f, 1920, 1080))
     private val phone = listOf(mode(1, 60f, 1080, 2400), mode(2, 90f, 1080, 2400), mode(3, 120f, 1080, 2400))
 
     @Test

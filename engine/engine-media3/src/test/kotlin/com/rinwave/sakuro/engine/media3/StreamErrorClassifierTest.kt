@@ -22,7 +22,12 @@ class StreamErrorClassifierTest {
         assertEquals(PlaybackErrorKind.NETWORK, kind(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT))
         assertEquals(
             PlaybackErrorKind.NETWORK,
-            kind(PlaybackException.ERROR_CODE_IO_UNSPECIFIED, null, IOException("wrapped"), UnknownHostException("cdn")),
+            kind(
+                PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+                null,
+                IOException("wrapped"),
+                UnknownHostException("cdn"),
+            ),
         )
         assertEquals(
             PlaybackErrorKind.NETWORK,

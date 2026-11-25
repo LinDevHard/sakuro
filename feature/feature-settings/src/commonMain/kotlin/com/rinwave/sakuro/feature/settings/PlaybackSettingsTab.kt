@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.HardDrive
 import com.composables.icons.lucide.Headphones
-import com.composables.icons.lucide.Monitor
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Monitor
 import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.designsystem.SettingSliderRow
@@ -35,14 +35,19 @@ import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.designsystem.formatSize
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.FrameRateMatching
-import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.MediaCache
+import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.ui.hint
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.feature.settings.resources.Res
 import com.rinwave.sakuro.feature.settings.resources.settings_ass_renderer
 import com.rinwave.sakuro.feature.settings.resources.settings_ass_renderer_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_audio
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_earlier
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_later
 import com.rinwave.sakuro.feature.settings.resources.settings_background_playback
 import com.rinwave.sakuro.feature.settings.resources.settings_background_playback_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_cache
@@ -50,11 +55,6 @@ import com.rinwave.sakuro.feature.settings.resources.settings_cache_clear
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_off
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_used
-import com.rinwave.sakuro.feature.settings.resources.settings_audio
-import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay
-import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay_hint
-import com.rinwave.sakuro.feature.settings.resources.settings_audio_earlier
-import com.rinwave.sakuro.feature.settings.resources.settings_audio_later
 import com.rinwave.sakuro.feature.settings.resources.settings_display
 import com.rinwave.sakuro.feature.settings.resources.settings_engine
 import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate
@@ -62,6 +62,7 @@ import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_always
 import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_off
 import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_seamless
+import com.rinwave.sakuro.feature.settings.resources.settings_streaming
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_delay
@@ -73,7 +74,6 @@ import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_language_
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_later
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_position
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_reset
-import com.rinwave.sakuro.feature.settings.resources.settings_streaming
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitles
 import org.jetbrains.compose.resources.stringResource
 
@@ -228,7 +228,10 @@ private fun StreamingSettings(component: PlaybackSettingsComponent) {
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(Res.string.settings_cache_used, if (usedBytes > 0) formatSize(usedBytes) else "0 MB"),
+                    stringResource(
+                        Res.string.settings_cache_used,
+                        if (usedBytes > 0) formatSize(usedBytes) else "0 MB",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = SakuroColors.TextMuted,
                     modifier = Modifier.weight(1f),

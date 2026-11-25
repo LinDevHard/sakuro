@@ -21,6 +21,9 @@ object StreamHeaders {
     fun sanitize(headers: Map<String, String>): Map<String, String> = headers
         .mapValues { (_, value) -> value.trim() }
         .filter { (name, value) ->
-            name.isNotBlank() && value.isNotEmpty() && (name + value).none { it == '\r' || it == '\n' || it == '\u0000' }
+            name.isNotBlank() && value.isNotEmpty() && (name + value).none { it in HEADER_BREAKERS }
         }
+
+    /** CR/LF/NUL would split or truncate an HTTP header line. */
+    private val HEADER_BREAKERS = setOf('\r', '\n', '\u0000')
 }

@@ -255,7 +255,9 @@ private fun ErrorIllustration(icon: ImageVector, badge: String?) {
             Modifier
                 .size(176.dp)
                 .background(
-                    Brush.radialGradient(listOf(SakuroColors.GlowMagenta.copy(alpha = 0.35f), SakuroColors.Background.copy(alpha = 0f))),
+                    Brush.radialGradient(
+                        listOf(SakuroColors.GlowMagenta.copy(alpha = 0.35f), SakuroColors.Background.copy(alpha = 0f)),
+                    ),
                     CircleShape,
                 ),
         )

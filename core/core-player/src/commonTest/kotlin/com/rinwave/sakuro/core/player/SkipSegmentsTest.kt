@@ -34,6 +34,9 @@ class SkipSegmentsTest {
         assertNull(SkipSegments.at(chapters, 30_000, 1_420_000))
         assertEquals(SkipSegment(SkipKind.OPENING, 60_000, 150_000), SkipSegments.at(chapters, 61_000, 1_420_000))
         assertNull(SkipSegments.at(chapters, 149_000, 1_420_000))
-        assertEquals(SkipSegment(SkipKind.ENDING, 1_320_000, 1_420_000), SkipSegments.at(chapters, 1_330_000, 1_420_000))
+        assertEquals(
+            SkipSegment(SkipKind.ENDING, 1_320_000, 1_420_000),
+            SkipSegments.at(chapters, 1_330_000, 1_420_000),
+        )
     }
 }

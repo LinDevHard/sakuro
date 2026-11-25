@@ -73,7 +73,10 @@ class SakuroPlaybackService : MediaSessionService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? =
-        session ?: PlaybackSessionRegistry.player.value?.let { bind(it); session }
+        session ?: PlaybackSessionRegistry.player.value?.let { player ->
+            bind(player)
+            session
+        }
 
     private fun bind(player: Player?) {
         val current = session

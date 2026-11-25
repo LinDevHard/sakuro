@@ -35,7 +35,6 @@ import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.ui.rememberDiagnosticPlatform
 import com.rinwave.sakuro.core.ui.rememberShareDiagnosticReport
 import com.rinwave.sakuro.feature.player.resources.Res
-import com.rinwave.sakuro.feature.player.resources.action_back
 import com.rinwave.sakuro.feature.player.resources.session_autoplay
 import com.rinwave.sakuro.feature.player.resources.session_close
 import com.rinwave.sakuro.feature.player.resources.session_continue

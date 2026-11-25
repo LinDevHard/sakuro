@@ -91,10 +91,10 @@ import com.rinwave.sakuro.feature.library.resources.library_back
 import com.rinwave.sakuro.feature.library.resources.library_empty_subtitle
 import com.rinwave.sakuro.feature.library.resources.library_empty_title
 import com.rinwave.sakuro.feature.library.resources.sort
-import com.rinwave.sakuro.feature.library.resources.stream_open
 import com.rinwave.sakuro.feature.library.resources.sort_ascending
 import com.rinwave.sakuro.feature.library.resources.sort_by
 import com.rinwave.sakuro.feature.library.resources.sort_descending
+import com.rinwave.sakuro.feature.library.resources.stream_open
 import com.rinwave.sakuro.feature.library.resources.tab_folders
 import com.rinwave.sakuro.feature.library.resources.tab_videos
 import org.jetbrains.compose.resources.stringResource

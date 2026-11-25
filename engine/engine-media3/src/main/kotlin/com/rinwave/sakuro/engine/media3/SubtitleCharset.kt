@@ -6,8 +6,8 @@ import org.mozilla.universalchardet.UniversalDetector
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
 import java.nio.charset.CharacterCodingException
+import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.Locale
@@ -91,7 +91,9 @@ internal object SubtitleCharset {
         if (top.second >= CONFIDENT) return top.first
         val preferred = localeFallback[deviceLanguage].orEmpty()
         val localeMatch = usable
-            .filter { (name, confidence) -> confidence >= PLAUSIBLE && preferred.any { it.equals(name, ignoreCase = true) } }
+            .filter { (name, confidence) ->
+                confidence >= PLAUSIBLE && preferred.any { it.equals(name, ignoreCase = true) }
+            }
             .maxByOrNull { it.second }
         // A weak Latin guess on a device whose language uses another script: trust the language.
         val weakLatin = top.first.uppercase() in weakGuesses

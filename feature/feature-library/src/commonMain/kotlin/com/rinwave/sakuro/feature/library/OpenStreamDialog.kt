@@ -2,17 +2,17 @@ package com.rinwave.sakuro.feature.library
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -32,10 +32,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Lucide
+import com.rinwave.sakuro.core.designsystem.SakuroColors
 import com.rinwave.sakuro.core.model.StreamHeaders
 import com.rinwave.sakuro.core.model.StreamUrl
 import com.rinwave.sakuro.feature.library.resources.Res
@@ -167,4 +167,3 @@ private fun HeaderField(value: String, onChange: (String) -> Unit, label: String
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
     )
 }
-
