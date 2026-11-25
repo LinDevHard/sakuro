@@ -6,51 +6,11 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
-- Player screenshots: a camera button in the top bar saves the current frame
-  as PNG to Pictures/Sakuro, exactly as shown (after upscaling, at the
-  screen's resolution, without subtitles or controls), with a preview and a
-  Share action. Works with Media3 and mpv; Android 8–9 ask for storage write
-  permission once.
-- Folder playlist: previous/next buttons in the player for files in a library
-  folder (natural episode order), also in the notification, on the lock
-  screen and on headset/car controls. At the end of a video an "Up next" card
-  offers the next file; with autoplay on it counts down 5 s and can be
-  cancelled.
-- Chapters from MKV and MP4 files (Media3 1.11 reads both; mpv's
-  `chapter-list` in compatibility mode): gaps on the seek bar, the current
-  chapter's name under it (following the finger while scrubbing), and a
-  chapter list in the top bar to jump between them. A tap beside an open
-  player sheet now closes it.
-- Skip opening/ending: chapters named like an opening or ending (Opening, OP2,
-  Intro, オープニング, Опенинг; Ending, ED, Credits, エンディング, Титры)
-  show a "Skip" button for as long as they play. Skipping a final ending with
-  autoplay on opens the next video at once. Episode-length files without such
-  chapters get a "+85 s" button above the seek bar instead.
-- Audio delay (±2 s in 50 ms steps) for headphones that lag behind the
-  picture: in the player's audio and subtitles sheet and in Settings →
-  Playback → Audio; global, since it belongs to the headphones. Media3 shifts
-  its audio clock (no seek or rebuffer); mpv uses `audio-delay`.
-- Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
-  positioning, karaoke, effects), drawn as an overlay above the upscaled
-  video. libass and its native stack are built from pinned source submodules
-  (`third_party/libass-android`); can be turned off in Settings → Playback.
-- Media3 1.11.1 (from 1.6.1). Seeking on local files now previews frames
-  while dragging the seek bar or swiping (Media3 scrubbing mode); the custom
-  start-buffer LoadControl is gone because Media3 1.9+ ships the same
-  streaming defaults plus leaner local-file buffers; live positions are hidden
-  from system controls by Media3 itself.
-- Dependencies: AGP 9.5.2, Gradle 9.9.2, Decompose 3.6.2, Koin 4.2.2,
-  kotlinx.serialization 1.13.0, androidx.activity 1.13.0, androidx.annotation
-  1.11.0, Lucide icons 2.2.1 (artifact `icons-lucide-cmp`), libmpv 1.1.0
-  (end-of-file now reports mpv's error code), androidx.test 1.7.0/1.3.0.
+## 0.2.0
 
-- External SRT/ASS/VTT subtitles in legacy code pages (Windows-1251,
-  Shift_JIS, GBK …) are detected with juniversalchardet and re-encoded to
-  UTF-8 instead of showing mojibake; a weak Latin-1 guess yields to the
-  device language's usual code page.
-- Frame-rate matching (Settings → Playback → Display): Off, Seamless only
-  (default) or Always. The screen refresh rate follows the video, removing
-  24p judder on 60 Hz panels; Always may switch display modes on TVs.
+Online playback, anime-grade subtitles and episode navigation.
+
+### Online playback
 
 - Live streams: Wi‑Fi stays awake for screen-off background streams; live
   segments skip the cache; the upscale chain is not rebuilt on resolution
@@ -62,7 +22,6 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   "broadcast has ended" screen; DVR positions show wall-clock time; the
   stats overlay shows live latency, target and catch-up speed; the media
   notification shows no progress bar for live without DVR.
-
 - Added playback from a direct link (Library → link icon): HLS (`.m3u8`), DASH
   (`.mpd`) and progressive http(s) files such as MP4/MKV/WebM, with the same
   upscale presets as local video. Plain `http://` links are allowed.
@@ -98,6 +57,59 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   has no cache, quality picker or media session.
 - The app now requests `INTERNET`, `ACCESS_NETWORK_STATE` and the
   media-playback foreground service permissions (see docs/privacy.md).
+
+### Player
+
+- Player screenshots: a camera button in the top bar saves the current frame
+  as PNG to Pictures/Sakuro, exactly as shown (after upscaling, at the
+  screen's resolution, without subtitles or controls), with a preview and a
+  Share action. Works with Media3 and mpv; Android 8–9 ask for storage write
+  permission once.
+- Folder playlist: previous/next buttons in the player for files in a library
+  folder (natural episode order), also in the notification, on the lock
+  screen and on headset/car controls. At the end of a video an "Up next" card
+  offers the next file; with autoplay on it counts down 5 s and can be
+  cancelled.
+- Chapters from MKV and MP4 files (Media3 1.11 reads both; mpv's
+  `chapter-list` in compatibility mode): gaps on the seek bar, the current
+  chapter's name under it (following the finger while scrubbing), and a
+  chapter list in the top bar to jump between them. A tap beside an open
+  player sheet now closes it.
+- Skip opening/ending: chapters named like an opening or ending (Opening, OP2,
+  Intro, オープニング, Опенинг; Ending, ED, Credits, エンディング, Титры)
+  show a "Skip" button for as long as they play. Skipping a final ending with
+  autoplay on opens the next video at once. Episode-length files without such
+  chapters get a "+85 s" button above the seek bar instead.
+- Audio delay (±2 s in 50 ms steps) for headphones that lag behind the
+  picture: in the player's audio and subtitles sheet and in Settings →
+  Playback → Audio; global, since it belongs to the headphones. Media3 shifts
+  its audio clock (no seek or rebuffer); mpv uses `audio-delay`.
+- Media3 1.11.1 (from 1.6.1). Seeking on local files now previews frames
+  while dragging the seek bar or swiping (Media3 scrubbing mode); the custom
+  start-buffer LoadControl is gone because Media3 1.9+ ships the same
+  streaming defaults plus leaner local-file buffers; live positions are hidden
+  from system controls by Media3 itself.
+- Frame-rate matching (Settings → Playback → Display): Off, Seamless only
+  (default) or Always. The screen refresh rate follows the video, removing
+  24p judder on 60 Hz panels; Always may switch display modes on TVs.
+
+### Subtitles
+
+- Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
+  positioning, karaoke, effects), drawn as an overlay above the upscaled
+  video. libass and its native stack are built from pinned source submodules
+  (`third_party/libass-android`); can be turned off in Settings → Playback.
+- External SRT/ASS/VTT subtitles in legacy code pages (Windows-1251,
+  Shift_JIS, GBK …) are detected with juniversalchardet and re-encoded to
+  UTF-8 instead of showing mojibake; a weak Latin-1 guess yields to the
+  device language's usual code page.
+
+### Under the hood
+
+- Dependencies: AGP 9.5.2, Gradle 9.9.2, Decompose 3.6.2, Koin 4.2.2,
+  kotlinx.serialization 1.13.0, androidx.activity 1.13.0, androidx.annotation
+  1.11.0, Lucide icons 2.2.1 (artifact `icons-lucide-cmp`), libmpv 1.1.0
+  (end-of-file now reports mpv's error code), androidx.test 1.7.0/1.3.0.
 
 ## 0.1.4
 

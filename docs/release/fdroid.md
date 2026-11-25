@@ -48,11 +48,12 @@ with Sakuro's dedicated app-signing key.
 5. Submit/update `com.rinwave.sakuro.yml` in the separate `fdroiddata`
    repository, selecting the `foss` Gradle flavor.
 
-Suggested fdroiddata build block for version 0.1.4:
+Suggested fdroiddata build block for version 0.2.0:
 
 ```yaml
 Categories:
-  - Multimedia
+  - Local Media Player
+  - Online Media Player
 License: GPL-3.0-only
 AuthorName: Rinwave
 SourceCode: https://github.com/LinDevHard/sakuro
@@ -62,26 +63,34 @@ RepoType: git
 Repo: https://github.com/LinDevHard/sakuro.git
 
 Builds:
-  - versionName: 0.1.4
-    versionCode: 5
+  - versionName: 0.2.0
+    versionCode: 6
     commit: <full release commit SHA>
     subdir: androidApp
+    submodules: true
+    sudo:
+      - apt-get update
+      - apt-get install -y autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
     gradle:
       - foss
+    ndk: 28.2.13676358
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: gradle.properties|sakuro.versionCode=(\d+)|.|sakuro.versionName=(.+)
-CurrentVersion: 0.1.4
-CurrentVersionCode: 5
+CurrentVersion: 0.2.0
+CurrentVersionCode: 6
 ```
 
-Use the immutable commit SHA tagged as `v0.1.4` after the release commit is
+Categories follow fdroiddata's `config/categories.yml`: Sakuro plays files on
+the device and stream links the user enters.
+
+Use the immutable commit SHA tagged as `v0.2.0` after the release commit is
 ready.
 
 ### Native code (libass)
 
-From the release that adds libass, the APK contains native libraries built from
+From 0.2.0 the APK contains native libraries (libass) built from
 source: `third_party/libass-android` is a git submodule (pinned tag) whose own
 submodules pin libass, FreeType, HarfBuzz, FriBidi, Fontconfig, Expat and
 libunibreak. The build block then needs:

@@ -1,0 +1,1 @@
+Play stream links (HLS, DASH, MP4) with retries, a quality picker, cache and background playback. Full ASS/SSA subtitles via libass, auto-fixed SRT encodings. Previous/next episode with an up-next countdown, chapters, Skip opening/ending, audio delay for Bluetooth, screenshots of the upscaled frame, frame-rate matching.
