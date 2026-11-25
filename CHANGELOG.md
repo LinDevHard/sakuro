@@ -6,6 +6,28 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
+  positioning, karaoke, effects), drawn as an overlay above the upscaled
+  video. libass and its native stack are built from pinned source submodules
+  (`third_party/libass-android`); can be turned off in Settings → Playback.
+- Media3 1.11.1 (from 1.6.1). Seeking on local files now previews frames
+  while dragging the seek bar or swiping (Media3 scrubbing mode); the custom
+  start-buffer LoadControl is gone because Media3 1.9+ ships the same
+  streaming defaults plus leaner local-file buffers; live positions are hidden
+  from system controls by Media3 itself.
+- Dependencies: AGP 9.5.2, Gradle 9.9.2, Decompose 3.6.2, Koin 4.2.2,
+  kotlinx.serialization 1.13.0, androidx.activity 1.13.0, androidx.annotation
+  1.11.0, Lucide icons 2.2.1 (artifact `icons-lucide-cmp`), libmpv 1.1.0
+  (end-of-file now reports mpv's error code), androidx.test 1.7.0/1.3.0.
+
+- External SRT/ASS/VTT subtitles in legacy code pages (Windows-1251,
+  Shift_JIS, GBK …) are detected with juniversalchardet and re-encoded to
+  UTF-8 instead of showing mojibake; a weak Latin-1 guess yields to the
+  device language's usual code page.
+- Frame-rate matching (Settings → Playback → Display): Off, Seamless only
+  (default) or Always. The screen refresh rate follows the video, removing
+  24p judder on 60 Hz panels; Always may switch display modes on TVs.
+
 - Live streams: Wi‑Fi stays awake for screen-off background streams; live
   segments skip the cache; the upscale chain is not rebuilt on resolution
   changes (ad breaks, discontinuities) and automatic chain changes are spaced
@@ -34,7 +56,8 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   opened off the main thread, and cache keys that ignore URL signatures and
   expiry tokens so re-signed CDN links still hit the cache.
 - Playback tuning from the same Reddit write-up: playback starts after 1 s of
-  buffer (2 s after a stall) instead of 2.5 s/5 s, a busy hardware decoder
+  buffer (2 s after a stall) instead of 2.5 s/5 s (Media3's default since 1.9,
+  which also keeps leaner buffers for local files), a busy hardware decoder
   falls back to another decoder instead of failing, and the last measured
   bandwidth per network type seeds the next session's first quality choice.
 - Background playback keeps the upscale chain idle (no video decoded) and
