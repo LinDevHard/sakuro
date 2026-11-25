@@ -16,6 +16,11 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   chapter's name under it (following the finger while scrubbing), and a
   chapter list in the top bar to jump between them. A tap beside an open
   player sheet now closes it.
+- Skip opening/ending: chapters named like an opening or ending (Opening, OP2,
+  Intro, オープニング, Опенинг; Ending, ED, Credits, エンディング, Титры)
+  show a "Skip" button for as long as they play. Skipping a final ending with
+  autoplay on opens the next video at once. Episode-length files without such
+  chapters get a "+85 s" button above the seek bar instead.
 - Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
   positioning, karaoke, effects), drawn as an overlay above the upscaled
   video. libass and its native stack are built from pinned source submodules

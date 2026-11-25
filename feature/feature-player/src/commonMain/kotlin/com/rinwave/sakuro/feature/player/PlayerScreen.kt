@@ -91,6 +91,7 @@ import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerState
+import com.rinwave.sakuro.core.player.SkipSegments
 import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
@@ -108,6 +109,8 @@ import com.rinwave.sakuro.core.upscale.ShaderTunable
 import com.rinwave.sakuro.feature.player.controls.PlayPauseButton
 import com.rinwave.sakuro.feature.player.controls.SakuroSeekBar
 import com.rinwave.sakuro.feature.player.controls.SkipButton
+import com.rinwave.sakuro.feature.player.controls.SkipOpeningJumpChip
+import com.rinwave.sakuro.feature.player.controls.SkipSegmentButton
 import com.rinwave.sakuro.feature.player.controls.UpNextCard
 import com.rinwave.sakuro.feature.player.controls.YouTubeSeekOverlay
 import com.rinwave.sakuro.feature.player.gestures.LevelSwipeSession
@@ -162,6 +165,9 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val CONTROLS_HIDE_DELAY_MS = 3500L
+
+/** Shorter clips (trailers, music videos) have no opening to skip. */
+private const val SKIP_JUMP_MIN_DURATION_MS = 10 * 60_000L
 private const val DOUBLE_TAP_SEEK_MS = 10_000L
 private const val DOUBLE_TAP_SEEK_SEC = 10
 private const val INDICATOR_LINGER_MS = 600L
@@ -598,6 +604,19 @@ public fun PlayerScreen(component: PlayerComponent) {
             }
         }
 
+        val skipSegment = SkipSegments.at(state.chapters, state.positionMs, state.durationMs)
+            ?.takeIf { !state.isLive }
+        if (skipSegment != null && !inPip) {
+            SkipSegmentButton(
+                kind = skipSegment.kind,
+                onClick = { component.skipSegment(skipSegment) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(end = 16.dp, bottom = 96.dp),
+            )
+        }
+
         val upNext by component.upNext.collectAsState()
         upNext?.takeIf { !inPip }?.let { next ->
             UpNextCard(
@@ -1022,6 +1041,16 @@ private fun PlayerControls(
             // Bottom bar: progress and time.
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 // Live: the bar spans the DVR window when there is one; no window — no bar.
+                // Without OP/ED chapters, "+85 s" stands in for "Skip opening" on episode-length files
+                // (never next to a skip button, which sits in the same corner).
+                if (!state.isLive && state.durationMs >= SKIP_JUMP_MIN_DURATION_MS &&
+                    SkipSegments.all(state.chapters, state.durationMs).isEmpty()
+                ) {
+                    SkipOpeningJumpChip(
+                        onClick = component::skipOpeningLength,
+                        modifier = Modifier.align(Alignment.End).padding(bottom = 4.dp),
+                    )
+                }
                 if (!state.isLive || (state.isSeekable && state.durationMs > 0)) {
                     SakuroSeekBar(
                         positionMs = state.positionMs,

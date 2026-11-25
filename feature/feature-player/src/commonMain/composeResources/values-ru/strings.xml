@@ -92,4 +92,8 @@
     <string name="player_up_next_cancel">Отмена</string>
     <string name="player_chapters">Главы</string>
     <string name="player_chapter_untitled">Глава %1$d</string>
+    <string name="player_skip_opening">Пропустить опенинг</string>
+    <string name="player_skip_ending">Пропустить эндинг</string>
+    <string name="player_skip_85">+85 с</string>
+    <string name="player_skip_85_hint">Перемотать на 85 с — длина опенинга</string>
 </resources>

@@ -92,4 +92,8 @@
     <string name="player_up_next_cancel">Cancel</string>
     <string name="player_chapters">Chapters</string>
     <string name="player_chapter_untitled">Chapter %1$d</string>
+    <string name="player_skip_opening">Skip opening</string>
+    <string name="player_skip_ending">Skip ending</string>
+    <string name="player_skip_85">+85 s</string>
+    <string name="player_skip_85_hint">Skip 85 seconds, the length of an anime opening</string>
 </resources>

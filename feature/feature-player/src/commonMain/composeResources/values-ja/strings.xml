@@ -92,4 +92,8 @@
     <string name="player_up_next_cancel">キャンセル</string>
     <string name="player_chapters">チャプター</string>
     <string name="player_chapter_untitled">チャプター %1$d</string>
+    <string name="player_skip_opening">OPをスキップ</string>
+    <string name="player_skip_ending">EDをスキップ</string>
+    <string name="player_skip_85">+85秒</string>
+    <string name="player_skip_85_hint">85秒スキップ（OPの長さ）</string>
 </resources>

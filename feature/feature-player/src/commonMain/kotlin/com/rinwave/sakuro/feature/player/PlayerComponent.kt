@@ -25,6 +25,8 @@ import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.PlaybackHealthTracker
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.player.SkipSegment
+import com.rinwave.sakuro.core.player.SkipSegments
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.settings.SakuroSettings
@@ -420,6 +422,25 @@ public class PlayerComponent internal constructor(
     internal fun playPrevious() { previousVideo.value?.let(::openAdjacent) }
     internal fun setAutoPlayNext(enabled: Boolean) = history.setAutoPlayNext(enabled)
 
+    /**
+     * Skips an opening/ending chapter. An ending that runs to the end of the file goes straight
+     * to the next video when autoplay would have opened it anyway.
+     */
+    internal fun skipSegment(segment: SkipSegment) {
+        val duration = engine.state.value.durationMs
+        if (segment.endMs >= duration - END_OF_MEDIA_SLACK_MS && autoPlayNext.value && nextVideo.value != null) {
+            playNext()
+        } else {
+            engine.seekTo(segment.endMs)
+        }
+    }
+
+    /** "+85 s" for files without chapters: the usual length of an anime opening. */
+    internal fun skipOpeningLength() {
+        val state = engine.state.value
+        engine.seekTo((state.positionMs + SkipSegments.OPENING_JUMP_MS).coerceAtMost(state.durationMs))
+    }
+
     /** Stops the autoplay countdown; the card stays with a plain "Play" button. */
     internal fun cancelUpNext() {
         upNextCountdown?.cancel()
@@ -481,6 +502,7 @@ public class PlayerComponent internal constructor(
 
     internal companion object {
         const val UP_NEXT_COUNTDOWN_SECONDS = 5
+        private const val END_OF_MEDIA_SLACK_MS = 1_000L
         private const val ONE_SECOND_MS = 1_000L
         const val AUTO_PRESET_ID = "auto"
 
