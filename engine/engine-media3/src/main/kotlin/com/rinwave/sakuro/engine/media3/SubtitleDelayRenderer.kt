@@ -46,7 +46,8 @@ private class SubtitleDelayRenderer(
         text.render(subtitlePositionUs(positionUs), elapsedRealtimeUs)
     }
 
-    override fun resetPosition(positionUs: Long) = text.resetPosition(subtitlePositionUs(positionUs))
+    override fun resetPosition(positionUs: Long, sampleStreamIsResetToKeyFrame: Boolean) =
+        text.resetPosition(subtitlePositionUs(positionUs), sampleStreamIsResetToKeyFrame)
 
     override fun enable(
         configuration: RendererConfiguration,

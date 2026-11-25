@@ -10,6 +10,8 @@ import com.rinwave.sakuro.core.model.UpscaleProfile
 import com.rinwave.sakuro.core.model.describe
 import com.rinwave.sakuro.core.player.DebugStats
 import com.rinwave.sakuro.core.player.ExternalSubtitle
+import com.rinwave.sakuro.core.player.PlaybackError
+import com.rinwave.sakuro.core.player.PlaybackErrorKind
 import com.rinwave.sakuro.core.player.PlaybackStatus
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
@@ -72,10 +74,11 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideo
                     fileLoaded = true
                     publishStatus()
                 }
-
-                MPVLib.MpvEvent.MPV_EVENT_END_FILE -> onEndFile()
             }
         }
+
+        // libmpv 1.1.0 delivers END_FILE only here, with the reason and mpv's error code.
+        override fun eventEndFile(reason: Int, error: Int) = onEndFile(reason, error)
 
         // track-list is observed without a value (MPV_FORMAT_NONE) and re-read
         // as a string: mpv returns it as JSON.
@@ -338,11 +341,19 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideo
 
     /**
      * END_FILE with keep-open=always only arrives on stop, file replacement or an error.
-     * If the file never loaded, it is an open error (the event carries no details).
+     * An error reason (or an end before the file ever loaded) is reported with mpv's code.
      */
-    private fun onEndFile() {
-        if (!fileLoaded) {
-            _state.update { it.copy(status = PlaybackStatus.ERROR, errorMessage = "Failed to open the file") }
+    private fun onEndFile(reason: Int, error: Int) {
+        val failed = reason == MPVLib.MpvEndFileReason.MPV_END_FILE_REASON_ERROR || !fileLoaded
+        if (failed && reason != MPVLib.MpvEndFileReason.MPV_END_FILE_REASON_STOP) {
+            fileLoaded = false
+            _state.update {
+                it.copy(
+                    status = PlaybackStatus.ERROR,
+                    errorMessage = "MPV_END_FILE_ERROR $error",
+                    error = PlaybackError(mpvErrorKind(error), "MPV_ERROR_$error"),
+                )
+            }
         } else {
             fileLoaded = false
             _state.update { it.copy(status = PlaybackStatus.IDLE, isPlaying = false) }
@@ -430,3 +441,16 @@ class MpvEngineFactory(private val context: Context) : PlayerEngineFactory {
     override val type = EngineType.MPV
     override fun create(): PlayerEngine = MpvPlayerEngine(context.applicationContext)
 }
+
+/** Coarse classification of libmpv's end-of-file error codes for the shared error screen. */
+private fun mpvErrorKind(error: Int): PlaybackErrorKind = when (error) {
+    MPVLib.MpvError.MPV_ERROR_UNKNOWN_FORMAT,
+    MPVLib.MpvError.MPV_ERROR_UNSUPPORTED,
+    MPVLib.MpvError.MPV_ERROR_NOTHING_TO_PLAY,
+    MPVLib.MpvError.MPV_ERROR_VO_INIT_FAILED,
+    MPVLib.MpvError.MPV_ERROR_AO_INIT_FAILED,
+    -> PlaybackErrorKind.UNSUPPORTED
+    MPVLib.MpvError.MPV_ERROR_LOADING_FAILED -> PlaybackErrorKind.SOURCE
+    else -> PlaybackErrorKind.UNKNOWN
+}
+

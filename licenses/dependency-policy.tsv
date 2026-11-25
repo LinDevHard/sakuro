@@ -2,13 +2,18 @@
 androidx.	Apache-2.0	https://source.android.com/docs/setup/about/licenses
 co.touchlab	Apache-2.0	https://github.com/touchlab/Stately
 com.arkivanov	Apache-2.0	https://github.com/arkivanov/Decompose
-com.composables	ISC	https://github.com/lucide-icons/lucide/blob/main/LICENSE
+com.composables	MIT AND ISC	https://github.com/composablehorizons/composeicons (MIT); icons from https://github.com/lucide-icons/lucide (ISC)
+com.github.albfernandez	MPL-1.1 OR GPL-2.0-or-later OR LGPL-2.1-or-later	https://github.com/albfernandez/juniversalchardet
 com.google.accompanist	Apache-2.0	https://github.com/google/accompanist
+com.google.code.findbugs	Apache-2.0	https://github.com/findbugsproject/findbugs (jsr305 annotations, via Guava)
+com.google.errorprone	Apache-2.0	https://github.com/google/error-prone
 com.google.guava	Apache-2.0	https://github.com/google/guava
+com.google.j2objc	Apache-2.0	https://github.com/google/j2objc
 com.russhwolf	Apache-2.0	https://github.com/russhwolf/multiplatform-settings
 com.squareup.okio	Apache-2.0	https://github.com/square/okio
 io.coil-kt.coil3	Apache-2.0	https://github.com/coil-kt/coil
 io.insert-koin	Apache-2.0	https://github.com/InsertKoinIO/koin
+org.checkerframework	MIT	https://github.com/typetools/checker-framework
 org.jetbrains.androidx	Apache-2.0	https://github.com/JetBrains/compose-multiplatform
 org.jetbrains.compose	Apache-2.0	https://github.com/JetBrains/compose-multiplatform
 org.jetbrains.kotlin	Apache-2.0	https://github.com/JetBrains/kotlin
