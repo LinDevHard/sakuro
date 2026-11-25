@@ -6,6 +6,11 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
 
 ## Unreleased
 
+- Player screenshots: a camera button in the top bar saves the current frame
+  as PNG to Pictures/Sakuro, exactly as shown (after upscaling, at the
+  screen's resolution, without subtitles or controls), with a preview and a
+  Share action. Works with Media3 and mpv; Android 8–9 ask for storage write
+  permission once.
 - Folder playlist: previous/next buttons in the player for files in a library
   folder (natural episode order), also in the notification, on the lock
   screen and on headset/car controls. At the end of a video an "Up next" card

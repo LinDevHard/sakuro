@@ -1,5 +1,6 @@
 package com.rinwave.sakuro.ui
 
+import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -18,7 +20,9 @@ import com.rinwave.sakuro.core.model.FrameRateMatching
 import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
+import com.rinwave.sakuro.core.ui.LocalVideoSnapshotter
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.core.ui.captureFrame
 import com.rinwave.sakuro.engine.media3.Media3PlayerEngine
 import kotlinx.coroutines.flow.StateFlow
 
@@ -44,7 +48,15 @@ class Media3SurfaceRenderer(
         var playerView by remember { mutableStateOf<PlayerView?>(null) }
         val fps by media3.videoFrameRate.collectAsState()
         val matching by frameRateMatching.collectAsState()
+        val snapshotter = LocalVideoSnapshotter.current
         playerView?.let { view ->
+            DisposableEffect(view, snapshotter) {
+                // PlayerView's default surface is a SurfaceView fed by the effect (upscale) chain.
+                val unregister = snapshotter?.register {
+                    (view.videoSurfaceView as? SurfaceView)?.captureFrame()?.asImageBitmap()
+                }
+                onDispose { unregister?.invoke() }
+            }
             val controller = remember(view) { DisplayFrameRateController(view) }
             DisposableEffect(controller) { onDispose { controller.release() } }
             LaunchedEffect(controller, fps, matching) { controller.update(fps, matching) }

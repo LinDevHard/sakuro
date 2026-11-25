@@ -101,4 +101,8 @@
     <string name="player_audio_earlier">−50 мс</string>
     <string name="player_audio_later">+50 мс</string>
     <string name="player_audio_reset">Сбросить</string>
+    <string name="player_screenshot">Скриншот</string>
+    <string name="player_screenshot_saved">Сохранено в Pictures/Sakuro</string>
+    <string name="player_screenshot_failed">Не удалось сохранить скриншот</string>
+    <string name="player_screenshot_share">Поделиться</string>
 </resources>

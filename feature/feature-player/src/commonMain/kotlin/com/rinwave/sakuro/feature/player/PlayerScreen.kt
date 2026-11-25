@@ -44,11 +44,13 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Activity
+import com.composables.icons.lucide.Camera
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ListVideo
@@ -97,11 +100,14 @@ import com.rinwave.sakuro.core.player.TrackInfo
 import com.rinwave.sakuro.core.player.TrackSelection
 import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.player.UpscaleRuntimeState
+import com.rinwave.sakuro.core.ui.LocalVideoSnapshotter
 import com.rinwave.sakuro.core.ui.PipEffect
+import com.rinwave.sakuro.core.ui.VideoSnapshotter
 import com.rinwave.sakuro.core.ui.VideoSurface
 import com.rinwave.sakuro.core.ui.displayDescription
 import com.rinwave.sakuro.core.ui.displayName
 import com.rinwave.sakuro.core.ui.rememberIsInPip
+import com.rinwave.sakuro.core.ui.rememberScreenshotStore
 import com.rinwave.sakuro.core.ui.rememberSubtitleFilePicker
 import com.rinwave.sakuro.core.upscale.AdaptiveReason
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
@@ -109,6 +115,8 @@ import com.rinwave.sakuro.core.upscale.BundledShaders
 import com.rinwave.sakuro.core.upscale.ShaderTunable
 import com.rinwave.sakuro.feature.player.controls.PlayPauseButton
 import com.rinwave.sakuro.feature.player.controls.SakuroSeekBar
+import com.rinwave.sakuro.feature.player.controls.ScreenshotNotice
+import com.rinwave.sakuro.feature.player.controls.ScreenshotResult
 import com.rinwave.sakuro.feature.player.controls.SkipButton
 import com.rinwave.sakuro.feature.player.controls.SkipOpeningJumpChip
 import com.rinwave.sakuro.feature.player.controls.SkipSegmentButton
@@ -153,6 +161,7 @@ import com.rinwave.sakuro.feature.player.resources.player_processing_reason_ther
 import com.rinwave.sakuro.feature.player.resources.player_processing_reason_unknown
 import com.rinwave.sakuro.feature.player.resources.player_processing_reduced
 import com.rinwave.sakuro.feature.player.resources.player_processing_unavailable
+import com.rinwave.sakuro.feature.player.resources.player_screenshot
 import com.rinwave.sakuro.feature.player.resources.player_seek_back
 import com.rinwave.sakuro.feature.player.resources.player_seek_forward
 import com.rinwave.sakuro.feature.player.resources.player_shader_direct
@@ -166,6 +175,7 @@ import com.rinwave.sakuro.feature.player.resources.player_upscale_preset
 import com.rinwave.sakuro.feature.player.resources.scale_fill_screen
 import com.rinwave.sakuro.feature.player.resources.scale_fit_to_screen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -173,6 +183,7 @@ import kotlin.math.roundToInt
 private const val CONTROLS_HIDE_DELAY_MS = 3500L
 
 private const val AUDIO_DELAY_STEP_MS = 50
+private const val SCREENSHOT_NOTICE_MS = 4_000L
 
 /** Shorter clips (trailers, music videos) have no opening to skip. */
 private const val SKIP_JUMP_MIN_DURATION_MS = 10 * 60_000L
@@ -296,6 +307,39 @@ public fun PlayerScreen(component: PlayerComponent) {
     var speedSheetVisible by remember { mutableStateOf(false) }
     var tracksSheetVisible by remember { mutableStateOf(false) }
     var chaptersSheetVisible by remember { mutableStateOf(false) }
+
+    // Screenshots: the renderer registers a frame capture; the store saves to the gallery.
+    val snapshotter = remember { VideoSnapshotter() }
+    val screenshotStore = rememberScreenshotStore()
+    val screenshotScope = rememberCoroutineScope()
+    var screenshotResult by remember { mutableStateOf<ScreenshotResult?>(null) }
+    var screenshotBusy by remember { mutableStateOf(false) }
+    val takeScreenshot: (() -> Unit)? = if (snapshotter.available && screenshotStore.supported) {
+        {
+            if (!screenshotBusy) {
+                screenshotBusy = true
+                val baseName = screenshotBaseName(component.media.title, component.engine.state.value.positionMs)
+                screenshotScope.launch {
+                    val image = snapshotter.capture()
+                    val uri = image?.let { screenshotStore.save(it, baseName) }
+                    screenshotResult = if (image != null && uri != null) {
+                        ScreenshotResult.Saved(uri, image)
+                    } else {
+                        ScreenshotResult.Failed
+                    }
+                    screenshotBusy = false
+                }
+            }
+        }
+    } else {
+        null
+    }
+    LaunchedEffect(screenshotResult) {
+        if (screenshotResult != null) {
+            delay(SCREENSHOT_NOTICE_MS)
+            screenshotResult = null
+        }
+    }
     val closeSheets = {
         presetSheetVisible = false
         speedSheetVisible = false
@@ -349,17 +393,19 @@ public fun PlayerScreen(component: PlayerComponent) {
             .onSizeChanged { component.onViewportSizeChanged(it.width, it.height) },
     ) {
         // The engine handles crop; manual zoom is a layer transform above it.
-        VideoSurface(
-            component.engine,
-            scaleMode,
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = manualZoom
-                    scaleY = manualZoom
-                },
-            subtitles = subtitles,
-        )
+        CompositionLocalProvider(LocalVideoSnapshotter provides snapshotter) {
+            VideoSurface(
+                component.engine,
+                scaleMode,
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = manualZoom
+                        scaleY = manualZoom
+                    },
+                subtitles = subtitles,
+            )
+        }
 
         // Gestures: tap toggles controls, double tap seeks or pauses, long press gives 2x speed,
         // and swipes/pinch live in a separate pointerInput (detectPlayerGestures).
@@ -566,6 +612,7 @@ public fun PlayerScreen(component: PlayerComponent) {
                     closeSheets()
                     chaptersSheetVisible = true
                 },
+                onScreenshotClick = takeScreenshot,
             )
         }
 
@@ -622,6 +669,17 @@ public fun PlayerScreen(component: PlayerComponent) {
                     .align(Alignment.BottomEnd)
                     .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(end = 16.dp, bottom = 96.dp),
+            )
+        }
+
+        screenshotResult?.takeIf { !inPip }?.let { result ->
+            ScreenshotNotice(
+                result = result,
+                onShare = screenshotStore::share,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(top = 64.dp, start = 12.dp, end = 12.dp),
             )
         }
 
@@ -867,6 +925,7 @@ private fun PlayerControls(
     onSpeedClick: () -> Unit,
     onTracksClick: () -> Unit,
     onChaptersClick: () -> Unit,
+    onScreenshotClick: (() -> Unit)?,
 ) {
     val state by component.engine.state.collectAsState()
     // While the seek bar is dragged, the time and chapter follow the finger.
@@ -931,6 +990,16 @@ private fun PlayerControls(
                         playingId = state.playingQualityId,
                         onSelect = component::selectVideoQuality,
                     )
+                }
+                if (onScreenshotClick != null) {
+                    IconButton(onClick = onScreenshotClick) {
+                        Icon(
+                            Lucide.Camera,
+                            stringResource(Res.string.player_screenshot),
+                            tint = SakuroColors.TextMuted,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
                 if (state.chapters.isNotEmpty()) {
                     IconButton(onClick = onChaptersClick) {

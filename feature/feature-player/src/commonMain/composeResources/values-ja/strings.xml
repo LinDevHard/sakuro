@@ -101,4 +101,8 @@
     <string name="player_audio_earlier">−50 ms</string>
     <string name="player_audio_later">+50 ms</string>
     <string name="player_audio_reset">リセット</string>
+    <string name="player_screenshot">スクリーンショット</string>
+    <string name="player_screenshot_saved">Pictures/Sakuro に保存しました</string>
+    <string name="player_screenshot_failed">スクリーンショットを保存できませんでした</string>
+    <string name="player_screenshot_share">共有</string>
 </resources>

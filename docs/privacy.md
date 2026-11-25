@@ -31,10 +31,13 @@ This data is used to show the local library, open videos, choose presets, and di
 
 ## Permissions
 
-The Android app currently requests local media read permissions:
+The Android app currently requests these storage permissions:
 
 - `READ_MEDIA_VIDEO` on modern Android versions;
-- `READ_EXTERNAL_STORAGE` on Android 12 and older.
+- `READ_EXTERNAL_STORAGE` on Android 12 and older;
+- `WRITE_EXTERNAL_STORAGE` on Android 8–9 only, asked the first time you save a
+  player screenshot. Android 10 and newer save screenshots to
+  `Pictures/Sakuro` without any permission.
 
 Library permission is requested only when you choose to connect the media library. You can instead open an individual file with the system picker or another app without granting access to the whole library.
 

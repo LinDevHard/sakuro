@@ -4,13 +4,21 @@ import android.content.Context
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.viewinterop.AndroidView
 import com.rinwave.sakuro.core.model.ScaleMode
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.PlayerEngine
 import com.rinwave.sakuro.core.player.PlayerEngineFactory
+import com.rinwave.sakuro.core.ui.LocalVideoSnapshotter
 import com.rinwave.sakuro.core.ui.VideoSurfaceRenderer
+import com.rinwave.sakuro.core.ui.captureFrame
 import com.rinwave.sakuro.engine.mpv.MpvEngineFactory
 import com.rinwave.sakuro.engine.mpv.MpvPlayerEngine
 import com.rinwave.sakuro.engine.mpv.MpvScaleMode
@@ -33,9 +41,17 @@ private class MpvSurfaceRenderer : VideoSurfaceRenderer {
         modifier: Modifier,
     ) {
         val mpv = engine as MpvPlayerEngine
+        var surfaceView by remember { mutableStateOf<SurfaceView?>(null) }
+        val snapshotter = LocalVideoSnapshotter.current
+        surfaceView?.let { view ->
+            DisposableEffect(view, snapshotter) {
+                val unregister = snapshotter?.register { view.captureFrame()?.asImageBitmap() }
+                onDispose { unregister?.invoke() }
+            }
+        }
         AndroidView(
             factory = {
-                SurfaceView(it).apply {
+                SurfaceView(it).also { view -> surfaceView = view }.apply {
                     keepScreenOn = true
                     holder.addCallback(
                         object : SurfaceHolder.Callback {
