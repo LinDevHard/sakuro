@@ -1,6 +1,7 @@
 package com.rinwave.sakuro.core.settings
 
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.FrameRateMatching
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -135,6 +136,30 @@ class SakuroSettings(
         _streamCacheLimitMb.value = clamped
     }
 
+    private val _assRenderer = MutableStateFlow(settings.getBoolean(KEY_ASS_RENDERER, true))
+
+    /** Full ASS/SSA rendering with libass (Media3 engine); applies to the next video. */
+    val assRenderer: StateFlow<Boolean> = _assRenderer.asStateFlow()
+
+    fun setAssRenderer(enabled: Boolean) {
+        settings.putBoolean(KEY_ASS_RENDERER, enabled)
+        _assRenderer.value = enabled
+    }
+
+    private val _frameRateMatching = MutableStateFlow(
+        settings.getStringOrNull(KEY_FRAME_RATE_MATCHING)
+            ?.let { stored -> FrameRateMatching.entries.firstOrNull { it.name == stored } }
+            ?: FrameRateMatching.SEAMLESS,
+    )
+
+    /** Display refresh rate follows the video frame rate; seamless-only by default. */
+    val frameRateMatching: StateFlow<FrameRateMatching> = _frameRateMatching.asStateFlow()
+
+    fun setFrameRateMatching(value: FrameRateMatching) {
+        settings.putString(KEY_FRAME_RATE_MATCHING, value.name)
+        _frameRateMatching.value = value
+    }
+
     fun setUpscaleDisplayLimit(enabled: Boolean) {
         settings.putBoolean(KEY_UPSCALE_DISPLAY_LIMIT, enabled)
         _upscaleDisplayLimit.value = enabled
@@ -187,6 +212,8 @@ class SakuroSettings(
         private const val KEY_GESTURE_SEEK = "player_gesture_seek"
         private const val KEY_GESTURE_ZOOM = "player_gesture_zoom"
         private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
+        private const val KEY_ASS_RENDERER = "subtitles_ass_renderer"
+        private const val KEY_FRAME_RATE_MATCHING = "player_frame_rate_matching"
         private const val KEY_BACKGROUND_PLAYBACK = "player_background_playback"
         private const val KEY_STREAM_CACHE_MB = "stream_cache_limit_mb"
         private const val DEFAULT_STREAM_CACHE_MB = 1024

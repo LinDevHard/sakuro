@@ -2,6 +2,7 @@ package com.rinwave.sakuro.feature.settings
 
 import com.arkivanov.decompose.ComponentContext
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.FrameRateMatching
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.EngineRegistry
 import com.rinwave.sakuro.core.player.MediaCache
@@ -20,8 +21,12 @@ internal class PlaybackSettingsComponent(
     val engineType: StateFlow<EngineType> = settings.engineType
 
     val subtitlePreferences = settings.subtitlePreferences
+    val assRenderer: StateFlow<Boolean> = settings.assRenderer
+
+    fun setAssRenderer(enabled: Boolean) = settings.setAssRenderer(enabled)
 
     val backgroundPlayback: StateFlow<Boolean> = settings.backgroundPlayback
+    val frameRateMatching: StateFlow<FrameRateMatching> = settings.frameRateMatching
     val cacheLimitMb: StateFlow<Int> = settings.streamCacheLimitMb
     val cacheUsedBytes: StateFlow<Long> = mediaCache.usedBytes
 
@@ -34,6 +39,8 @@ internal class PlaybackSettingsComponent(
     fun selectEngine(type: EngineType) = settings.setEngineType(type)
 
     fun setBackgroundPlayback(enabled: Boolean) = settings.setBackgroundPlayback(enabled)
+
+    fun setFrameRateMatching(value: FrameRateMatching) = settings.setFrameRateMatching(value)
 
     fun setCacheLimitMb(value: Int) {
         settings.setStreamCacheLimitMb(value)

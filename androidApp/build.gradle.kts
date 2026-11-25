@@ -127,6 +127,9 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.coil.compose)
     implementation(libs.coil.video)
+
+    // Built-in Kotlin does not pick kotlin-test's JUnit variant from kotlin("test").
+    testImplementation(kotlin("test-junit"))
 }
 
 // AGP's compiled baseline profiles are nondeterministic across otherwise

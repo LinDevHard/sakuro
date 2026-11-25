@@ -21,11 +21,12 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.MediaController
+import androidx.media3.ui.SubtitleView
 import com.google.common.util.concurrent.ListenableFuture
 import com.rinwave.sakuro.core.model.DisplayLimitStatus
 import com.rinwave.sakuro.core.model.DisplaySize
@@ -51,6 +52,12 @@ import com.rinwave.sakuro.core.player.TrackType
 import com.rinwave.sakuro.core.player.VideoQuality
 import com.rinwave.sakuro.core.upscale.BuiltInPresets
 import com.rinwave.sakuro.core.upscale.DisplayUpscaleLimit
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.AssHandlerConfig
+import io.github.peerless2012.ass.media.kt.withAssMkvSupport
+import io.github.peerless2012.ass.media.kt.withAssSupport
+import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
+import io.github.peerless2012.ass.media.type.AssRenderType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -60,12 +67,14 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Media3/ExoPlayer implementation of [PlayerEngine].
@@ -82,7 +91,11 @@ import kotlinx.coroutines.launch
  * [PlaybackErrorKind.DRM] — Sakuro configures no DRM sessions.
  */
 @OptIn(UnstableApi::class)
-class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
+class Media3PlayerEngine(
+    context: Context,
+    /** Render ASS/SSA with libass (fonts, positioning, karaoke, effects) instead of Media3's subset. */
+    assSubtitles: Boolean = false,
+) : PlayerEngine, SurfaceVideoOutput {
 
     private val appContext: Context = context.applicationContext
 
@@ -105,21 +118,41 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     private val streamNetwork = StreamNetwork.get(appContext)
 
     // Tuning from Reddit's production ExoPlayer experiments (Alexey Bykov, "Improving video
-    // playback with ExoPlayer"): decoder fallback, a shorter start buffer and a remembered
-    // bandwidth estimate. See [startupLoadControl] and [StreamNetwork.bandwidthMeter].
+    // playback with ExoPlayer"): decoder fallback and a remembered bandwidth estimate
+    // ([StreamNetwork.bandwidthMeter]). Their shorter start buffer (1 s, 2 s after a stall,
+    // min = max 50 s) is Media3's own DefaultLoadControl default since 1.9, which also keeps
+    // smaller, separate buffers for local files, so no custom LoadControl is set.
+    /**
+     * libass in overlay mode: subtitles are drawn by a view above the video, so they stay out of
+     * the upscale effect chain (Media3's effect-based ASS modes would replace our effects).
+     */
+    private val assHandler: AssHandler? =
+        if (assSubtitles && LibassNative.available) {
+            AssHandler(AssRenderType.OVERLAY_OPEN_GL, AssHandlerConfig())
+        } else {
+            null
+        }
+    private val assParserFactory = assHandler?.let(::AssSubtitleParserFactory)
+
     val player: ExoPlayer = ExoPlayer.Builder(
         context,
         SubtitleRenderersFactory(context) { subtitlePreferences.subtitlePositionUs(it) }
             // A busy or missing hardware decoder (error 4001, often held by another app) falls
             // back to the next decoder, software if need be: slower, but it plays (−0.9% errors).
-            .setEnableDecoderFallback(true),
+            .setEnableDecoderFallback(true)
+            .let { factory -> assHandler?.let(factory::withAssSupport) ?: factory },
     ).setMediaSourceFactory(
         DefaultMediaSourceFactory(
             streamNetwork.dataSourceFactory(headers = { requestHeaders }, cacheAllowed = { !liveStream }),
+            if (assHandler != null && assParserFactory != null) {
+                // MKV: ASS tracks and font attachments go to libass.
+                DefaultExtractorsFactory().withAssMkvSupport(assParserFactory, assHandler)
+            } else {
+                DefaultExtractorsFactory()
+            },
         )
+            .apply { assParserFactory?.let(::setSubtitleParserFactory) } // external .ass files
             .setLoadErrorHandlingPolicy(StreamLoadErrorPolicy()),
-    ).setLoadControl(
-        startupLoadControl(),
     ).setBandwidthMeter(
         streamNetwork.bandwidthMeter,
     ).setAudioAttributes(
@@ -133,11 +166,18 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _state = MutableStateFlow(PlayerState())
+
+    private val _videoFrameRate = MutableStateFlow(0f)
+
+    /**
+     * Source frame rate (0 when unknown), for the surface renderer's display-rate matching.
+     * Media3's own frame-rate hint is off: with video effects the output surface is the
+     * effect graph's, so the renderer sets the rate on the visible surface itself.
+     */
+    val videoFrameRate: StateFlow<Float> = _videoFrameRate.asStateFlow()
     override val state = _state.asStateFlow()
 
     private var currentMedia: MediaSource? = null
-    /** The session's view of [player] (live-aware duration); one instance so withdraw matches publish. */
-    private val sessionPlayer by lazy { SessionPlayer(player) }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var inBackground = false
 
@@ -254,6 +294,8 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
     }
 
     init {
+        assHandler?.init(player)
+        player.videoChangeFrameRateStrategy = C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF
         player.addListener(listener)
         player.addAnalyticsListener(analyticsListener)
         scope.launch {
@@ -276,6 +318,7 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
                 if (format != null && format.width > 0 && format.height > 0) {
                     onSourceSizeKnown(format.width, format.height)
                 }
+                _videoFrameRate.value = format?.frameRate?.takeIf { it > 0f } ?: 0f
                 delay(POSITION_POLL_MS)
             }
         }
@@ -383,8 +426,13 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         player.setPlaybackSpeed(speed)
     }
 
+    /** Adds the libass overlay to the player view's subtitle layer (no-op when libass is off). */
+    fun attachAssOverlay(subtitleView: SubtitleView) {
+        assHandler?.let(subtitleView::withAssSupport)
+    }
+
     override fun attachMediaSession() {
-        PlaybackSessionRegistry.publish(sessionPlayer)
+        PlaybackSessionRegistry.publish(player)
         // Created by autoplay while the app is hidden: start audio-only like the previous engine.
         if (PlaybackSessionRegistry.uiInBackground) setBackground(true)
         if (controllerFuture == null) controllerFuture = SakuroPlaybackService.connect(appContext)
@@ -418,6 +466,24 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         selectedQualityId = qualityId.takeIf { target != null }
         player.trackSelectionParameters = builder.build()
         _state.update { it.copy(selectedQualityId = selectedQualityId) }
+    }
+
+    private var scrubbing = false
+
+    /**
+     * Media3 1.8+ scrubbing mode: decode-only frames and dynamic scheduling make rapid seeks
+     * show frames while the finger moves. Local files only — on a network stream every preview
+     * seek would request new segments.
+     */
+    override fun setScrubbing(scrubbing: Boolean) {
+        val enabled = scrubbing && currentMedia?.let { !StreamUrl.isRemote(it.uri) } == true && !inBackground
+        if (enabled == this.scrubbing) return
+        this.scrubbing = enabled
+        player.setScrubbingModeEnabled(enabled)
+    }
+
+    override fun scrubTo(positionMs: Long) {
+        if (scrubbing) player.seekTo(positionMs.coerceAtLeast(0))
     }
 
     override fun seekToLiveEdge() {
@@ -640,6 +706,17 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 
     override fun addExternalSubtitle(subtitle: ExternalSubtitle) {
         val media = currentMedia ?: return
+        scope.launch {
+            // Legacy code pages (Windows-1251, Shift_JIS …) become a UTF-8 copy first.
+            val utf8 = withContext(Dispatchers.IO) {
+                SubtitleCharset.normalizedCopy(appContext, subtitle.uri, subtitle.title)
+            }
+            if (currentMedia !== media) return@launch
+            addPreparedSubtitle(media, utf8?.let { subtitle.copy(uri = it) } ?: subtitle)
+        }
+    }
+
+    private fun addPreparedSubtitle(media: MediaSource, subtitle: ExternalSubtitle) {
         externalSubtitles += subtitle
         val resumePosition = player.currentPosition.coerceAtLeast(0)
         val wasPlaying = player.playWhenReady
@@ -731,9 +808,10 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
         streamNetwork.saveBandwidthEstimate()
         scope.cancel()
         network.release()
-        PlaybackSessionRegistry.withdraw(sessionPlayer)
+        PlaybackSessionRegistry.withdraw(player)
         controllerFuture?.let(MediaController::releaseFuture)
         controllerFuture = null
+        assHandler?.release()
         player.release()
     }
 
@@ -949,31 +1027,19 @@ class Media3PlayerEngine(context: Context) : PlayerEngine, SurfaceVideoOutput {
 }
 
 @OptIn(UnstableApi::class)
-class Media3EngineFactory(private val context: Context) : PlayerEngineFactory {
+class Media3EngineFactory(
+    private val context: Context,
+    private val assSubtitles: () -> Boolean = { false },
+) : PlayerEngineFactory {
     override val type = EngineType.MEDIA3
-    override fun create(): PlayerEngine = Media3PlayerEngine(context.applicationContext)
+    override fun create(): PlayerEngine = Media3PlayerEngine(context.applicationContext, assSubtitles())
 }
+
 
 /**
- * Start after 1 s of media instead of 2.5 s, and resume after 2 s instead of 5 s following a
- * stall. Reddit's shorter start buffer was its most effective experiment (load time over 2 s
- * −17.7%, rebuffering −4.8%); their 1 s after-rebuffer value was tuned for short clips, so
- * long-form 4K keeps a little more margin there. min == max buffer keeps Media3's default
- * "drip-feeding" (steady top-ups instead of drain-and-refill bursts).
+ * libass ships for arm64-v8a, armeabi-v7a and x86_64 only. On any other ABI (32-bit x86) the
+ * load fails and the engine keeps Media3's built-in ASS rendering instead of crashing later.
  */
-@OptIn(UnstableApi::class)
-internal fun startupLoadControl(): DefaultLoadControl = DefaultLoadControl.Builder()
-    .setBufferDurationsMs(
-        LoadControlTuning.BUFFER_MS,
-        LoadControlTuning.BUFFER_MS,
-        LoadControlTuning.START_MS,
-        LoadControlTuning.AFTER_REBUFFER_MS,
-    )
-    .build()
-
-internal object LoadControlTuning {
-    const val BUFFER_MS = 50_000
-    const val START_MS = 1_000
-    const val AFTER_REBUFFER_MS = 2_000
+private object LibassNative {
+    val available: Boolean by lazy { runCatching { System.loadLibrary("asskt") }.isSuccess }
 }
-

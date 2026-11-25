@@ -36,6 +36,7 @@ internal fun SakuroSeekBar(
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onScrub: ((Long) -> Unit)? = null,
+    onScrubbingChanged: ((Boolean) -> Unit)? = null,
 ) {
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     var dragging by remember { mutableStateOf(false) }
@@ -65,6 +66,7 @@ internal fun SakuroSeekBar(
                     onDragStart = { offset ->
                         dragging = true
                         dragFraction = (offset.x / size.width).coerceIn(0f, 1f)
+                        onScrubbingChanged?.invoke(true)
                     },
                     onHorizontalDrag = { change, _ ->
                         val f = (change.position.x / size.width).coerceIn(0f, 1f)
@@ -75,10 +77,12 @@ internal fun SakuroSeekBar(
                         dragFraction?.let { onSeek((it * durationMs).toLong()) }
                         dragging = false
                         dragFraction = null
+                        onScrubbingChanged?.invoke(false)
                     },
                     onDragCancel = {
                         dragging = false
                         dragFraction = null
+                        onScrubbingChanged?.invoke(false)
                     },
                 )
             }

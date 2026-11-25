@@ -49,6 +49,15 @@ interface PlayerEngine {
     /** Jumps to the live edge of a live stream. */
     fun seekToLiveEdge() = Unit
 
+    /**
+     * The user is dragging the seek bar or swiping to seek. While on, [scrubTo] shows the frame
+     * under the finger; engines without a fast-seek mode ignore both and seek on release.
+     */
+    fun setScrubbing(scrubbing: Boolean) = Unit
+
+    /** A preview seek during scrubbing; the final position still goes through [seekTo]. */
+    fun scrubTo(positionMs: Long) = Unit
+
     fun selectTrack(track: TrackSelection)
 
     fun addExternalSubtitle(subtitle: ExternalSubtitle)

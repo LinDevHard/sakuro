@@ -60,7 +60,7 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                         single {
                             EngineRegistry(
                                 buildList {
-                                    add(Media3EngineFactory(app))
+                                    add(Media3EngineFactory(app) { get<SakuroSettings>().assRenderer.value })
                                     addAll(referenceEngineFactories(app))
                                     add(FakeEngineFactory())
                                 },
@@ -81,7 +81,7 @@ class SakuroApplication : Application(), SingletonImageLoader.Factory {
                         single<MediaCache> { streamMediaCache(app) }
                         // Same order as the engines: Media3 first, then the flavor's reference engines.
                         single<List<VideoSurfaceRenderer>>(VideoSurfaceRenderers) {
-                            listOf(Media3SurfaceRenderer()) + referenceSurfaceRenderers()
+                            listOf(Media3SurfaceRenderer(get<SakuroSettings>().frameRateMatching)) + referenceSurfaceRenderers()
                         }
                     },
                 ),

@@ -108,4 +108,12 @@
     <string name="settings_cache_off">オフ</string>
     <string name="settings_cache_used">使用中: %1$s</string>
     <string name="settings_cache_clear">消去</string>
+    <string name="settings_display">画面</string>
+    <string name="settings_frame_rate">フレームレートに合わせる</string>
+    <string name="settings_frame_rate_hint">動画に合わせて画面のリフレッシュレートを切り替え、60 Hz 画面での 24 fps 映画のカクつきをなくします。「常に」では再生開始時に画面が一瞬暗くなることがあります。</string>
+    <string name="settings_frame_rate_off">オフ</string>
+    <string name="settings_frame_rate_seamless">シームレスのみ</string>
+    <string name="settings_frame_rate_always">常に</string>
+    <string name="settings_ass_renderer">ASS/SSA の完全描画 (libass)</string>
+    <string name="settings_ass_renderer_hint">MKV 埋め込みフォント、位置指定、カラオケ、エフェクトを含め、ファンサブを意図どおりに表示します。下のサイズ・背景・位置の設定はその他の字幕に適用されます。次の動画から有効になります。</string>
 </resources>

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.HardDrive
+import com.composables.icons.lucide.Monitor
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.core.designsystem.PanelDivider
 import com.rinwave.sakuro.core.designsystem.SakuroColors
@@ -32,11 +33,14 @@ import com.rinwave.sakuro.core.designsystem.SettingSwitchRow
 import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.designsystem.formatSize
 import com.rinwave.sakuro.core.model.EngineType
+import com.rinwave.sakuro.core.model.FrameRateMatching
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.ui.hint
 import com.rinwave.sakuro.core.ui.label
 import com.rinwave.sakuro.feature.settings.resources.Res
+import com.rinwave.sakuro.feature.settings.resources.settings_ass_renderer
+import com.rinwave.sakuro.feature.settings.resources.settings_ass_renderer_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_background_playback
 import com.rinwave.sakuro.feature.settings.resources.settings_background_playback_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_cache
@@ -44,7 +48,13 @@ import com.rinwave.sakuro.feature.settings.resources.settings_cache_clear
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_off
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_used
+import com.rinwave.sakuro.feature.settings.resources.settings_display
 import com.rinwave.sakuro.feature.settings.resources.settings_engine
+import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate
+import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_always
+import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_off
+import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate_seamless
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_background_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_subtitle_delay
@@ -79,9 +89,51 @@ internal fun PlaybackSettingsTab(component: PlaybackSettingsComponent) {
             EngineRow(type = EngineType.MPV, selected = false, enabled = false, onClick = {})
         }
     }
+    DisplaySettings(component)
     StreamingSettings(component)
     val subtitles by component.subtitlePreferences.collectAsState()
-    SubtitleSettings(subtitles, component::setSubtitlePreferences)
+    val assRenderer by component.assRenderer.collectAsState()
+    SubtitleSettings(subtitles, component::setSubtitlePreferences, assRenderer, component::setAssRenderer)
+}
+
+/** Display refresh rate following the video's frame rate. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DisplaySettings(component: PlaybackSettingsComponent) {
+    val matching by component.frameRateMatching.collectAsState()
+    SettingsPanel(title = stringResource(Res.string.settings_display), icon = Lucide.Monitor) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(stringResource(Res.string.settings_frame_rate), color = SakuroColors.TextPrimary)
+            Text(
+                stringResource(Res.string.settings_frame_rate_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = SakuroColors.TextMuted,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                FrameRateMatching.entries.forEach { option ->
+                    FilterChip(
+                        selected = option == matching,
+                        onClick = { component.setFrameRateMatching(option) },
+                        label = {
+                            Text(
+                                stringResource(
+                                    when (option) {
+                                        FrameRateMatching.OFF -> Res.string.settings_frame_rate_off
+                                        FrameRateMatching.SEAMLESS -> Res.string.settings_frame_rate_seamless
+                                        FrameRateMatching.ALWAYS -> Res.string.settings_frame_rate_always
+                                    },
+                                ),
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SakuroColors.GlowMagenta.copy(alpha = 0.35f),
+                            selectedLabelColor = SakuroColors.AccentSakura,
+                        ),
+                    )
+                }
+            }
+        }
+    }
 }
 
 /** Background playback and the network-stream cache. */
@@ -146,8 +198,19 @@ private fun StreamingSettings(component: PlaybackSettingsComponent) {
 }
 
 @Composable
-private fun SubtitleSettings(value: SubtitlePreferences, onChange: (SubtitlePreferences) -> Unit) {
+private fun SubtitleSettings(
+    value: SubtitlePreferences,
+    onChange: (SubtitlePreferences) -> Unit,
+    assRenderer: Boolean,
+    onAssRenderer: (Boolean) -> Unit,
+) {
     SettingsPanel(title = stringResource(Res.string.settings_subtitles), icon = Lucide.Film) {
+        SettingSwitchRow(
+            title = stringResource(Res.string.settings_ass_renderer),
+            subtitle = stringResource(Res.string.settings_ass_renderer_hint),
+            checked = assRenderer,
+            onCheckedChange = onAssRenderer,
+        )
         SettingSliderRow(
             title = stringResource(Res.string.settings_subtitle_font),
             valueText = "${value.fontSizeSp.toInt()} sp",

@@ -108,4 +108,12 @@
     <string name="settings_cache_off">Off</string>
     <string name="settings_cache_used">Used: %1$s</string>
     <string name="settings_cache_clear">Clear</string>
+    <string name="settings_display">Display</string>
+    <string name="settings_frame_rate">Match frame rate</string>
+    <string name="settings_frame_rate_hint">Switches the screen refresh rate to suit the video, removing the judder of 24 fps films on 60 Hz screens. “Always” may blank the screen for a moment when a video starts.</string>
+    <string name="settings_frame_rate_off">Off</string>
+    <string name="settings_frame_rate_seamless">Seamless only</string>
+    <string name="settings_frame_rate_always">Always</string>
+    <string name="settings_ass_renderer">Full ASS/SSA rendering (libass)</string>
+    <string name="settings_ass_renderer_hint">Draws anime fansubs as intended: embedded MKV fonts, positioning, karaoke and effects. Size, background and position settings below apply to other subtitles. Takes effect from the next video.</string>
 </resources>

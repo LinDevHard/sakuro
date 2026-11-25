@@ -5,8 +5,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.OptIn
-import androidx.media3.common.C
-import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -133,21 +131,4 @@ class SakuroPlaybackService : MediaSessionService() {
                 SessionToken(context, ComponentName(context, SakuroPlaybackService::class.java)),
             ).buildAsync()
     }
-}
-
-/**
- * What the media session (notification, lock screen, watch/car) sees. For a live stream
- * without a DVR window there is no meaningful position, so it reports no duration and the
- * system controls show no progress bar; seeking is already unavailable there because ExoPlayer
- * drops the seek commands for unseekable items.
- */
-@OptIn(UnstableApi::class)
-internal class SessionPlayer(player: Player) : ForwardingPlayer(player) {
-    private val livePointless: Boolean
-        get() = isCurrentMediaItemLive && !isCurrentMediaItemSeekable
-
-    override fun getDuration(): Long = if (livePointless) C.TIME_UNSET else super.getDuration()
-
-    override fun getContentDuration(): Long =
-        if (livePointless) C.TIME_UNSET else super.getContentDuration()
 }

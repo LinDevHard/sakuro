@@ -414,16 +414,19 @@ public fun PlayerScreen(component: PlayerComponent) {
                                     widthPx = size.width.toFloat(),
                                     sensitivity = gestureSensitivity,
                                 )
+                                component.engine.setScrubbing(true)
                             }
 
                             override fun onSeekDrag(totalDxPx: Float) {
                                 val session = seekSession ?: return
                                 seekTargetMs = session.positionFor(totalDxPx)
                                 indicator = GestureIndicator.Seek(seekTargetMs, seekTargetMs - seekStartMs)
+                                component.engine.scrubTo(seekTargetMs)
                             }
 
                             override fun onSeekEnd() {
                                 if (seekSession != null) component.engine.seekTo(seekTargetMs)
+                                component.engine.setScrubbing(false)
                                 seekSession = null
                                 gestureActive = false
                                 lingerKey++
@@ -937,6 +940,8 @@ private fun PlayerControls(
                         durationMs = state.durationMs,
                         bufferedMs = state.bufferedMs,
                         onSeek = { component.engine.seekTo(it) },
+                        onScrub = component.engine::scrubTo,
+                        onScrubbingChanged = component.engine::setScrubbing,
                     )
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

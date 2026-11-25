@@ -108,4 +108,12 @@
     <string name="settings_cache_off">Выкл</string>
     <string name="settings_cache_used">Занято: %1$s</string>
     <string name="settings_cache_clear">Очистить</string>
+    <string name="settings_display">Экран</string>
+    <string name="settings_frame_rate">Частота экрана под видео</string>
+    <string name="settings_frame_rate_hint">Подстраивает частоту обновления экрана под видео и убирает подёргивания фильмов 24 к/с на экранах 60 Гц. В режиме «Всегда» экран может на мгновение погаснуть при старте видео.</string>
+    <string name="settings_frame_rate_off">Выкл</string>
+    <string name="settings_frame_rate_seamless">Только плавно</string>
+    <string name="settings_frame_rate_always">Всегда</string>
+    <string name="settings_ass_renderer">Полноценные ASS/SSA (libass)</string>
+    <string name="settings_ass_renderer_hint">Рисует фансабы так, как задумано: шрифты из MKV, позиционирование, караоке и эффекты. Размер, фон и положение ниже действуют на остальные субтитры. Применится со следующего видео.</string>
 </resources>
