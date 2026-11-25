@@ -96,4 +96,9 @@
     <string name="player_skip_ending">Пропустить эндинг</string>
     <string name="player_skip_85">+85 с</string>
     <string name="player_skip_85_hint">Перемотать на 85 с — длина опенинга</string>
+    <string name="player_audio_delay">Задержка звука: %1$s мс</string>
+    <string name="player_audio_delay_hint">Если наушники отстают от картинки, сдвиньте звук раньше.</string>
+    <string name="player_audio_earlier">−50 мс</string>
+    <string name="player_audio_later">+50 мс</string>
+    <string name="player_audio_reset">Сбросить</string>
 </resources>

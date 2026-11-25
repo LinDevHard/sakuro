@@ -9,15 +9,29 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.RendererConfiguration
+import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.SampleStream
 import androidx.media3.exoplayer.text.TextOutput
 import androidx.media3.exoplayer.text.TextRenderer
 
-/** Changes only the text renderer's clock; audio/video renderers receive the original positions. */
+/**
+ * The user's sync offsets: the text renderer gets its own clock ([subtitlePositionUs]) and the
+ * audio sink shifts the playback clock ([audioDelayUs], see [AudioDelaySink]).
+ */
 @UnstableApi
-internal class SubtitleRenderersFactory(context: Context, private val subtitlePositionUs: (Long) -> Long) :
-    DefaultRenderersFactory(context) {
+internal class SyncRenderersFactory(
+    context: Context,
+    private val subtitlePositionUs: (Long) -> Long,
+    private val audioDelayUs: () -> Long,
+) : DefaultRenderersFactory(context) {
+    override fun buildAudioSink(
+        context: Context,
+        enableFloatOutput: Boolean,
+        enableAudioTrackPlaybackParams: Boolean,
+    ): AudioSink? = super.buildAudioSink(context, enableFloatOutput, enableAudioTrackPlaybackParams)
+        ?.let { AudioDelaySink(it, audioDelayUs) }
+
     override fun buildTextRenderers(
         context: Context,
         output: TextOutput,

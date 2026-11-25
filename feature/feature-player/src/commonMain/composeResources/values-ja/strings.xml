@@ -96,4 +96,9 @@
     <string name="player_skip_ending">EDをスキップ</string>
     <string name="player_skip_85">+85秒</string>
     <string name="player_skip_85_hint">85秒スキップ（OPの長さ）</string>
+    <string name="player_audio_delay">音声の遅延: %1$s ms</string>
+    <string name="player_audio_delay_hint">ヘッドホンの音が映像より遅れる場合は、音声を早めてください。</string>
+    <string name="player_audio_earlier">−50 ms</string>
+    <string name="player_audio_later">+50 ms</string>
+    <string name="player_audio_reset">リセット</string>
 </resources>

@@ -116,4 +116,9 @@
     <string name="settings_frame_rate_always">Всегда</string>
     <string name="settings_ass_renderer">Полноценные ASS/SSA (libass)</string>
     <string name="settings_ass_renderer_hint">Рисует фансабы так, как задумано: шрифты из MKV, позиционирование, караоке и эффекты. Размер, фон и положение ниже действуют на остальные субтитры. Применится со следующего видео.</string>
+    <string name="settings_audio">Звук</string>
+    <string name="settings_audio_delay">Задержка звука: %1$s мс</string>
+    <string name="settings_audio_delay_hint">Отрицательные значения включают звук раньше — для Bluetooth-наушников, которые отстают от картинки. Меняется и в плеере, в разделе «Аудио и субтитры».</string>
+    <string name="settings_audio_earlier">−50 мс</string>
+    <string name="settings_audio_later">+50 мс</string>
 </resources>

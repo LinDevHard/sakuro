@@ -96,4 +96,9 @@
     <string name="player_skip_ending">Skip ending</string>
     <string name="player_skip_85">+85 s</string>
     <string name="player_skip_85_hint">Skip 85 seconds, the length of an anime opening</string>
+    <string name="player_audio_delay">Audio delay: %1$s ms</string>
+    <string name="player_audio_delay_hint">If headphones lag behind the picture, move the sound earlier.</string>
+    <string name="player_audio_earlier">−50 ms</string>
+    <string name="player_audio_later">+50 ms</string>
+    <string name="player_audio_reset">Reset</string>
 </resources>

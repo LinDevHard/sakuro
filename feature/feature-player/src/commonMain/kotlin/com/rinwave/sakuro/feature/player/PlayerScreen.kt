@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -121,6 +122,11 @@ import com.rinwave.sakuro.feature.player.gestures.SeekSwipeSession
 import com.rinwave.sakuro.feature.player.gestures.detectPlayerGestures
 import com.rinwave.sakuro.feature.player.resources.Res
 import com.rinwave.sakuro.feature.player.resources.action_back
+import com.rinwave.sakuro.feature.player.resources.player_audio_delay
+import com.rinwave.sakuro.feature.player.resources.player_audio_delay_hint
+import com.rinwave.sakuro.feature.player.resources.player_audio_earlier
+import com.rinwave.sakuro.feature.player.resources.player_audio_later
+import com.rinwave.sakuro.feature.player.resources.player_audio_reset
 import com.rinwave.sakuro.feature.player.resources.player_audio_tracks
 import com.rinwave.sakuro.feature.player.resources.player_chapter_untitled
 import com.rinwave.sakuro.feature.player.resources.player_chapters
@@ -165,6 +171,8 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val CONTROLS_HIDE_DELAY_MS = 3500L
+
+private const val AUDIO_DELAY_STEP_MS = 50
 
 /** Shorter clips (trailers, music videos) have no opening to skip. */
 private const val SKIP_JUMP_MIN_DURATION_MS = 10 * 60_000L
@@ -710,8 +718,11 @@ public fun PlayerScreen(component: PlayerComponent) {
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
+            val audioDelayMs by component.audioDelayMs.collectAsState()
             TracksSheet(
                 tracks = state.tracks,
+                audioDelayMs = audioDelayMs,
+                onAudioDelayChange = component::setAudioDelay,
                 onExternalSubtitleClick = openSubtitleFile,
                 onTrackSelected = {
                     component.selectTrack(it)
@@ -1216,6 +1227,8 @@ private fun Badge(text: String) {
 @Composable
 private fun TracksSheet(
     tracks: List<TrackInfo>,
+    audioDelayMs: Int,
+    onAudioDelayChange: (Int) -> Unit,
     onExternalSubtitleClick: () -> Unit,
     onTrackSelected: (TrackSelection) -> Unit,
 ) {
@@ -1250,6 +1263,7 @@ private fun TracksSheet(
                     )
                 }
             }
+            AudioDelayRow(audioDelayMs, onAudioDelayChange)
             TrackSectionTitle(stringResource(Res.string.player_subtitle_tracks))
             if (subtitleTracks.isNotEmpty()) {
                 TrackOptionRow(
@@ -1275,6 +1289,40 @@ private fun TracksSheet(
             )
         }
     }
+}
+
+@Composable
+private fun AudioDelayRow(delayMs: Int, onChange: (Int) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Text(
+            stringResource(Res.string.player_audio_delay, formatSignedMs(delayMs)),
+            color = SakuroColors.TextPrimary,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            stringResource(Res.string.player_audio_delay_hint),
+            color = SakuroColors.TextMuted,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row {
+            TextButton(onClick = { onChange(delayMs - AUDIO_DELAY_STEP_MS) }) {
+                Text(stringResource(Res.string.player_audio_earlier), color = SakuroColors.TextPrimary)
+            }
+            TextButton(onClick = { onChange(0) }, enabled = delayMs != 0) {
+                Text(stringResource(Res.string.player_audio_reset))
+            }
+            TextButton(onClick = { onChange(delayMs + AUDIO_DELAY_STEP_MS) }) {
+                Text(stringResource(Res.string.player_audio_later), color = SakuroColors.TextPrimary)
+            }
+        }
+    }
+}
+
+/** "+150", "−150", "0": the sign says which way the sound moves. */
+private fun formatSignedMs(ms: Int): String = when {
+    ms > 0 -> "+$ms"
+    ms < 0 -> "\u2212${-ms}"
+    else -> "0"
 }
 
 @Composable

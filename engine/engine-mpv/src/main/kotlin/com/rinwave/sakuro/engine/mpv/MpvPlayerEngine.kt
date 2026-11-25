@@ -234,6 +234,12 @@ class MpvPlayerEngine(private val context: Context) : PlayerEngine, SurfaceVideo
         mpv.setPropertyDouble("speed", speed.toDouble())
     }
 
+    // mpv's audio-delay has the same sign: positive delays the sound.
+    override fun setAudioDelay(delayMs: Int) {
+        if (released.get()) return
+        mpv.setPropertyDouble("audio-delay", delayMs / MS_IN_SECOND)
+    }
+
     override fun selectTrack(track: TrackSelection) {
         if (released.get()) return
         val property = when (track.type) {
@@ -461,4 +467,3 @@ private fun mpvErrorKind(error: Int): PlaybackErrorKind = when (error) {
     MPVLib.MpvError.MPV_ERROR_LOADING_FAILED -> PlaybackErrorKind.SOURCE
     else -> PlaybackErrorKind.UNKNOWN
 }
-

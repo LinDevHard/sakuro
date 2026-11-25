@@ -116,4 +116,9 @@
     <string name="settings_frame_rate_always">常に</string>
     <string name="settings_ass_renderer">ASS/SSA の完全描画 (libass)</string>
     <string name="settings_ass_renderer_hint">MKV 埋め込みフォント、位置指定、カラオケ、エフェクトを含め、ファンサブを意図どおりに表示します。下のサイズ・背景・位置の設定はその他の字幕に適用されます。次の動画から有効になります。</string>
+    <string name="settings_audio">音声</string>
+    <string name="settings_audio_delay">音声の遅延: %1$s ms</string>
+    <string name="settings_audio_delay_hint">負の値で音声が早くなります。映像より遅れるBluetoothヘッドホン向けです。プレーヤーの「音声と字幕」でも変更できます。</string>
+    <string name="settings_audio_earlier">−50 ms</string>
+    <string name="settings_audio_later">+50 ms</string>
 </resources>

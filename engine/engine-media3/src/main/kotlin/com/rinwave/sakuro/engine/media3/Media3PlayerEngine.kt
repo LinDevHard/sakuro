@@ -105,6 +105,10 @@ class Media3PlayerEngine(
     @Volatile
     private var subtitlePreferences = SubtitlePreferences()
 
+    /** Read on the playback thread by [AudioDelaySink]. */
+    @Volatile
+    private var audioDelayUs = 0L
+
     private val network = NetworkAvailability(appContext)
 
     /**
@@ -139,7 +143,11 @@ class Media3PlayerEngine(
 
     val player: ExoPlayer = ExoPlayer.Builder(
         context,
-        SubtitleRenderersFactory(context) { subtitlePreferences.subtitlePositionUs(it) }
+        SyncRenderersFactory(
+            context,
+            subtitlePositionUs = { subtitlePreferences.subtitlePositionUs(it) },
+            audioDelayUs = { audioDelayUs },
+        )
             // A busy or missing hardware decoder (error 4001, often held by another app) falls
             // back to the next decoder, software if need be: slower, but it plays (−0.9% errors).
             .setEnableDecoderFallback(true)
@@ -742,6 +750,10 @@ class Media3PlayerEngine(
         player.playWhenReady = wasPlaying
     }
 
+    override fun setAudioDelay(delayMs: Int) {
+        audioDelayUs = delayMs * US_PER_MS
+    }
+
     override fun setSubtitlePreferences(preferences: SubtitlePreferences) {
         val value = preferences.normalized()
         val delayChanged = value.delayMs != subtitlePreferences.delayMs
@@ -1050,6 +1062,7 @@ class Media3PlayerEngine(
         const val VIDEO_UNSUPPORTED_CODE = "VIDEO_TRACKS_UNSUPPORTED"
         const val POSITION_POLL_MS = 250L
         const val MS_IN_SECOND_F = 1000f
+        const val US_PER_MS = 1000L
     }
 }
 

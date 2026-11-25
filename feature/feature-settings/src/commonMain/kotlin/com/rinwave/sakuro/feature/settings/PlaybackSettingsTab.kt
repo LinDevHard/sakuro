@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Film
 import com.composables.icons.lucide.HardDrive
+import com.composables.icons.lucide.Headphones
 import com.composables.icons.lucide.Monitor
 import com.composables.icons.lucide.Lucide
 import com.rinwave.sakuro.core.designsystem.PanelDivider
@@ -34,6 +35,7 @@ import com.rinwave.sakuro.core.designsystem.SettingsPanel
 import com.rinwave.sakuro.core.designsystem.formatSize
 import com.rinwave.sakuro.core.model.EngineType
 import com.rinwave.sakuro.core.model.FrameRateMatching
+import com.rinwave.sakuro.core.settings.SakuroSettings
 import com.rinwave.sakuro.core.model.SubtitlePreferences
 import com.rinwave.sakuro.core.player.MediaCache
 import com.rinwave.sakuro.core.ui.hint
@@ -48,6 +50,11 @@ import com.rinwave.sakuro.feature.settings.resources.settings_cache_clear
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_hint
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_off
 import com.rinwave.sakuro.feature.settings.resources.settings_cache_used
+import com.rinwave.sakuro.feature.settings.resources.settings_audio
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_delay_hint
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_earlier
+import com.rinwave.sakuro.feature.settings.resources.settings_audio_later
 import com.rinwave.sakuro.feature.settings.resources.settings_display
 import com.rinwave.sakuro.feature.settings.resources.settings_engine
 import com.rinwave.sakuro.feature.settings.resources.settings_frame_rate
@@ -90,6 +97,7 @@ internal fun PlaybackSettingsTab(component: PlaybackSettingsComponent) {
         }
     }
     DisplaySettings(component)
+    AudioSettings(component)
     StreamingSettings(component)
     val subtitles by component.subtitlePreferences.collectAsState()
     val assRenderer by component.assRenderer.collectAsState()
@@ -135,6 +143,42 @@ private fun DisplaySettings(component: PlaybackSettingsComponent) {
         }
     }
 }
+
+/** Audio offset against the picture, for headphones with misreported latency. */
+@Composable
+private fun AudioSettings(component: PlaybackSettingsComponent) {
+    val delayMs by component.audioDelayMs.collectAsState()
+    SettingsPanel(title = stringResource(Res.string.settings_audio), icon = Lucide.Headphones) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            val signed = when {
+                delayMs > 0 -> "+$delayMs"
+                delayMs < 0 -> "\u2212${-delayMs}"
+                else -> "0"
+            }
+            Text(stringResource(Res.string.settings_audio_delay, signed), color = SakuroColors.TextPrimary)
+            Text(
+                stringResource(Res.string.settings_audio_delay_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = SakuroColors.TextMuted,
+            )
+            Row {
+                TextButton(
+                    onClick = { component.setAudioDelayMs(delayMs - AUDIO_DELAY_STEP_MS) },
+                    enabled = delayMs > -SakuroSettings.MAX_AUDIO_DELAY_MS,
+                ) { Text(stringResource(Res.string.settings_audio_earlier)) }
+                TextButton(onClick = { component.setAudioDelayMs(0) }, enabled = delayMs != 0) {
+                    Text(stringResource(Res.string.settings_subtitle_reset))
+                }
+                TextButton(
+                    onClick = { component.setAudioDelayMs(delayMs + AUDIO_DELAY_STEP_MS) },
+                    enabled = delayMs < SakuroSettings.MAX_AUDIO_DELAY_MS,
+                ) { Text(stringResource(Res.string.settings_audio_later)) }
+            }
+        }
+    }
+}
+
+private const val AUDIO_DELAY_STEP_MS = 50
 
 /** Background playback and the network-stream cache. */
 @OptIn(ExperimentalLayoutApi::class)

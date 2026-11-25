@@ -68,6 +68,12 @@ interface PlayerEngine {
 
     fun addExternalSubtitle(subtitle: ExternalSubtitle)
 
+    /**
+     * Shifts the sound against the picture: positive plays it later, negative earlier (for
+     * headphones whose latency the system misreports). Applies while playing, without a seek.
+     */
+    fun setAudioDelay(delayMs: Int) = Unit
+
     /** Engines without subtitle support may ignore these preferences. */
     fun setSubtitlePreferences(preferences: SubtitlePreferences) = Unit
 

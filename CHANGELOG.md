@@ -21,6 +21,10 @@ This project follows a simple pre-1.0 changelog style: changes are grouped by ve
   show a "Skip" button for as long as they play. Skipping a final ending with
   autoplay on opens the next video at once. Episode-length files without such
   chapters get a "+85 s" button above the seek bar instead.
+- Audio delay (±2 s in 50 ms steps) for headphones that lag behind the
+  picture: in the player's audio and subtitles sheet and in Settings →
+  Playback → Audio; global, since it belongs to the headphones. Media3 shifts
+  its audio clock (no seek or rebuffer); mpv uses `audio-delay`.
 - Full ASS/SSA subtitle rendering with libass (fonts embedded in MKV,
   positioning, karaoke, effects), drawn as an overlay above the upscaled
   video. libass and its native stack are built from pinned source submodules

@@ -116,4 +116,9 @@
     <string name="settings_frame_rate_always">Always</string>
     <string name="settings_ass_renderer">Full ASS/SSA rendering (libass)</string>
     <string name="settings_ass_renderer_hint">Draws anime fansubs as intended: embedded MKV fonts, positioning, karaoke and effects. Size, background and position settings below apply to other subtitles. Takes effect from the next video.</string>
+    <string name="settings_audio">Audio</string>
+    <string name="settings_audio_delay">Audio delay: %1$s ms</string>
+    <string name="settings_audio_delay_hint">Negative values play the sound earlier, for Bluetooth headphones that lag behind the picture. Also adjustable in the player under Audio and subtitles.</string>
+    <string name="settings_audio_earlier">−50 ms</string>
+    <string name="settings_audio_later">+50 ms</string>
 </resources>

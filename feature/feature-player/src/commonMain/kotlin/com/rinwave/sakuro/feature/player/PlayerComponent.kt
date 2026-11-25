@@ -80,6 +80,7 @@ public class PlayerComponent internal constructor(
 
     internal val engine: PlayerEngine = engineRegistry.create(settings.engineType.value)
     internal val subtitlePreferences = settings.subtitlePreferences
+    internal val audioDelayMs: StateFlow<Int> = settings.audioDelayMs
     internal val autoPlayNext = history.autoPlayNext
     private val savedResumePosition = history.entry(media.uri)?.resumePositionMs ?: 0L
     private val session = PlaybackSessionState(savedResumePosition)
@@ -208,6 +209,7 @@ public class PlayerComponent internal constructor(
             engine.release()
         }
         scope.launch { subtitlePreferences.collect { engine.setSubtitlePreferences(it) } }
+        scope.launch { audioDelayMs.collect { engine.setAudioDelay(it) } }
         scope.launch { settings.upscaleDisplayLimit.collect { engine.setUpscaleDisplayLimit(it) } }
         scope.launch {
             val videos = mediaLibrary.scan()
@@ -440,6 +442,9 @@ public class PlayerComponent internal constructor(
         val state = engine.state.value
         engine.seekTo((state.positionMs + SkipSegments.OPENING_JUMP_MS).coerceAtMost(state.durationMs))
     }
+
+    /** Global: the offset belongs to the headphones, not to one video. */
+    internal fun setAudioDelay(delayMs: Int) = settings.setAudioDelayMs(delayMs)
 
     /** Stops the autoplay countdown; the card stays with a plain "Play" button. */
     internal fun cancelUpNext() {

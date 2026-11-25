@@ -27,6 +27,7 @@ internal class PlaybackSettingsComponent(
 
     val backgroundPlayback: StateFlow<Boolean> = settings.backgroundPlayback
     val frameRateMatching: StateFlow<FrameRateMatching> = settings.frameRateMatching
+    val audioDelayMs: StateFlow<Int> = settings.audioDelayMs
     val cacheLimitMb: StateFlow<Int> = settings.streamCacheLimitMb
     val cacheUsedBytes: StateFlow<Long> = mediaCache.usedBytes
 
@@ -41,6 +42,8 @@ internal class PlaybackSettingsComponent(
     fun setBackgroundPlayback(enabled: Boolean) = settings.setBackgroundPlayback(enabled)
 
     fun setFrameRateMatching(value: FrameRateMatching) = settings.setFrameRateMatching(value)
+
+    fun setAudioDelayMs(value: Int) = settings.setAudioDelayMs(value)
 
     fun setCacheLimitMb(value: Int) {
         settings.setStreamCacheLimitMb(value)

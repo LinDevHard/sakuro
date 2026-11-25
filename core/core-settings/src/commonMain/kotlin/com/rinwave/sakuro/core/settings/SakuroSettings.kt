@@ -136,6 +136,22 @@ class SakuroSettings(
         _streamCacheLimitMb.value = clamped
     }
 
+    private val _audioDelayMs = MutableStateFlow(
+        settings.getInt(KEY_AUDIO_DELAY_MS, 0).coerceIn(-MAX_AUDIO_DELAY_MS, MAX_AUDIO_DELAY_MS),
+    )
+
+    /**
+     * Audio offset against the picture: positive plays the sound later, negative earlier
+     * (Bluetooth headphones that lag behind the video). A device property, so it is global.
+     */
+    val audioDelayMs: StateFlow<Int> = _audioDelayMs.asStateFlow()
+
+    fun setAudioDelayMs(value: Int) {
+        val clamped = value.coerceIn(-MAX_AUDIO_DELAY_MS, MAX_AUDIO_DELAY_MS)
+        settings.putInt(KEY_AUDIO_DELAY_MS, clamped)
+        _audioDelayMs.value = clamped
+    }
+
     private val _assRenderer = MutableStateFlow(settings.getBoolean(KEY_ASS_RENDERER, true))
 
     /** Full ASS/SSA rendering with libass (Media3 engine); applies to the next video. */
@@ -213,11 +229,15 @@ class SakuroSettings(
         private const val KEY_GESTURE_ZOOM = "player_gesture_zoom"
         private const val KEY_GESTURE_SENSITIVITY = "player_gesture_sensitivity"
         private const val KEY_ASS_RENDERER = "subtitles_ass_renderer"
+        private const val KEY_AUDIO_DELAY_MS = "player_audio_delay_ms"
         private const val KEY_FRAME_RATE_MATCHING = "player_frame_rate_matching"
         private const val KEY_BACKGROUND_PLAYBACK = "player_background_playback"
         private const val KEY_STREAM_CACHE_MB = "stream_cache_limit_mb"
         private const val DEFAULT_STREAM_CACHE_MB = 1024
         private const val MAX_STREAM_CACHE_MB = 16 * 1024
         private const val DEFAULT_PRESET_ID = "off"
+
+        /** ±2 s covers Bluetooth (100–500 ms) and badly muxed files; beyond that the file is broken. */
+        const val MAX_AUDIO_DELAY_MS = 2_000
     }
 }
