@@ -35,13 +35,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
 
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
-      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1
+      - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1
         with:
           bundler-cache: true
 
@@ -91,13 +91,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends autoconf automake libtool autopoint gettext gperf meson nasm ninja-build pkg-config
 
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
 
-      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1
+      - uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1
         with:
           bundler-cache: true
 
